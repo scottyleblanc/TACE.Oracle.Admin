@@ -52,6 +52,7 @@ function Set-OracleEnv {
     $ErrorActionPreference = 'Stop'
 
     try {
+        $serviceWarning = $null
         Write-Verbose "[Set-OracleEnv] Querying available Oracle instances at $(Get-Date -Format u)"
 
         $listResult = Get-OracleDatabaseList
@@ -112,10 +113,12 @@ function Set-OracleEnv {
                     Message = "SID '$SID' not found on this host. Valid options: $validList"
                 }
             }
+        }
 
-            if ($match[0].Status -ne 'Running') {
-                Write-Warning "[Set-OracleEnv] OracleService$SID is $($match[0].Status). ORACLE_SID will be set but the database may not be available."
-            }
+        # Check service status for the resolved SID (applies to both interactive and parameter paths)
+        $resolved = @($databases | Where-Object { $_.SID -eq $SID })
+        if ($resolved.Count -gt 0 -and $resolved[0].Status -ne 'Running') {
+            $serviceWarning = "[Set-OracleEnv] OracleService$SID is $($resolved[0].Status)."
         }
 
         # -- Apply ---------------------------------------------------------------
@@ -123,14 +126,10 @@ function Set-OracleEnv {
         if ($PSCmdlet.ShouldProcess('ORACLE_SID', "Set to '$SID'")) {
             $env:ORACLE_SID = $SID
             Write-Verbose "[Set-OracleEnv] ORACLE_SID set to '$SID' at $(Get-Date -Format u)"
-            Write-Host "[Set-OracleEnv] ORACLE_SID = $SID"
+            Write-Host "ORACLE_SID set to '$SID'"
+            if ($serviceWarning) { Write-Warning $serviceWarning }
         }
 
-        return [PSCustomObject]@{
-            Success = $true
-            Data    = [PSCustomObject]@{ SID = $SID }
-            Message = "ORACLE_SID set to '$SID'."
-        }
     }
     catch {
         return [PSCustomObject]@{
