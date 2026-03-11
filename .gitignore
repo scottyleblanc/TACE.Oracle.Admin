@@ -1,0 +1,19 @@
+# Claude instruction files — not committed to git
+.claude/
+*.claude.md
+CLAUDE.md
+
+# PowerShell temp
+*.ps1xml~
+
+# Pester test results
+Tests/TestResults/
+
+# PowerShell module build artifacts
+*.nupkg
+Release/
+
+# Editor
+.vscode/
+*.suo
+.vs/

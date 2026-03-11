@@ -1,0 +1,101 @@
+# TACE.OracleAdmin — Security Reference
+
+## Status
+
+| Field | Value |
+|---|---|
+| Version | 0.1.0 |
+| Last audit | 2026-03-11 |
+| Findings resolved | 0 |
+| Unit tests | 35 (target — Stage 1) |
+| Open SEC items | None |
+
+---
+
+## Security Mechanisms
+
+### 1. No Credential Handling
+
+**Status:** N/A — this module does not handle passwords or credentials.
+
+**Why:** `Get-OracleDatabaseList` and `Set-OracleEnv` operate on Windows services
+and environment variables only. No Oracle connection is made, no password is
+required, and no credential material exists in the module at Stage 1.
+
+**Contract:** If future functions require credentials, they must use `[SecureString]`
+parameters and follow the credential handling standards defined in `dev/.claude/CLAUDE.md`.
+
+---
+
+### 2. Environment Variable Isolation
+
+**Status:** Implemented at Stage 1.
+
+**Why:** `Set-OracleEnv` sets `$env:ORACLE_SID` in the current session only.
+No child processes are spawned, no persistent config is written, and no other
+session or process is affected.
+
+**Contract:** `Set-OracleEnv` must never write `ORACLE_SID` to disk, to the
+registry, or to any external process environment. Session-only, always.
+
+---
+
+### 3. Input Validation
+
+**Status:** Implemented at Stage 1.
+
+**Why:** `Set-OracleEnv` validates any supplied SID against the set of
+`OracleService*` Windows services before setting it. Arbitrary strings cannot
+be injected as `ORACLE_SID`.
+
+**Contract:** The SID allowlist is always derived at runtime from Windows
+service discovery — never from a hardcoded list or user-supplied config file.
+
+---
+
+### 4. Output Scrubbing
+
+**Status:** Implemented at Stage 1 (trivially — no credentials exist).
+
+**Contract:** `Message` on every return object must be safe to write to a log.
+At Stage 1, all `Message` values contain only SID names, counts, and status
+strings. No sensitive data is present on any code path.
+
+---
+
+## Open Items
+
+None at Stage 1.
+
+---
+
+## Audit Record
+
+| Date | Version | Findings | Resolution |
+|---|---|---|---|
+| 2026-03-11 | 0.1.0 | None | Initial scaffold review — no credential handling, no external processes, input validated against service discovery. |
+
+---
+
+## Code Signing Guidance
+
+| Context | Execution Policy | Files to Sign |
+|---|---|---|
+| Interactive dev | RemoteSigned | None required for local files |
+| Shared/production | AllSigned | `OracleAdmin.psm1`, `OracleAdmin.psd1`, all `Public\*.ps1` |
+
+Sign with: `Set-AuthenticodeSignature -FilePath <file> -Certificate <cert>`
+
+---
+
+## STIG Compliance
+
+| Control | Requirement | Status |
+|---|---|---|
+| APSC-DV-000160 | No plaintext credential storage | Compliant — no credentials at Stage 1 |
+| APSC-DV-002000 | Explicit parameter validation | Compliant — `[ValidateNotNullOrEmpty()]` on SID; SID allowlisted at runtime |
+| APSC-DV-002560 | Scrub exception messages before re-throw | Compliant — no credential data can appear in exceptions |
+| APSC-DV-003235 | No hardcoded credentials or connection strings | Compliant — none present |
+| WN22-CC-000460 | Safe under script block logging | Compliant — no plaintext in any logged expression |
+| WN22-CC-000470 | No credential-bearing pipeline output | Compliant — no credentials at Stage 1 |
+| WN22-CC-000480 | Requires PS 7.0+ | Compliant — `#Requires -Version 7.0` on all files |
