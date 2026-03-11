@@ -32,7 +32,15 @@ The profile at `profile.ps1` imports this module automatically on session start.
 | Function | Description |
 |---|---|
 | `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host via `OracleService*` Windows services. Returns SID, Status, and ServiceName for each instance. |
-| `Set-OracleEnv` | Sets `ORACLE_SID` for the current session to a validated Oracle instance. Prompts interactively when no SID is supplied. Profile alias: `oraset`. |
+| `Set-OracleEnv` | Sets `ORACLE_SID` for the current session to a validated Oracle instance. Prompts interactively when no SID is supplied. Returns a standard `PSCustomObject`. |
+| `Invoke-OraEnv` | Interactive wrapper for `Set-OracleEnv`. Suppresses the return object for clean terminal output; writes `[ERROR]` to host on failure. Target of the `oraset` and `oraenv` aliases. |
+
+## Aliases
+
+| Alias | Target | Purpose |
+|---|---|---|
+| `oraset` | `Invoke-OraEnv` | Interactive shorthand — sets `ORACLE_SID` with clean output |
+| `oraenv` | `Invoke-OraEnv` | Alternative interactive shorthand |
 
 ## Output Contract
 
@@ -73,9 +81,9 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.1.0 |
+| Version | 0.1.1 |
 | Last audit | 2026-03-11 |
-| Tests | 35 unit tests (target) |
+| Tests | 52 unit tests (all passing) |
 | Open SEC items | None at Stage 1 |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.

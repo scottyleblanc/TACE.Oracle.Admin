@@ -8,7 +8,7 @@
 @{
     # Module identity
     RootModule        = 'OracleAdmin.psm1'
-    ModuleVersion     = '0.1.0'
+    ModuleVersion     = '0.1.1'
     GUID              = '50e4f865-a551-4f83-beb1-329987147747'
     Author            = 'TACE Data Management Inc.'
     CompanyName       = 'TACE Data Management Inc.'
@@ -22,11 +22,12 @@
     FunctionsToExport = @(
         'Get-OracleDatabaseList'
         'Set-OracleEnv'
+        'Invoke-OraEnv'
     )
 
-    # No cmdlets or aliases exported from the module itself
+    # No cmdlets exported from the module itself
     CmdletsToExport   = @()
-    AliasesToExport   = @()
+    AliasesToExport   = @('oraset', 'oraenv')
     VariablesToExport = @()
 
     # Private data
@@ -34,7 +35,7 @@
         PSData = @{
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration')
             ProjectUri   = ''
-            ReleaseNotes = 'Stage 1 — Foundation: module scaffold, instance discovery, environment setup.'
+            ReleaseNotes = 'v0.1.1 — Add Invoke-OraEnv wrapper and oraset/oraenv aliases; fix Set-OracleEnv output behavior and service status check.'
         }
     }
 }

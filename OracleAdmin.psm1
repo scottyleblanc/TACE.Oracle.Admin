@@ -14,12 +14,28 @@
     Copyright © TACE Data Management Inc.
     Published name : TACE.OracleAdmin
     Internal name  : OracleAdmin
-    Version        : 0.1.0
+    Version        : 0.1.1
     Stage          : 1 — Foundation
 #>
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+#region -- Load private functions
+
+$privateFunctions = @(
+    'Invoke-OraEnv.ps1'
+)
+
+foreach ($function in $privateFunctions) {
+    $functionPath = Join-Path $PSScriptRoot 'Private' $function
+    if (-not (Test-Path $functionPath)) {
+        throw "Required private function not found: $functionPath"
+    }
+    . $functionPath
+}
+
+#endregion
 
 #region -- Load public functions
 
@@ -35,5 +51,12 @@ foreach ($function in $publicFunctions) {
     }
     . $functionPath
 }
+
+#endregion
+
+#region -- Aliases
+
+Set-Alias -Name oraset -Value Invoke-OraEnv
+Set-Alias -Name oraenv -Value Invoke-OraEnv
 
 #endregion

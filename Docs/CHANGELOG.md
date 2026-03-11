@@ -6,6 +6,34 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.1] - 2026-03-11
+
+### Added
+
+- `Invoke-OraEnv` (`Private\Invoke-OraEnv.ps1`) — interactive wrapper for
+  `Set-OracleEnv` that discards the return object for clean terminal output.
+  Writes `[ERROR]` to host on failure. Target of the `oraset` and `oraenv` aliases.
+- `oraset` and `oraenv` aliases registered in `OracleAdmin.psm1` and exported
+  via `OracleAdmin.psd1`.
+- `Tests\OracleAdmin.Module.Tests.ps1` — module-level tests verifying both
+  aliases exist, resolve to `Invoke-OraEnv`, and are exported by the module.
+
+### Fixed
+
+- `Set-OracleEnv`: service status check now applies to both the interactive
+  menu path and the `-SID` parameter path; previously only checked on the
+  parameter path.
+- `Set-OracleEnv`: `Write-Host` confirmation now emits before `Write-Warning`
+  so the SID confirmation always appears first.
+- `Set-OracleEnv`: initialize `$serviceWarning = $null` to satisfy
+  `Set-StrictMode -Version Latest` on the interactive menu path.
+- `Set-OracleEnv`: `Write-Host` output changed from
+  `[Set-OracleEnv] ORACLE_SID = <SID>` to `ORACLE_SID set to '<SID>'`.
+- `Set-OracleEnv`: service-stopped warning shortened to
+  `[Set-OracleEnv] OracleService<SID> is Stopped.`
+
+---
+
 ## [0.1.0] - 2026-03-11
 
 ### Added

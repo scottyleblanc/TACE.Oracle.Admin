@@ -16,9 +16,9 @@ items are checked off.
 - [x] Write unit tests for `Set-OracleEnv`
 - [x] Write required project documentation
 - [x] Update `profile.ps1` and `profile.common.ps1` — import module, alias `oraset`
-- [ ] Run Pester suite; confirm all tests pass
-- [ ] [SEC] Confirm no credential leakage in Message, Verbose, or pipeline output
-- [ ] Git init and initial commit
+- [x] Run Pester suite; confirm all tests pass
+- [x] [SEC] Confirm no credential leakage in Message, Verbose, or pipeline output
+- [x] Git init and initial commit
 
 ---
 

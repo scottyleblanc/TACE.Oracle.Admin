@@ -38,7 +38,7 @@ function Set-OracleEnv {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.OracleAdmin
-        Version : 0.1.0
+        Version : 0.1.1
         Profile alias: oraset
     #>
     [CmdletBinding(SupportsShouldProcess)]
@@ -130,6 +130,11 @@ function Set-OracleEnv {
             if ($serviceWarning) { Write-Warning $serviceWarning }
         }
 
+        return [PSCustomObject]@{
+            Success = $true
+            Data    = [PSCustomObject]@{ SID = $SID }
+            Message = "ORACLE_SID set to '$SID'."
+        }
     }
     catch {
         return [PSCustomObject]@{
