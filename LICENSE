@@ -1,21 +1,73 @@
-MIT License
+TACE SOFTWARE LICENSE
+Version 1.0
+Effective: [Delivery Date]
 
-Copyright © TACE Data Management Inc.
+Copyright (c) 2025-2026 TACE. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+DEFINITIONS
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+"Licensee" refers to the individual or organization that has received this
+software from TACE.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+"Software" refers to the code, scripts, modules, and associated documentation
+delivered under this license.
+
+ACCEPTANCE
+
+Receipt or use of the Software constitutes acceptance of the terms of this
+license. If you do not agree to these terms, you must not use, deploy, or
+retain the Software.
+
+GRANT OF LICENSE
+
+TACE grants the Licensee a non-exclusive, non-transferable, perpetual license
+to use, deploy, and modify this Software within the Licensee's organization
+for any purpose. Modifications made by the Licensee become the Licensee's
+own work product. TACE retains ownership of the original Software and all
+underlying patterns, techniques, and approaches embodied in it.
+
+RESTRICTIONS
+
+The Licensee may not:
+
+1. Distribute, sublicense, sell, or transfer this Software or any derivative
+   to any third party without prior written consent from TACE.
+
+2. Remove or alter any copyright notices, attributions, or this license.
+
+3. Represent this Software as the Licensee's own original work to any third
+   party.
+
+TACE RETAINED RIGHTS
+
+TACE retains the right to use, reuse, and deliver the generic patterns,
+techniques, and approaches embodied in this Software in engagements with
+other clients. Delivery of this Software does not constitute a transfer of
+TACE's underlying intellectual property or methodology.
+
+DISCLAIMER OF WARRANTY
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. TACE MAKES NO WARRANTY THAT
+THE SOFTWARE WILL MEET THE LICENSEE'S REQUIREMENTS OR OPERATE WITHOUT ERROR
+IN THE LICENSEE'S ENVIRONMENT.
+
+LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL TACE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES ARISING OUT OF OR IN CONNECTION
+WITH THE USE OR INABILITY TO USE THIS SOFTWARE, INCLUDING BUT NOT LIMITED TO
+LOSS OF DATA, SYSTEM FAILURE, OR BUSINESS INTERRUPTION, EVEN IF TACE HAS
+BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+GOVERNING LAW
+
+This license shall be governed by and construed in accordance with the laws
+of New Brunswick, Canada, without regard to conflict of law principles.
+
+AI-ASSISTED DEVELOPMENT
+
+This Software was developed using AI tooling as part of TACE's standard
+engineering practice. This does not affect the ownership, warranties, or
+restrictions stated in this license.
