@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1.3 |
+| Version | 0.1.4 |
 | Last audit | 2026-03-13 |
 | Findings resolved | 0 |
-| Unit tests | 82 (all passing) |
+| Unit tests | 102 (all passing) |
 | Open SEC items | None |
 
 ---
@@ -76,6 +76,7 @@ None at Stage 1.
 |---|---|---|---|
 | 2026-03-11 | 0.1.0 | None | Initial scaffold review — no credential handling, no external processes, input validated against service discovery. |
 | 2026-03-13 | 0.1.3 | None | Environment variable derivation review — `ORACLE_HOME` and `ORACLE_BASE` derived from Win32_Service PathName. No credential handling added; session-only contract unchanged. |
+| 2026-03-13 | 0.1.4 | None | Multi-platform discovery review — Linux path reads `/etc/oratab` and checks `ora_pmon` process. No credential handling; no child processes spawned; session-only contract unchanged. |
 
 ---
 

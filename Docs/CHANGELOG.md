@@ -6,6 +6,25 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.4] - 2026-03-13
+
+### Added
+
+- `Get-OracleDatabaseList`: multi-platform support via `$Platform` parameter
+  (auto-detected from `$IsWindows`/`$IsLinux`; override with `-Platform` for testing).
+  - Windows path: existing `Win32_Service` discovery, unchanged.
+  - Linux path: parses `/etc/oratab`; derives `OracleHome` from the file directly and
+    `OracleBase` via string split (preserves `/` on all platforms); determines `Status`
+    by checking for an `ora_pmon_<SID>` process; `ServiceName` is `$null`.
+  - Unsupported platform: returns `Success=$false` with a descriptive message.
+- Unit test count: 82 → 102 (all passing). New contexts cover Linux oratab happy path,
+  file not found, comment/blank line skipping, malformed lines, wildcard SID entries,
+  `Get-Content` failure, and unsupported platform.
+- `VERSIONING.md`: documented branch/tag naming convention (`vX.Y.Z-dev` for branches,
+  `vX.Y.Z` for tags) to prevent push ambiguity.
+
+---
+
 ## [0.1.3] - 2026-03-13
 
 ### Changed

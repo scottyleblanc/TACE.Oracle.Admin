@@ -8,7 +8,7 @@
 @{
     # Module identity
     RootModule        = 'OracleAdmin.psm1'
-    ModuleVersion     = '0.1.1'
+    ModuleVersion     = '0.1.4'
     GUID              = '50e4f865-a551-4f83-beb1-329987147747'
     Author            = 'TACE Data Management Inc.'
     CompanyName       = 'TACE Data Management Inc.'
@@ -35,7 +35,7 @@
         PSData = @{
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration')
             ProjectUri   = ''
-            ReleaseNotes = 'v0.1.1 — Add Invoke-OraEnv wrapper and oraset/oraenv aliases; fix Set-OracleEnv output behavior and service status check.'
+            ReleaseNotes = 'v0.1.4 — Add multi-platform support: Linux discovery via /etc/oratab and ora_pmon process check; -Platform parameter on Get-OracleDatabaseList for testability; OracleHome and OracleBase derived on both platforms.'
         }
     }
 }

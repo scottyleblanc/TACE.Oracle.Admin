@@ -35,6 +35,19 @@ items are checked off.
 
 ---
 
+## Stage 1.4 — Multi-Platform Discovery (v0.1.4)
+
+- [x] Add `-Platform` parameter to `Get-OracleDatabaseList` for auto-detection and
+      test override (`$IsWindows` / `$IsLinux`)
+- [x] Implement Linux discovery path via `/etc/oratab`; derive `OracleBase` using
+      string split to preserve `/` separators on all platforms
+- [x] Check `ora_pmon_<SID>` process for instance status on Linux
+- [x] Return `Success=$false` for unsupported platforms
+- [x] Update unit tests (102 total, all passing)
+- [x] Update project documentation
+
+---
+
 ## Stage 2 — Future (TBD)
 
 - [ ] `Get-OracleStatus` — report instance open mode, database role, archivelog mode
