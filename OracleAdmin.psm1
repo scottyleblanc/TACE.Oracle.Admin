@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     TACE.OracleAdmin provides PowerShell functions for Oracle database
-    environment management and administration utilities on Windows.
+    environment management and administration utilities on Windows and Linux.
 
     Functions are designed for interactive DBA use and automation alike.
     All public functions return a standard PSCustomObject { Success, Data, Message }.
@@ -14,7 +14,7 @@
     Copyright © TACE Data Management Inc.
     Published name : TACE.OracleAdmin
     Internal name  : OracleAdmin
-    Version        : 0.1.1
+    Version        : 0.1.4
     Stage          : 1 — Foundation
 #>
 

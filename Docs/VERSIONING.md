@@ -35,10 +35,15 @@ Breaking changes require a `BREAKING CHANGE:` footer in the commit body.
 
 ## Branching Strategy
 
-- `main` — stable, tagged releases only
-- `stage/<n>-<description>` — one branch per development stage
-- Merge to `main` with `--no-ff` to preserve branch history
-- Tag `main` after each merge: `git tag v0.1.0`
+- `master` — stable, tagged releases only
+- `vX.Y.Z-dev` — one branch per version (e.g. `v0.1.4-dev`)
+- Merge to `master` with `--no-ff` to preserve branch history
+- Tag `master` after each merge using the bare version: `git tag vX.Y.Z`
+
+**Branch and tag names must never be identical.** Using the `-dev` suffix on
+branches avoids ambiguity when pushing — `git push origin vX.Y.Z` would match
+both the branch and the tag and will fail. Push the tag explicitly if needed:
+`git push origin refs/tags/vX.Y.Z`
 
 ## Version–Commit–Changelog Mapping
 

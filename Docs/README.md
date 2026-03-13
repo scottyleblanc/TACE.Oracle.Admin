@@ -3,9 +3,9 @@
 ## Overview
 
 TACE.OracleAdmin is a PowerShell Core 7+ module that provides Oracle database
-administration utilities for Windows environments. It focuses on environment
-management and DBA tooling — discovering Oracle instances on the local host,
-setting the active session context, and (in future stages) additional
+administration utilities for Windows and Linux environments. It focuses on
+environment management and DBA tooling — discovering Oracle instances on the
+local host, setting the active session context, and (in future stages) additional
 administration functions. It is designed for both interactive DBA use and
 scripted automation.
 
@@ -14,8 +14,10 @@ scripted automation.
 See [PREREQUISITES.md](PREREQUISITES.md) for full details.
 
 - PowerShell 7.0 or later
-- Windows (Oracle instance discovery via `Win32_Service` WMI)
+- Windows or Linux
 - Oracle 19c client or server installation (for `Set-OracleEnv` to be useful)
+- Windows: instance discovery via `Win32_Service` (WMI)
+- Linux: instance discovery via `/etc/oratab`
 
 ## Installation
 
@@ -31,7 +33,7 @@ The profile at `profile.ps1` imports this module automatically on session start.
 
 | Function | Description |
 |---|---|
-| `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host via `Win32_Service` (WMI). Returns SID, Status, ServiceName, OracleHome, and OracleBase for each instance. |
+| `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host. Windows: via `Win32_Service` (WMI). Linux: via `/etc/oratab`. Returns SID, Status, ServiceName, OracleHome, and OracleBase for each instance. |
 | `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current session from a validated Oracle instance. Prompts interactively when no SID is supplied. Returns a standard `PSCustomObject`. |
 | `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Suppresses the return object for clean terminal output; writes `[ERROR]` to host on failure. Target of the `oraset` and `oraenv` aliases. Not intended for scripted use — use `Set-OracleEnv` directly in automation. |
 
@@ -81,9 +83,9 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.1.3 |
+| Version | 0.1.4 |
 | Last audit | 2026-03-13 |
-| Tests | 82 unit tests (all passing) |
+| Tests | 102 unit tests (all passing) |
 | Open SEC items | None |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.
