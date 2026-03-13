@@ -21,10 +21,18 @@ Describe 'Get-OracleDatabaseList' {
     Context 'Implementation — services found' {
 
         BeforeEach {
-            Mock Get-Service {
+            Mock Get-CimInstance {
                 @(
-                    [PSCustomObject]@{ Name = 'OracleServiceORCL'; Status = 'Running' }
-                    [PSCustomObject]@{ Name = 'OracleServiceCDB1'; Status = 'Stopped' }
+                    [PSCustomObject]@{
+                        Name     = 'OracleServiceORCL'
+                        State    = 'Running'
+                        PathName = 'C:\app\oracle\product\19.3\dbhome_1\bin\ORACLE.EXE ORCL'
+                    }
+                    [PSCustomObject]@{
+                        Name     = 'OracleServiceCDB1'
+                        State    = 'Stopped'
+                        PathName = 'C:\app\oracle\product\19.3\dbhome_2\bin\ORACLE.EXE CDB1'
+                    }
                 )
             } -ModuleName OracleAdmin
         }
@@ -51,6 +59,18 @@ Describe 'Get-OracleDatabaseList' {
             ($result.Data | Where-Object SID -EQ 'ORCL').ServiceName | Should -Be 'OracleServiceORCL'
         }
 
+        It 'Returns correct OracleHome from unquoted PathName' {
+            $result = Get-OracleDatabaseList
+            ($result.Data | Where-Object SID -EQ 'ORCL').OracleHome | Should -Be 'C:\app\oracle\product\19.3\dbhome_1'
+            ($result.Data | Where-Object SID -EQ 'CDB1').OracleHome | Should -Be 'C:\app\oracle\product\19.3\dbhome_2'
+        }
+
+        It 'Returns correct OracleBase from unquoted PathName' {
+            $result = Get-OracleDatabaseList
+            ($result.Data | Where-Object SID -EQ 'ORCL').OracleBase | Should -Be 'C:\app\oracle'
+            ($result.Data | Where-Object SID -EQ 'CDB1').OracleBase | Should -Be 'C:\app\oracle'
+        }
+
         It 'Returns Data as an array' {
             $result = Get-OracleDatabaseList
             $result.Data | Should -BeOfType [PSCustomObject]
@@ -63,10 +83,60 @@ Describe 'Get-OracleDatabaseList' {
         }
     }
 
+    Context 'Implementation — OracleHome and OracleBase from quoted PathName' {
+
+        BeforeEach {
+            Mock Get-CimInstance {
+                @(
+                    [PSCustomObject]@{
+                        Name     = 'OracleServiceORCL'
+                        State    = 'Running'
+                        PathName = '"C:\app\oracle\product\19.3\dbhome_1\bin\ORACLE.EXE" ORCL'
+                    }
+                )
+            } -ModuleName OracleAdmin
+        }
+
+        It 'Extracts OracleHome correctly from a quoted PathName' {
+            $result = Get-OracleDatabaseList
+            ($result.Data | Where-Object SID -EQ 'ORCL').OracleHome | Should -Be 'C:\app\oracle\product\19.3\dbhome_1'
+        }
+
+        It 'Extracts OracleBase correctly from a quoted PathName' {
+            $result = Get-OracleDatabaseList
+            ($result.Data | Where-Object SID -EQ 'ORCL').OracleBase | Should -Be 'C:\app\oracle'
+        }
+    }
+
+    Context 'Implementation — OracleHome and OracleBase when PathName is empty' {
+
+        BeforeEach {
+            Mock Get-CimInstance {
+                @(
+                    [PSCustomObject]@{
+                        Name     = 'OracleServiceORCL'
+                        State    = 'Running'
+                        PathName = ''
+                    }
+                )
+            } -ModuleName OracleAdmin
+        }
+
+        It 'Returns OracleHome as $null when PathName is empty' {
+            $result = Get-OracleDatabaseList
+            ($result.Data | Where-Object SID -EQ 'ORCL').OracleHome | Should -BeNullOrEmpty
+        }
+
+        It 'Returns OracleBase as $null when PathName is empty' {
+            $result = Get-OracleDatabaseList
+            ($result.Data | Where-Object SID -EQ 'ORCL').OracleBase | Should -BeNullOrEmpty
+        }
+    }
+
     Context 'Implementation — no services found' {
 
         BeforeEach {
-            Mock Get-Service { @() } -ModuleName OracleAdmin
+            Mock Get-CimInstance { @() } -ModuleName OracleAdmin
         }
 
         It 'Returns Success = $true with empty Data' {
@@ -81,10 +151,10 @@ Describe 'Get-OracleDatabaseList' {
         }
     }
 
-    Context 'Implementation — Get-Service throws' {
+    Context 'Implementation — Get-CimInstance throws' {
 
         BeforeEach {
-            Mock Get-Service { throw 'Access denied' } -ModuleName OracleAdmin
+            Mock Get-CimInstance { throw 'Access denied' } -ModuleName OracleAdmin
         }
 
         It 'Returns Success = $false' {
@@ -106,7 +176,7 @@ Describe 'Get-OracleDatabaseList' {
     Context 'Return object shape' {
 
         BeforeEach {
-            Mock Get-Service { @() } -ModuleName OracleAdmin
+            Mock Get-CimInstance { @() } -ModuleName OracleAdmin
         }
 
         It 'Has Success property' {
@@ -131,10 +201,50 @@ Describe 'Get-OracleDatabaseList' {
         }
     }
 
+    Context 'Data entry shape' {
+
+        BeforeEach {
+            Mock Get-CimInstance {
+                @(
+                    [PSCustomObject]@{
+                        Name     = 'OracleServiceORCL'
+                        State    = 'Running'
+                        PathName = 'C:\app\oracle\product\19.3\dbhome_1\bin\ORACLE.EXE ORCL'
+                    }
+                )
+            } -ModuleName OracleAdmin
+        }
+
+        It 'Data entries have SID property' {
+            $result = Get-OracleDatabaseList
+            $result.Data[0].PSObject.Properties.Name | Should -Contain 'SID'
+        }
+
+        It 'Data entries have Status property' {
+            $result = Get-OracleDatabaseList
+            $result.Data[0].PSObject.Properties.Name | Should -Contain 'Status'
+        }
+
+        It 'Data entries have ServiceName property' {
+            $result = Get-OracleDatabaseList
+            $result.Data[0].PSObject.Properties.Name | Should -Contain 'ServiceName'
+        }
+
+        It 'Data entries have OracleHome property' {
+            $result = Get-OracleDatabaseList
+            $result.Data[0].PSObject.Properties.Name | Should -Contain 'OracleHome'
+        }
+
+        It 'Data entries have OracleBase property' {
+            $result = Get-OracleDatabaseList
+            $result.Data[0].PSObject.Properties.Name | Should -Contain 'OracleBase'
+        }
+    }
+
     Context 'Security' {
 
         BeforeEach {
-            Mock Get-Service { @() } -ModuleName OracleAdmin
+            Mock Get-CimInstance { @() } -ModuleName OracleAdmin
         }
 
         It 'Message contains no credential fragments' {

@@ -22,6 +22,19 @@ items are checked off.
 
 ---
 
+## Stage 1.3 — Environment Variable Derivation (v0.1.3)
+
+- [x] Switch `Get-OracleDatabaseList` from `Get-Service` to `Get-CimInstance Win32_Service`
+      to expose `PathName` (service executable path)
+- [x] Derive `ORACLE_HOME` from `PathName` in `Get-OracleDatabaseList`
+- [x] Derive `ORACLE_BASE` from `ORACLE_HOME` in `Get-OracleDatabaseList`
+- [x] Update `Set-OracleEnv` to set `$env:ORACLE_HOME` and `$env:ORACLE_BASE` from
+      discovered instance data; warn if either cannot be determined
+- [x] Update unit tests for both functions (82 total, all passing)
+- [x] Update project documentation
+
+---
+
 ## Stage 2 — Future (TBD)
 
 - [ ] `Get-OracleStatus` — report instance open mode, database role, archivelog mode

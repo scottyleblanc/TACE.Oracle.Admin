@@ -6,6 +6,35 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.3] - 2026-03-13
+
+### Changed
+
+- `Get-OracleDatabaseList`: switched service discovery from `Get-Service` to
+  `Get-CimInstance Win32_Service` to expose the `PathName` (service executable path).
+  `ORACLE_HOME` is now derived from `PathName` by stripping `\bin\ORACLE.EXE`.
+  `ORACLE_BASE` is derived from `ORACLE_HOME` by stripping `\product\{version}\{home}`.
+  Both values are added to each Data entry as `OracleHome` and `OracleBase`.
+  Returns `$null` for either field if `PathName` cannot be parsed.
+- `Set-OracleEnv`: now sets `$env:ORACLE_HOME` and `$env:ORACLE_BASE` from the
+  resolved instance's discovered values. Warns (but still sets `ORACLE_SID`) if
+  either value cannot be determined. Returns `OracleHome` and `OracleBase` in
+  the `Data` object.
+- Unit test count: 70 → 82 (all passing). New tests cover `OracleBase` derivation,
+  quoted and unquoted `PathName` parsing, null `PathName` handling, and
+  `$env:ORACLE_BASE` set/not-set behaviour.
+
+---
+
+## [0.1.2] - 2026-03-12
+
+### Changed
+
+- `README.md`: added AI-assisted development and support guidance section.
+- `LICENSE`: incorporated AI language.
+
+---
+
 ## [0.1.1] - 2026-03-11
 
 ### Added
