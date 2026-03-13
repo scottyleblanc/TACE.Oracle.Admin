@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1.0 |
-| Last audit | 2026-03-11 |
+| Version | 0.1.3 |
+| Last audit | 2026-03-13 |
 | Findings resolved | 0 |
-| Unit tests | 35 (target — Stage 1) |
+| Unit tests | 82 (all passing) |
 | Open SEC items | None |
 
 ---
@@ -31,12 +31,13 @@ parameters and follow the credential handling standards defined in `dev/.claude/
 
 **Status:** Implemented at Stage 1.
 
-**Why:** `Set-OracleEnv` sets `$env:ORACLE_SID` in the current session only.
-No child processes are spawned, no persistent config is written, and no other
-session or process is affected.
+**Why:** `Set-OracleEnv` sets `$env:ORACLE_SID`, `$env:ORACLE_HOME`, and
+`$env:ORACLE_BASE` in the current session only. No child processes are spawned,
+no persistent config is written, and no other session or process is affected.
 
-**Contract:** `Set-OracleEnv` must never write `ORACLE_SID` to disk, to the
-registry, or to any external process environment. Session-only, always.
+**Contract:** `Set-OracleEnv` must never write `ORACLE_SID`, `ORACLE_HOME`, or
+`ORACLE_BASE` to disk, to the registry, or to any external process environment.
+Session-only, always.
 
 ---
 
@@ -74,6 +75,7 @@ None at Stage 1.
 | Date | Version | Findings | Resolution |
 |---|---|---|---|
 | 2026-03-11 | 0.1.0 | None | Initial scaffold review — no credential handling, no external processes, input validated against service discovery. |
+| 2026-03-13 | 0.1.3 | None | Environment variable derivation review — `ORACLE_HOME` and `ORACLE_BASE` derived from Win32_Service PathName. No credential handling added; session-only contract unchanged. |
 
 ---
 

@@ -6,12 +6,12 @@ BeforeAll {
 
     # Shared test data — accessible in BeforeEach/It blocks via $script: scope
     $script:twoInstances = @(
-        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL' }
-        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1' }
+        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
+        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' }
     )
 
     $script:oneInstance = @(
-        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL' }
+        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
     )
 }
 
@@ -40,21 +40,26 @@ Describe 'Set-OracleEnv' {
     Context 'Implementation - SID supplied, service Running' {
 
         BeforeEach {
-            # Mock scriptblock must be self-contained — no test-scope helpers or variables
             Mock Get-OracleDatabaseList {
                 [PSCustomObject]@{
                     Success = $true
                     Data    = @(
-                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL' }
-                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1' }
+                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
+                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' }
                     )
                     Message = 'Found 2 Oracle database instance(s).'
                 }
             } -ModuleName OracleAdmin
-            $env:ORACLE_SID = $null
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
         }
 
-        AfterEach { $env:ORACLE_SID = $null }
+        AfterEach {
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
+        }
 
         It 'Returns Success = $true' {
             $result = Set-OracleEnv -SID 'ORCL'
@@ -66,9 +71,29 @@ Describe 'Set-OracleEnv' {
             $env:ORACLE_SID | Should -Be 'ORCL'
         }
 
+        It 'Sets $env:ORACLE_HOME from the service executable path' {
+            Set-OracleEnv -SID 'ORCL' | Out-Null
+            $env:ORACLE_HOME | Should -Be 'C:\app\oracle\product\19.3\dbhome_1'
+        }
+
+        It 'Sets $env:ORACLE_BASE from the service executable path' {
+            Set-OracleEnv -SID 'ORCL' | Out-Null
+            $env:ORACLE_BASE | Should -Be 'C:\app\oracle'
+        }
+
         It 'Returns Data.SID matching the supplied SID' {
             $result = Set-OracleEnv -SID 'ORCL'
             $result.Data.SID | Should -Be 'ORCL'
+        }
+
+        It 'Returns Data.OracleHome matching the service executable path' {
+            $result = Set-OracleEnv -SID 'ORCL'
+            $result.Data.OracleHome | Should -Be 'C:\app\oracle\product\19.3\dbhome_1'
+        }
+
+        It 'Returns Data.OracleBase matching the service executable path' {
+            $result = Set-OracleEnv -SID 'ORCL'
+            $result.Data.OracleBase | Should -Be 'C:\app\oracle'
         }
     }
 
@@ -79,16 +104,22 @@ Describe 'Set-OracleEnv' {
                 [PSCustomObject]@{
                     Success = $true
                     Data    = @(
-                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL' }
-                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1' }
+                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
+                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' }
                     )
                     Message = 'Found 2 Oracle database instance(s).'
                 }
             } -ModuleName OracleAdmin
-            $env:ORACLE_SID = $null
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
         }
 
-        AfterEach { $env:ORACLE_SID = $null }
+        AfterEach {
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
+        }
 
         It 'Returns Success = $true despite stopped service' {
             $result = Set-OracleEnv -SID 'CDB1' -WarningAction SilentlyContinue
@@ -100,9 +131,78 @@ Describe 'Set-OracleEnv' {
             $env:ORACLE_SID | Should -Be 'CDB1'
         }
 
+        It 'Sets $env:ORACLE_HOME despite stopped service' {
+            Set-OracleEnv -SID 'CDB1' -WarningAction SilentlyContinue | Out-Null
+            $env:ORACLE_HOME | Should -Be 'C:\app\oracle\product\19.3\dbhome_2'
+        }
+
+        It 'Sets $env:ORACLE_BASE despite stopped service' {
+            Set-OracleEnv -SID 'CDB1' -WarningAction SilentlyContinue | Out-Null
+            $env:ORACLE_BASE | Should -Be 'C:\app\oracle'
+        }
+
         It 'Emits a warning for a stopped service' {
             Set-OracleEnv -SID 'CDB1' -WarningVariable w 3>&1 | Out-Null
             $w | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    Context 'Implementation - SID supplied, OracleHome and OracleBase are null' {
+
+        BeforeEach {
+            Mock Get-OracleDatabaseList {
+                [PSCustomObject]@{
+                    Success = $true
+                    Data    = @(
+                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = $null; OracleBase = $null }
+                    )
+                    Message = 'Found 1 Oracle database instance(s).'
+                }
+            } -ModuleName OracleAdmin
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
+        }
+
+        AfterEach {
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
+        }
+
+        It 'Returns Success = $true despite null OracleHome and OracleBase' {
+            $result = Set-OracleEnv -SID 'ORCL' -WarningAction SilentlyContinue
+            $result.Success | Should -BeTrue
+        }
+
+        It 'Sets $env:ORACLE_SID despite null OracleHome and OracleBase' {
+            Set-OracleEnv -SID 'ORCL' -WarningAction SilentlyContinue | Out-Null
+            $env:ORACLE_SID | Should -Be 'ORCL'
+        }
+
+        It 'Does not set $env:ORACLE_HOME when OracleHome is null' {
+            Set-OracleEnv -SID 'ORCL' -WarningAction SilentlyContinue | Out-Null
+            $env:ORACLE_HOME | Should -BeNullOrEmpty
+        }
+
+        It 'Does not set $env:ORACLE_BASE when OracleBase is null' {
+            Set-OracleEnv -SID 'ORCL' -WarningAction SilentlyContinue | Out-Null
+            $env:ORACLE_BASE | Should -BeNullOrEmpty
+        }
+
+        It 'Emits warnings when OracleHome and OracleBase are null' {
+            Set-OracleEnv -SID 'ORCL' -WarningVariable w 3>&1 | Out-Null
+            @($w).Count | Should -Be 2
+        }
+
+        It 'Returns Data.OracleHome as $null' {
+            $result = Set-OracleEnv -SID 'ORCL' -WarningAction SilentlyContinue
+            $result.Data.OracleHome | Should -BeNullOrEmpty
+        }
+
+        It 'Returns Data.OracleBase as $null' {
+            $result = Set-OracleEnv -SID 'ORCL' -WarningAction SilentlyContinue
+            $result.Data.OracleBase | Should -BeNullOrEmpty
         }
     }
 
@@ -113,8 +213,8 @@ Describe 'Set-OracleEnv' {
                 [PSCustomObject]@{
                     Success = $true
                     Data    = @(
-                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL' }
-                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1' }
+                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
+                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' }
                     )
                     Message = 'Found 2 Oracle database instance(s).'
                 }
@@ -146,15 +246,21 @@ Describe 'Set-OracleEnv' {
                 [PSCustomObject]@{
                     Success = $true
                     Data    = @(
-                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL' }
+                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
                     )
                     Message = 'Found 1 Oracle database instance(s).'
                 }
             } -ModuleName OracleAdmin
-            $env:ORACLE_SID = $null
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
         }
 
-        AfterEach { $env:ORACLE_SID = $null }
+        AfterEach {
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
+        }
 
         It 'Returns Success = $true' {
             $result = Set-OracleEnv
@@ -165,6 +271,16 @@ Describe 'Set-OracleEnv' {
             Set-OracleEnv | Out-Null
             $env:ORACLE_SID | Should -Be 'ORCL'
         }
+
+        It 'Sets $env:ORACLE_HOME automatically' {
+            Set-OracleEnv | Out-Null
+            $env:ORACLE_HOME | Should -Be 'C:\app\oracle\product\19.3\dbhome_1'
+        }
+
+        It 'Sets $env:ORACLE_BASE automatically' {
+            Set-OracleEnv | Out-Null
+            $env:ORACLE_BASE | Should -Be 'C:\app\oracle'
+        }
     }
 
     Context 'Implementation - no SID supplied, multiple instances, valid selection' {
@@ -174,17 +290,23 @@ Describe 'Set-OracleEnv' {
                 [PSCustomObject]@{
                     Success = $true
                     Data    = @(
-                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL' }
-                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1' }
+                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
+                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' }
                     )
                     Message = 'Found 2 Oracle database instance(s).'
                 }
             } -ModuleName OracleAdmin
             Mock Read-Host { '1' } -ModuleName OracleAdmin
-            $env:ORACLE_SID = $null
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
         }
 
-        AfterEach { $env:ORACLE_SID = $null }
+        AfterEach {
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
+        }
 
         It 'Returns Success = $true' {
             $result = Set-OracleEnv
@@ -195,6 +317,16 @@ Describe 'Set-OracleEnv' {
             Set-OracleEnv | Out-Null
             $env:ORACLE_SID | Should -Be 'ORCL'
         }
+
+        It 'Sets $env:ORACLE_HOME to the selected instance' {
+            Set-OracleEnv | Out-Null
+            $env:ORACLE_HOME | Should -Be 'C:\app\oracle\product\19.3\dbhome_1'
+        }
+
+        It 'Sets $env:ORACLE_BASE to the selected instance' {
+            Set-OracleEnv | Out-Null
+            $env:ORACLE_BASE | Should -Be 'C:\app\oracle'
+        }
     }
 
     Context 'Implementation - no SID supplied, multiple instances, invalid selection' {
@@ -204,8 +336,8 @@ Describe 'Set-OracleEnv' {
                 [PSCustomObject]@{
                     Success = $true
                     Data    = @(
-                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL' }
-                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1' }
+                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
+                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' }
                     )
                     Message = 'Found 2 Oracle database instance(s).'
                 }
@@ -265,15 +397,21 @@ Describe 'Set-OracleEnv' {
                 [PSCustomObject]@{
                     Success = $true
                     Data    = @(
-                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL' }
+                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
                     )
                     Message = 'Found 1 Oracle database instance(s).'
                 }
             } -ModuleName OracleAdmin
-            $env:ORACLE_SID = $null
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
         }
 
-        AfterEach { $env:ORACLE_SID = $null }
+        AfterEach {
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
+        }
 
         It 'Has Success property' {
             (Set-OracleEnv).PSObject.Properties.Name | Should -Contain 'Success'
@@ -292,6 +430,18 @@ Describe 'Set-OracleEnv' {
             $result.Data.SID | Should -BeOfType [string]
             $result.Data.SID | Should -Not -BeNullOrEmpty
         }
+
+        It 'Data.OracleHome is a non-empty string when path is available' {
+            $result = Set-OracleEnv
+            $result.Data.OracleHome | Should -BeOfType [string]
+            $result.Data.OracleHome | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Data.OracleBase is a non-empty string when path is available' {
+            $result = Set-OracleEnv
+            $result.Data.OracleBase | Should -BeOfType [string]
+            $result.Data.OracleBase | Should -Not -BeNullOrEmpty
+        }
     }
 
     Context 'Security' {
@@ -301,15 +451,21 @@ Describe 'Set-OracleEnv' {
                 [PSCustomObject]@{
                     Success = $true
                     Data    = @(
-                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL' }
+                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
                     )
                     Message = 'Found 1 Oracle database instance(s).'
                 }
             } -ModuleName OracleAdmin
-            $env:ORACLE_SID = $null
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
         }
 
-        AfterEach { $env:ORACLE_SID = $null }
+        AfterEach {
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
+        }
 
         It 'Message contains no credential fragments' {
             $result = Set-OracleEnv

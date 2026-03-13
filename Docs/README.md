@@ -14,7 +14,7 @@ scripted automation.
 See [PREREQUISITES.md](PREREQUISITES.md) for full details.
 
 - PowerShell 7.0 or later
-- Windows (Windows Service discovery via `Get-Service`)
+- Windows (Oracle instance discovery via `Win32_Service` WMI)
 - Oracle 19c client or server installation (for `Set-OracleEnv` to be useful)
 
 ## Installation
@@ -31,8 +31,8 @@ The profile at `profile.ps1` imports this module automatically on session start.
 
 | Function | Description |
 |---|---|
-| `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host via `OracleService*` Windows services. Returns SID, Status, and ServiceName for each instance. |
-| `Set-OracleEnv` | Sets `ORACLE_SID` for the current session to a validated Oracle instance. Prompts interactively when no SID is supplied. Returns a standard `PSCustomObject`. |
+| `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host via `Win32_Service` (WMI). Returns SID, Status, ServiceName, OracleHome, and OracleBase for each instance. |
+| `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current session from a validated Oracle instance. Prompts interactively when no SID is supplied. Returns a standard `PSCustomObject`. |
 | `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Suppresses the return object for clean terminal output; writes `[ERROR]` to host on failure. Target of the `oraset` and `oraenv` aliases. Not intended for scripted use — use `Set-OracleEnv` directly in automation. |
 
 ## Aliases
@@ -81,10 +81,10 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.1.1 |
-| Last audit | 2026-03-11 |
-| Tests | 52 unit tests (all passing) |
-| Open SEC items | None at Stage 1 |
+| Version | 0.1.3 |
+| Last audit | 2026-03-13 |
+| Tests | 82 unit tests (all passing) |
+| Open SEC items | None |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.
 
