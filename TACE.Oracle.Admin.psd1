@@ -46,9 +46,9 @@
     # Private data
     PrivateData       = @{
         PSData = @{
-            Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell')
-            ProjectUri   = 'https://github.com/scottyleblanc/OracleAdmin'
-            LicenseUri   = 'https://github.com/scottyleblanc/OracleAdmin/blob/main/LICENSE'
+            Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell', 'oraset', 'oraenv')
+            ProjectUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin'
+            LicenseUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE'
             ReleaseNotes = 'v0.1.5 — Set-OracleEnv now only prints ORACLE_HOME and ORACLE_BASE when -Verbose is specified; ORACLE_SID is always printed. Invoke-OraEnv passes -Verbose through so oraset -v shows all three env vars.'
         }
     }

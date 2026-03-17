@@ -8,14 +8,39 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [0.1.5] - 2026-03-17
 
+### Added
+
+- `scripts/Build-Module.ps1` — stages module files to `build\<version>\staging\`, builds
+  a `.nupkg` to `build\<version>\repo\`, lists package contents, and uploads the `.nupkg`
+  and `Test-LinuxBuild.ps1` to S3 staging. Enforces version consistency across all build
+  files and warns if the matching git tag does not exist. Build artifacts are retained by
+  version and never overwritten.
+- `scripts/Publish-ToGallery.ps1` — publishes the staged build to PSGallery. Requires
+  `Build-Module.ps1` to have run first. Enforces a clean git working tree and a matching
+  git tag before publishing.
+- `scripts/Test-LinuxBuild.ps1` — downloads the latest versioned build from S3, installs
+  it into a temporary local PSResource repository, and runs 9 smoke tests covering module
+  load, exported functions, aliases, return object shape, and credential safety. Linux only.
+  Exits 0 on pass, 1 on failure.
+- `Tests\Invoke-OraEnv.Tests.ps1` — 10 unit tests covering parameter validation,
+  SID pass-through, verbose pass-through, output suppression, error host output, and
+  security (no credential fragments in output).
+
 ### Changed
 
 - `Set-OracleEnv`: `ORACLE_HOME` and `ORACLE_BASE` are always set in the session but
   are only printed to the host when `-Verbose` is specified. `ORACLE_SID` is always printed.
 - `Invoke-OraEnv`: passes `-Verbose` through to `Set-OracleEnv` so that `oraset -v`
   and `oraset <SID> -v` display all three environment variables.
-- Unit test count: 102 → 107 (all passing). New context covers verbose display behaviour:
-  confirms HOME/BASE are suppressed by default and shown with `-Verbose`.
+- Manifest: added `FileList` to restrict the published PSGallery package to module source
+  files only — excludes `.git`, `Tests`, `Docs`, `scripts`, and build artifacts.
+- Manifest: `ProjectUri` and `LicenseUri` updated to
+  `https://github.com/scottyleblanc/TACE.Oracle.Admin` with branch `master`.
+- `README.md`: added Session Usage section documenting PowerShell session scope,
+  the `$env:` prefix requirement, and a real Linux example.
+- `.gitignore`: added `build/`; `Docs/HANDOFF.md` and `Docs/Publish-Steps.md` removed
+  from the repository (ephemeral planning docs).
+- Unit test count: 102 → 117 (all passing).
 
 ---
 

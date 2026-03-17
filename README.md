@@ -78,6 +78,50 @@ oraset ORCL -v
 
 ---
 
+## Session Usage
+
+`Set-OracleEnv` sets environment variables within the **current PowerShell session only**.
+Environment variables do not propagate to a parent shell process.
+
+**Correct usage — stay inside a persistent `pwsh` session:**
+
+```powershell
+# Start PowerShell (Linux)
+pwsh
+
+# Import the module and set the environment
+Import-Module 'TACE.Oracle.Admin'
+oraset
+
+# Reference environment variables using the $env: prefix
+cd $env:ORACLE_HOME
+
+# example
+PS /home/oracle> oraset
+[Set-OracleEnv] One instance found. Using SID: FREE
+ORACLE_SID set to 'FREE'
+PS /home/oracle> cd $env:ORACLE_HOME
+PS /opt/oracle/product/26ai/dbhomeFree> echo $env:ORACLE_SID
+FREE
+
+```
+
+**To load the module automatically** on every `pwsh` session, add it to your profile:
+
+```powershell
+# Open your profile for editing
+nano $PROFILE
+
+# Add this line
+Import-Module 'TACE.Oracle.Admin'
+```
+
+> Note: Running `pwsh -Command "oraset"` spawns a child process — the environment
+> variables are set inside that process and lost when it exits. Always use an
+> interactive `pwsh` session.
+
+---
+
 ## Output Contract
 
 Every function returns a `PSCustomObject` with this shape:
@@ -125,7 +169,7 @@ external process. SID validation always derives from live service discovery — 
 from a hardcoded list.
 
 For the full security reference and STIG compliance status, see
-[SECURITY.md](https://github.com/scottyleblanc/OracleAdmin/blob/main/Docs/SECURITY.md).
+[SECURITY.md](https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/Docs/SECURITY.md).
 
 ---
 
@@ -147,9 +191,7 @@ control and may conflict with your organization's own data governance obligation
 
 ---
 
-## Contributing and Version History
+## License and Source
 
-- [CHANGELOG.md](https://github.com/scottyleblanc/OracleAdmin/blob/main/Docs/CHANGELOG.md)
-- [TODO.md](https://github.com/scottyleblanc/OracleAdmin/blob/main/Docs/TODO.md)
-- [VERSIONING.md](https://github.com/scottyleblanc/OracleAdmin/blob/main/Docs/VERSIONING.md)
-- [LICENSE](https://github.com/scottyleblanc/OracleAdmin/blob/main/LICENSE)
+- [LICENSE](https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE)
+- [Source and issue tracker](https://github.com/scottyleblanc/TACE.Oracle.Admin)

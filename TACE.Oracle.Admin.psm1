@@ -14,7 +14,7 @@
     Copyright © TACE Data Management Inc.
     Published name : TACE.Oracle.Admin
     Internal name  : OracleAdmin
-    Version        : 0.1.4
+    Version        : 0.1.5
     Stage          : 1 — Foundation
 #>
 

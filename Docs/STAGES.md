@@ -28,7 +28,7 @@ See `TODO.md` for the full task list.
 
 ### Prerequisites — COMPLETE
 
-- [x] **GitHub repo URL** — confirmed: `https://github.com/scottyleblanc/OracleAdmin`
+- [x] **GitHub repo URL** — confirmed: `https://github.com/scottyleblanc/TACE.Oracle.Admin`
   Added to `ProjectUri` and `LicenseUri` in the manifest.
 
 - [x] **`Invoke-OraEnv` export policy** — resolved: must remain in `FunctionsToExport`.
@@ -63,8 +63,8 @@ No staging build step is required.
 
 ### Phase 3 — Manifest and Docs Completion — COMPLETE
 
-- [x] Set `ProjectUri` (`https://github.com/scottyleblanc/OracleAdmin`)
-- [x] Add `LicenseUri` (`https://github.com/scottyleblanc/OracleAdmin/blob/main/LICENSE`)
+- [x] Set `ProjectUri` (`https://github.com/scottyleblanc/TACE.Oracle.Admin`)
+- [x] Add `LicenseUri` (`https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE`)
 - [x] Expand `Tags` — added `Windows`, `Linux`, `OracleDB`, `PowerShell`
 - [x] Resolve `Invoke-OraEnv` export policy — removed from `FunctionsToExport`
 - [x] Fill in `LICENSE` effective date (`2026-03-17`)
@@ -101,8 +101,6 @@ No staging build step is required.
 
 ### Phase 6 — Post-Publish Housekeeping
 
-- [ ] Git tag: `git tag v0.1.4`
-- [ ] Commit all changes as `chore(publish): prepare TACE.Oracle.Admin for PSGallery`
 - [ ] Push `master` and tag
 - [ ] Delete `Docs\HANDOFF.md`
 

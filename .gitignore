@@ -9,6 +9,13 @@ CLAUDE.md
 # Pester test results
 Tests/TestResults/
 
+# Ephemeral handoff docs — not part of the published history
+Docs/HANDOFF.md
+Docs/Publish-Steps.md
+
+# Script output artifacts
+scripts/pssa_results.txt
+
 # PowerShell module build artifacts
 *.nupkg
 Release/
