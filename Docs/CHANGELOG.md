@@ -6,6 +6,16 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.6] - 2026-03-17
+
+### Changed
+
+- Version bump to resolve PSGallery 409 conflict. v0.1.5 was published with an
+  incomplete package (no `FileList`) during an earlier session and cannot be
+  overwritten. No functional changes.
+
+---
+
 ## [0.1.5] - 2026-03-17
 
 ### Added
