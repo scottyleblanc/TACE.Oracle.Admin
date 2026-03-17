@@ -2,7 +2,8 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0' }
 
 BeforeAll {
-    Import-Module (Join-Path $PSScriptRoot '..' 'OracleAdmin.psd1') -Force
+    Remove-Module 'TACE.Oracle.Admin' -Force -ErrorAction SilentlyContinue
+    Import-Module (Join-Path $PSScriptRoot '..' 'TACE.Oracle.Admin.psd1') -Force
 }
 
 Describe 'Get-OracleDatabaseList' {
@@ -24,7 +25,7 @@ Describe 'Get-OracleDatabaseList' {
     # Windows path
     # -------------------------------------------------------------------------
 
-    Context 'Windows — services found' {
+    Context 'Windows — services found' -Skip:(-not $IsWindows) {
 
         BeforeEach {
             Mock Get-CimInstance {
@@ -40,7 +41,7 @@ Describe 'Get-OracleDatabaseList' {
                         PathName = 'C:\app\oracle\product\19.3\dbhome_2\bin\ORACLE.EXE CDB1'
                     }
                 )
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns Success = $true' {
@@ -87,7 +88,7 @@ Describe 'Get-OracleDatabaseList' {
         }
     }
 
-    Context 'Windows — OracleHome and OracleBase from quoted PathName' {
+    Context 'Windows — OracleHome and OracleBase from quoted PathName' -Skip:(-not $IsWindows) {
 
         BeforeEach {
             Mock Get-CimInstance {
@@ -98,7 +99,7 @@ Describe 'Get-OracleDatabaseList' {
                         PathName = '"C:\app\oracle\product\19.3\dbhome_1\bin\ORACLE.EXE" ORCL'
                     }
                 )
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Extracts OracleHome correctly from a quoted PathName' {
@@ -112,7 +113,7 @@ Describe 'Get-OracleDatabaseList' {
         }
     }
 
-    Context 'Windows — OracleHome and OracleBase when PathName is empty' {
+    Context 'Windows — OracleHome and OracleBase when PathName is empty' -Skip:(-not $IsWindows) {
 
         BeforeEach {
             Mock Get-CimInstance {
@@ -123,7 +124,7 @@ Describe 'Get-OracleDatabaseList' {
                         PathName = ''
                     }
                 )
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns OracleHome as $null when PathName is empty' {
@@ -137,10 +138,10 @@ Describe 'Get-OracleDatabaseList' {
         }
     }
 
-    Context 'Windows — no services found' {
+    Context 'Windows — no services found' -Skip:(-not $IsWindows) {
 
         BeforeEach {
-            Mock Get-CimInstance { @() } -ModuleName OracleAdmin
+            Mock Get-CimInstance { @() } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns Success = $true with empty Data' {
@@ -154,10 +155,10 @@ Describe 'Get-OracleDatabaseList' {
         }
     }
 
-    Context 'Windows — Get-CimInstance throws' {
+    Context 'Windows — Get-CimInstance throws' -Skip:(-not $IsWindows) {
 
         BeforeEach {
-            Mock Get-CimInstance { throw 'Access denied' } -ModuleName OracleAdmin
+            Mock Get-CimInstance { throw 'Access denied' } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns Success = $false' {
@@ -180,17 +181,17 @@ Describe 'Get-OracleDatabaseList' {
     Context 'Linux — oratab found, instances running and stopped' {
 
         BeforeEach {
-            Mock Test-Path { $true } -ModuleName OracleAdmin
+            Mock Test-Path { $true } -ModuleName 'TACE.Oracle.Admin'
             Mock Get-Content {
                 @(
                     'ORCL:/u01/app/oracle/product/19.3.0/dbhome_1:Y'
                     'CDB1:/u01/app/oracle/product/19.3.0/dbhome_2:N'
                 )
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
             Mock Get-Process { @([PSCustomObject]@{ Name = 'ora_pmon_ORCL' }) } `
-                -ParameterFilter { $Name -eq 'ora_pmon_ORCL' } -ModuleName OracleAdmin
+                -ParameterFilter { $Name -eq 'ora_pmon_ORCL' } -ModuleName 'TACE.Oracle.Admin'
             Mock Get-Process { @() } `
-                -ParameterFilter { $Name -eq 'ora_pmon_CDB1' } -ModuleName OracleAdmin
+                -ParameterFilter { $Name -eq 'ora_pmon_CDB1' } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns Success = $true' {
@@ -239,7 +240,7 @@ Describe 'Get-OracleDatabaseList' {
     Context 'Linux — oratab not found' {
 
         BeforeEach {
-            Mock Test-Path { $false } -ModuleName OracleAdmin
+            Mock Test-Path { $false } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns Success = $true' {
@@ -258,7 +259,7 @@ Describe 'Get-OracleDatabaseList' {
     Context 'Linux — comment and blank lines are skipped' {
 
         BeforeEach {
-            Mock Test-Path { $true } -ModuleName OracleAdmin
+            Mock Test-Path { $true } -ModuleName 'TACE.Oracle.Admin'
             Mock Get-Content {
                 @(
                     '# This is a comment'
@@ -267,9 +268,9 @@ Describe 'Get-OracleDatabaseList' {
                     '   '
                     '# Another comment'
                 )
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
             Mock Get-Process { @([PSCustomObject]@{ Name = 'ora_pmon_ORCL' }) } `
-                -ParameterFilter { $Name -eq 'ora_pmon_ORCL' } -ModuleName OracleAdmin
+                -ParameterFilter { $Name -eq 'ora_pmon_ORCL' } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns only the valid instance' {
@@ -282,15 +283,15 @@ Describe 'Get-OracleDatabaseList' {
     Context 'Linux — malformed oratab lines are skipped' {
 
         BeforeEach {
-            Mock Test-Path { $true } -ModuleName OracleAdmin
+            Mock Test-Path { $true } -ModuleName 'TACE.Oracle.Admin'
             Mock Get-Content {
                 @(
                     'MALFORMED_LINE_NO_COLON'
                     'ORCL:/u01/app/oracle/product/19.3.0/dbhome_1:Y'
                 )
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
             Mock Get-Process { @([PSCustomObject]@{ Name = 'ora_pmon_ORCL' }) } `
-                -ParameterFilter { $Name -eq 'ora_pmon_ORCL' } -ModuleName OracleAdmin
+                -ParameterFilter { $Name -eq 'ora_pmon_ORCL' } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Skips lines with fewer than two colon-separated fields' {
@@ -303,15 +304,15 @@ Describe 'Get-OracleDatabaseList' {
     Context 'Linux — wildcard SID entry is skipped' {
 
         BeforeEach {
-            Mock Test-Path { $true } -ModuleName OracleAdmin
+            Mock Test-Path { $true } -ModuleName 'TACE.Oracle.Admin'
             Mock Get-Content {
                 @(
                     '*:/u01/app/oracle/product/19.3.0/dbhome_1:N'
                     'ORCL:/u01/app/oracle/product/19.3.0/dbhome_1:Y'
                 )
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
             Mock Get-Process { @([PSCustomObject]@{ Name = 'ora_pmon_ORCL' }) } `
-                -ParameterFilter { $Name -eq 'ora_pmon_ORCL' } -ModuleName OracleAdmin
+                -ParameterFilter { $Name -eq 'ora_pmon_ORCL' } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Skips the wildcard entry and returns only real SIDs' {
@@ -324,8 +325,8 @@ Describe 'Get-OracleDatabaseList' {
     Context 'Linux — Get-Content throws' {
 
         BeforeEach {
-            Mock Test-Path { $true } -ModuleName OracleAdmin
-            Mock Get-Content { throw 'Permission denied' } -ModuleName OracleAdmin
+            Mock Test-Path { $true } -ModuleName 'TACE.Oracle.Admin'
+            Mock Get-Content { throw 'Permission denied' } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns Success = $false' {
@@ -364,10 +365,10 @@ Describe 'Get-OracleDatabaseList' {
     # Return object shape and data entry shape (platform-agnostic)
     # -------------------------------------------------------------------------
 
-    Context 'Return object shape' {
+    Context 'Return object shape' -Skip:(-not $IsWindows) {
 
         BeforeEach {
-            Mock Get-CimInstance { @() } -ModuleName OracleAdmin
+            Mock Get-CimInstance { @() } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Has Success property' {
@@ -389,7 +390,7 @@ Describe 'Get-OracleDatabaseList' {
         }
     }
 
-    Context 'Data entry shape' {
+    Context 'Data entry shape' -Skip:(-not $IsWindows) {
 
         BeforeEach {
             Mock Get-CimInstance {
@@ -400,7 +401,7 @@ Describe 'Get-OracleDatabaseList' {
                         PathName = 'C:\app\oracle\product\19.3\dbhome_1\bin\ORACLE.EXE ORCL'
                     }
                 )
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Data entries have SID property' {
@@ -424,10 +425,10 @@ Describe 'Get-OracleDatabaseList' {
         }
     }
 
-    Context 'Security' {
+    Context 'Security' -Skip:(-not $IsWindows) {
 
         BeforeEach {
-            Mock Get-CimInstance { @() } -ModuleName OracleAdmin
+            Mock Get-CimInstance { @() } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Message contains no credential fragments' {

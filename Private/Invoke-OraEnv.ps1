@@ -17,11 +17,11 @@ function Invoke-OraEnv {
 
     .NOTES
         Copyright © TACE Data Management Inc.
-        Module  : TACE.OracleAdmin
+        Module  : TACE.Oracle.Admin
         Version : 0.1.1
         Alias   : oraset
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
     param(
         [Parameter(Position = 0)]
         [ValidateNotNullOrEmpty()]

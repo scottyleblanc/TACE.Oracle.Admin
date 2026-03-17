@@ -1,4 +1,4 @@
-# TACE.OracleAdmin — Security Reference
+# TACE.Oracle.Admin — Security Reference
 
 ## Status
 
@@ -85,7 +85,7 @@ None at Stage 1.
 | Context | Execution Policy | Files to Sign |
 |---|---|---|
 | Interactive dev | RemoteSigned | None required for local files |
-| Shared/production | AllSigned | `OracleAdmin.psm1`, `OracleAdmin.psd1`, all `Public\*.ps1` |
+| Shared/production | AllSigned | `TACE.Oracle.Admin.psm1`, `TACE.Oracle.Admin.psd1`, all `Public\*.ps1` |
 
 Sign with: `Set-AuthenticodeSignature -FilePath <file> -Certificate <cert>`
 

@@ -2,10 +2,11 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0' }
 
 BeforeAll {
-    Import-Module (Join-Path $PSScriptRoot '..' 'OracleAdmin.psd1') -Force
+    Remove-Module 'TACE.Oracle.Admin' -Force -ErrorAction SilentlyContinue
+    Import-Module (Join-Path $PSScriptRoot '..' 'TACE.Oracle.Admin.psd1') -Force
 }
 
-Describe 'OracleAdmin module' {
+Describe 'TACE.Oracle.Admin module' {
 
     Context 'Aliases' {
 
@@ -25,16 +26,16 @@ Describe 'OracleAdmin module' {
             (Get-Alias -Name 'oraenv').Definition | Should -Be 'Invoke-OraEnv'
         }
 
-        It 'Invoke-OraEnv is a recognized command' {
-            Get-Command -Name 'Invoke-OraEnv' -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
-        }
-
         It 'oraset is exported by the module' {
-            (Get-Module OracleAdmin).ExportedAliases.Keys | Should -Contain 'oraset'
+            (Get-Module 'TACE.Oracle.Admin').ExportedAliases.Keys | Should -Contain 'oraset'
         }
 
         It 'oraenv is exported by the module' {
-            (Get-Module OracleAdmin).ExportedAliases.Keys | Should -Contain 'oraenv'
+            (Get-Module 'TACE.Oracle.Admin').ExportedAliases.Keys | Should -Contain 'oraenv'
+        }
+
+        It 'Invoke-OraEnv is callable (alias target is reachable from outside the module)' {
+            { Get-Command -Name 'Invoke-OraEnv' -ErrorAction Stop } | Should -Not -Throw
         }
     }
 }

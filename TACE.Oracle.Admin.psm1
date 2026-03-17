@@ -4,7 +4,7 @@
     Oracle database administration utility module.
 
 .DESCRIPTION
-    TACE.OracleAdmin provides PowerShell functions for Oracle database
+    TACE.Oracle.Admin provides PowerShell functions for Oracle database
     environment management and administration utilities on Windows and Linux.
 
     Functions are designed for interactive DBA use and automation alike.
@@ -12,7 +12,7 @@
 
 .NOTES
     Copyright © TACE Data Management Inc.
-    Published name : TACE.OracleAdmin
+    Published name : TACE.Oracle.Admin
     Internal name  : OracleAdmin
     Version        : 0.1.4
     Stage          : 1 — Foundation
@@ -28,7 +28,7 @@ $privateFunctions = @(
 )
 
 foreach ($function in $privateFunctions) {
-    $functionPath = Join-Path $PSScriptRoot 'Private' $function
+    $functionPath = Join-Path -Path $PSScriptRoot -ChildPath 'Private' -AdditionalChildPath $function
     if (-not (Test-Path $functionPath)) {
         throw "Required private function not found: $functionPath"
     }
@@ -45,7 +45,7 @@ $publicFunctions = @(
 )
 
 foreach ($function in $publicFunctions) {
-    $functionPath = Join-Path $PSScriptRoot 'Public' $function
+    $functionPath = Join-Path -Path $PSScriptRoot -ChildPath 'Public' -AdditionalChildPath $function
     if (-not (Test-Path $functionPath)) {
         throw "Required public function not found: $functionPath"
     }

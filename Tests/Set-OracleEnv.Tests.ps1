@@ -2,7 +2,8 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0' }
 
 BeforeAll {
-    Import-Module (Join-Path $PSScriptRoot '..' 'OracleAdmin.psd1') -Force
+    Remove-Module 'TACE.Oracle.Admin' -Force -ErrorAction SilentlyContinue
+    Import-Module (Join-Path $PSScriptRoot '..' 'TACE.Oracle.Admin.psd1') -Force
 
     # Shared test data — accessible in BeforeEach/It blocks via $script: scope
     $script:twoInstances = @(
@@ -49,7 +50,7 @@ Describe 'Set-OracleEnv' {
                     )
                     Message = 'Found 2 Oracle database instance(s).'
                 }
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
             $env:ORACLE_SID  = $null
             $env:ORACLE_HOME = $null
             $env:ORACLE_BASE = $null
@@ -109,7 +110,7 @@ Describe 'Set-OracleEnv' {
                     )
                     Message = 'Found 2 Oracle database instance(s).'
                 }
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
             $env:ORACLE_SID  = $null
             $env:ORACLE_HOME = $null
             $env:ORACLE_BASE = $null
@@ -158,7 +159,7 @@ Describe 'Set-OracleEnv' {
                     )
                     Message = 'Found 1 Oracle database instance(s).'
                 }
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
             $env:ORACLE_SID  = $null
             $env:ORACLE_HOME = $null
             $env:ORACLE_BASE = $null
@@ -218,7 +219,7 @@ Describe 'Set-OracleEnv' {
                     )
                     Message = 'Found 2 Oracle database instance(s).'
                 }
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns Success = $false' {
@@ -250,7 +251,7 @@ Describe 'Set-OracleEnv' {
                     )
                     Message = 'Found 1 Oracle database instance(s).'
                 }
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
             $env:ORACLE_SID  = $null
             $env:ORACLE_HOME = $null
             $env:ORACLE_BASE = $null
@@ -295,8 +296,8 @@ Describe 'Set-OracleEnv' {
                     )
                     Message = 'Found 2 Oracle database instance(s).'
                 }
-            } -ModuleName OracleAdmin
-            Mock Read-Host { '1' } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
+            Mock Read-Host { '1' } -ModuleName 'TACE.Oracle.Admin'
             $env:ORACLE_SID  = $null
             $env:ORACLE_HOME = $null
             $env:ORACLE_BASE = $null
@@ -341,8 +342,8 @@ Describe 'Set-OracleEnv' {
                     )
                     Message = 'Found 2 Oracle database instance(s).'
                 }
-            } -ModuleName OracleAdmin
-            Mock Read-Host { 'x' } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
+            Mock Read-Host { 'x' } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns Success = $false' {
@@ -362,7 +363,7 @@ Describe 'Set-OracleEnv' {
         BeforeEach {
             Mock Get-OracleDatabaseList {
                 [PSCustomObject]@{ Success = $true; Data = @(); Message = 'No Oracle database services found.' }
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns Success = $false' {
@@ -381,7 +382,7 @@ Describe 'Set-OracleEnv' {
         BeforeEach {
             Mock Get-OracleDatabaseList {
                 [PSCustomObject]@{ Success = $false; Data = $null; Message = 'Service query failed.' }
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
         }
 
         It 'Returns Success = $false' {
@@ -401,7 +402,7 @@ Describe 'Set-OracleEnv' {
                     )
                     Message = 'Found 1 Oracle database instance(s).'
                 }
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
             $env:ORACLE_SID  = $null
             $env:ORACLE_HOME = $null
             $env:ORACLE_BASE = $null
@@ -455,7 +456,7 @@ Describe 'Set-OracleEnv' {
                     )
                     Message = 'Found 1 Oracle database instance(s).'
                 }
-            } -ModuleName OracleAdmin
+            } -ModuleName 'TACE.Oracle.Admin'
             $env:ORACLE_SID  = $null
             $env:ORACLE_HOME = $null
             $env:ORACLE_BASE = $null
@@ -474,7 +475,7 @@ Describe 'Set-OracleEnv' {
 
         It 'ArgumentList is not used (env var set directly, not via child process)' {
             # Set-OracleEnv writes to $env:ORACLE_SID directly — no child process involved.
-            Mock Start-Process { throw 'Start-Process must not be called' } -ModuleName OracleAdmin
+            Mock Start-Process { throw 'Start-Process must not be called' } -ModuleName 'TACE.Oracle.Admin'
             { Set-OracleEnv } | Should -Not -Throw
         }
     }

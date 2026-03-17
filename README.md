@@ -1,0 +1,151 @@
+# TACE.Oracle.Admin
+
+Oracle database administration utilities for PowerShell Core 7+.
+
+Discovers Oracle instances on the local host, sets the active session environment
+(`ORACLE_SID`, `ORACLE_HOME`, `ORACLE_BASE`), and provides DBA tooling for Windows
+and Linux. Designed for both interactive DBA use and scripted automation.
+
+---
+
+## Installation
+
+```powershell
+Install-Module 'TACE.Oracle.Admin' -Scope CurrentUser
+```
+
+Import in your session:
+
+```powershell
+Import-Module 'TACE.Oracle.Admin'
+```
+
+To install for all users (requires elevation):
+
+```powershell
+Install-Module 'TACE.Oracle.Admin' -Scope AllUsers
+```
+
+### Requirements
+
+- PowerShell 7.0 or later
+- Windows or Linux
+- Windows: Oracle Database or Client installation (provides `OracleService*` Windows services)
+- Linux: `/etc/oratab` populated by the Oracle installer
+
+---
+
+## Functions
+
+| Function | Description |
+|---|---|
+| `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host. Windows: queries `Win32_Service` for `OracleService*` services. Linux: parses `/etc/oratab`. Returns `SID`, `Status`, `ServiceName`, `OracleHome`, and `OracleBase` for each instance. |
+| `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current PowerShell session from a validated instance. Auto-selects when one instance is found; presents a numbered menu when multiple instances are present. |
+| `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Suppresses the return object for clean output. Target of the `oraset` and `oraenv` aliases. Use `Set-OracleEnv` directly in scripts and automation. |
+
+## Aliases
+
+| Alias | Target |
+|---|---|
+| `oraset` | `Invoke-OraEnv` |
+| `oraenv` | `Invoke-OraEnv` |
+
+---
+
+## Quick Start
+
+```powershell
+# Discover all Oracle instances on this host
+$result = Get-OracleDatabaseList
+if ($result.Success) {
+    $result.Data | Format-Table SID, Status, OracleHome
+}
+
+# Set the active Oracle environment (interactive — presents a menu if multiple instances)
+Set-OracleEnv
+
+# Or set a specific SID directly
+Set-OracleEnv -SID ORCL
+
+# Interactive shorthand (alias — suppresses return object for clean terminal output)
+oraset
+oraset ORCL
+```
+
+---
+
+## Output Contract
+
+Every function returns a `PSCustomObject` with this shape:
+
+```powershell
+[PSCustomObject]@{
+    Success = [bool]     # $true if the operation completed as intended
+    Data    = $null      # payload: object, array, or $null for void operations
+    Message = [string]   # human-readable status — always safe to log
+}
+```
+
+Always check `Success` before consuming `Data`. `Message` is always safe to write
+to a log file — it will never contain passwords or credential values.
+
+### Error handling
+
+- **Terminating throw**: unrecoverable failures (e.g. required helper not found at load time)
+- **`Success=$false`**: expected, handleable outcomes (e.g. SID not found, no Oracle services
+  present, invalid menu selection) — inspect `Message` and decide how to proceed
+
+---
+
+## Logging and Diagnostics
+
+Run any function with `-Verbose` to see audit-level detail:
+
+```
+[Get-OracleDatabaseList] Querying Oracle instances on Windows at 2026-03-17 14:00:00Z
+[Set-OracleEnv] ORACLE_SID set to 'ORCL' at 2026-03-17 14:00:01Z
+```
+
+Verbose output never contains passwords, credential values, or sensitive path fragments.
+
+---
+
+## Security
+
+This module does not handle passwords or credentials. All operations work through
+Windows services (`Win32_Service`), Linux `/etc/oratab`, and session environment
+variables only. No Oracle connection is made and no credential material is required.
+
+`Set-OracleEnv` is session-only — nothing is written to disk, the registry, or any
+external process. SID validation always derives from live service discovery — never
+from a hardcoded list.
+
+For the full security reference and STIG compliance status, see
+[SECURITY.md](https://github.com/scottyleblanc/OracleAdmin/blob/main/Docs/SECURITY.md).
+
+---
+
+## AI-Assisted Development and Support
+
+This module was developed by TACE as a generic, reusable artifact. AI tooling was
+used during development as part of TACE's standard engineering practice.
+
+Once this module has been adopted and integrated into your environment, any
+AI-assisted activity involving it — including troubleshooting, triage, incident
+response, or code modification — should be conducted through your organization's
+enterprise AI tooling.
+
+At that point, interactions with the module will occur in the context of your
+specific infrastructure, and the data governance protections of an enterprise AI
+account apply. Using personal or consumer-tier AI accounts for support work
+involving deployed modules introduces data handling risks that are outside TACE's
+control and may conflict with your organization's own data governance obligations.
+
+---
+
+## Contributing and Version History
+
+- [CHANGELOG.md](https://github.com/scottyleblanc/OracleAdmin/blob/main/Docs/CHANGELOG.md)
+- [TODO.md](https://github.com/scottyleblanc/OracleAdmin/blob/main/Docs/TODO.md)
+- [VERSIONING.md](https://github.com/scottyleblanc/OracleAdmin/blob/main/Docs/VERSIONING.md)
+- [LICENSE](https://github.com/scottyleblanc/OracleAdmin/blob/main/LICENSE)

@@ -1,0 +1,19 @@
+
+RuleName : PSAvoidUsingPositionalParameters
+Severity : Information
+Line     : 5
+Column   : 20
+Message  : Cmdlet 'Join-Path' has positional parameter. Please use named parameters instead of positional parameters when calling a command.
+
+RuleName : PSAvoidUsingPositionalParameters
+Severity : Information
+Line     : 5
+Column   : 20
+Message  : Cmdlet 'Join-Path' has positional parameter. Please use named parameters instead of positional parameters when calling a command.
+
+RuleName : PSAvoidUsingPositionalParameters
+Severity : Information
+Line     : 5
+Column   : 20
+Message  : Cmdlet 'Join-Path' has positional parameter. Please use named parameters instead of positional parameters when calling a command.
+

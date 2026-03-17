@@ -1,4 +1,4 @@
-# Prerequisites — TACE.OracleAdmin
+# Prerequisites — TACE.Oracle.Admin
 
 ## Language Version
 
@@ -14,16 +14,18 @@ Windows PowerShell 5.1.
 
 | Tool | Required by | Source |
 |---|---|---|
-| `OracleService*` Windows services | `Get-OracleDatabaseList`, `Set-OracleEnv` | Installed by Oracle Database or Client |
+| `OracleService*` Windows services | `Get-OracleDatabaseList`, `Set-OracleEnv` (Windows) | Installed by Oracle Database or Client |
+| `/etc/oratab` | `Get-OracleDatabaseList` (Linux) | Created by Oracle installer |
+| `ora_pmon_<SID>` process | `Get-OracleDatabaseList` (Linux) | Running Oracle instance |
 
 No Oracle binaries (`sqlplus`, `rman`, `mkstore`, `orapki`) are required at Stage 1.
 Future functions may introduce binary dependencies — they will be documented here.
 
 ## Environment Setup
 
-`Set-OracleEnv` sets `ORACLE_SID` in the current session. `ORACLE_HOME` and PATH
-must be pre-configured in the profile (via `profile.local.ps1`). The module does
-not set `ORACLE_HOME`.
+`Set-OracleEnv` sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` in the current
+session from values discovered via the platform's instance discovery mechanism.
+PATH is not modified — that is managed by the profile.
 
 ## Test Framework
 
@@ -56,13 +58,15 @@ No test requires a live Oracle instance. All Oracle service calls are mocked.
 
 | Platform | Status |
 |---|---|
-| Windows 11 / Windows Server | Supported |
-| Linux | Not supported — depends on Windows `Get-Service` |
-| macOS | Not supported — depends on Windows `Get-Service` |
+| Windows 11 / Windows Server | Supported — discovery via `Win32_Service` |
+| Linux | Supported — discovery via `/etc/oratab` and `ora_pmon` process check |
+| macOS | Not supported |
 
 ## Known Limitations
 
-- Instance discovery relies on `OracleService*` Windows service naming convention.
+- Windows: instance discovery relies on `OracleService*` Windows service naming convention.
   Oracle installations that use non-standard service names will not be detected.
-- `Set-OracleEnv` sets `ORACLE_SID` for the current session only. It does not
-  persist across sessions or affect other processes.
+- Linux: instance discovery relies on `/etc/oratab`. Instances not registered in oratab
+  will not be detected.
+- `Set-OracleEnv` sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current
+  session only. Changes do not persist across sessions or affect other processes.

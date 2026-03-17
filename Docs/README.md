@@ -1,8 +1,8 @@
-# TACE.OracleAdmin
+# TACE.Oracle.Admin
 
 ## Overview
 
-TACE.OracleAdmin is a PowerShell Core 7+ module that provides Oracle database
+TACE.Oracle.Admin is a PowerShell Core 7+ module that provides Oracle database
 administration utilities for Windows and Linux environments. It focuses on
 environment management and DBA tooling — discovering Oracle instances on the
 local host, setting the active session context, and (in future stages) additional
@@ -24,7 +24,7 @@ See [PREREQUISITES.md](PREREQUISITES.md) for full details.
 During development, import by path:
 
 ```powershell
-Import-Module <path-to-module>\OracleAdmin.psd1 -Force
+Import-Module <path-to-module>\TACE.Oracle.Admin.psd1 -Force
 ```
 
 The profile at `profile.ps1` imports this module automatically on session start.

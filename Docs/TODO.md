@@ -1,4 +1,4 @@
-# TODO — TACE.OracleAdmin
+# TODO — TACE.Oracle.Admin
 
 Tasks are ordered top-to-bottom. Each stage depends on the one above being stable.
 `[SEC]` items are first-class requirements — no stage is complete until its `[SEC]`
@@ -48,7 +48,14 @@ items are checked off.
 
 ---
 
-## Stage 2 — Future (TBD)
+## Stage 2 — PSGallery Publication
+
+PSGallery publication progress is tracked in `STAGES.md` Stage 2.
+Phases 2, 3, and 4 are complete. Phase 5 (publish) is pending PSGallery account and API key.
+
+---
+
+## Stage 3 — Future Functions (TBD)
 
 - [ ] `Get-OracleStatus` — report instance open mode, database role, archivelog mode
 - [ ] `Test-OracleConnection` — validate connectivity via OS auth; return structured result
