@@ -445,6 +445,56 @@ Describe 'Set-OracleEnv' {
         }
     }
 
+    Context 'Implementation - verbose display' {
+
+        BeforeEach {
+            Mock Get-OracleDatabaseList {
+                [PSCustomObject]@{
+                    Success = $true
+                    Data    = @(
+                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
+                    )
+                    Message = 'Found 1 Oracle database instance(s).'
+                }
+            } -ModuleName 'TACE.Oracle.Admin'
+            Mock Write-Host {} -ModuleName 'TACE.Oracle.Admin'
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
+        }
+
+        AfterEach {
+            $env:ORACLE_SID  = $null
+            $env:ORACLE_HOME = $null
+            $env:ORACLE_BASE = $null
+        }
+
+        It 'Shows ORACLE_SID on host by default' {
+            Set-OracleEnv -SID 'ORCL' | Out-Null
+            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -ParameterFilter { $Object -like 'ORACLE_SID*' } -Times 1 -Exactly
+        }
+
+        It 'Does not show ORACLE_HOME on host by default' {
+            Set-OracleEnv -SID 'ORCL' | Out-Null
+            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -ParameterFilter { $Object -like 'ORACLE_HOME*' } -Times 0 -Exactly
+        }
+
+        It 'Does not show ORACLE_BASE on host by default' {
+            Set-OracleEnv -SID 'ORCL' | Out-Null
+            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -ParameterFilter { $Object -like 'ORACLE_BASE*' } -Times 0 -Exactly
+        }
+
+        It 'Shows ORACLE_HOME on host when -Verbose is specified' {
+            Set-OracleEnv -SID 'ORCL' -Verbose 4>&1 | Out-Null
+            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -ParameterFilter { $Object -like 'ORACLE_HOME*' } -Times 1 -Exactly
+        }
+
+        It 'Shows ORACLE_BASE on host when -Verbose is specified' {
+            Set-OracleEnv -SID 'ORCL' -Verbose 4>&1 | Out-Null
+            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -ParameterFilter { $Object -like 'ORACLE_BASE*' } -Times 1 -Exactly
+        }
+    }
+
     Context 'Security' {
 
         BeforeEach {

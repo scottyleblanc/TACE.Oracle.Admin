@@ -34,7 +34,7 @@ The profile at `profile.ps1` imports this module automatically on session start.
 | Function | Description |
 |---|---|
 | `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host. Windows: via `Win32_Service` (WMI). Linux: via `/etc/oratab`. Returns SID, Status, ServiceName, OracleHome, and OracleBase for each instance. |
-| `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current session from a validated Oracle instance. Prompts interactively when no SID is supplied. Returns a standard `PSCustomObject`. |
+| `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current session from a validated Oracle instance. Prompts interactively when no SID is supplied. Always prints `ORACLE_SID`; prints `ORACLE_HOME` and `ORACLE_BASE` only when `-Verbose` is specified. Returns a standard `PSCustomObject`. |
 | `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Suppresses the return object for clean terminal output; writes `[ERROR]` to host on failure. Target of the `oraset` and `oraenv` aliases. Not intended for scripted use — use `Set-OracleEnv` directly in automation. |
 
 ## Aliases
@@ -83,9 +83,9 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.1.4 |
-| Last audit | 2026-03-13 |
-| Tests | 102 unit tests (all passing) |
+| Version | 0.1.5 |
+| Last audit | 2026-03-17 |
+| Tests | 107 unit tests (all passing) |
 | Open SEC items | None |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.

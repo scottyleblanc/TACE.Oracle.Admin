@@ -143,13 +143,17 @@ function Set-OracleEnv {
             if ($null -ne $resolved[0].OracleHome) {
                 $env:ORACLE_HOME = $resolved[0].OracleHome
                 Write-Verbose "[Set-OracleEnv] ORACLE_HOME set to '$($resolved[0].OracleHome)' at $(Get-Date -Format u)"
-                Write-Host "ORACLE_HOME set to '$($resolved[0].OracleHome)'"
+                if ($VerbosePreference -eq 'Continue') {
+                    Write-Host "ORACLE_HOME set to '$($resolved[0].OracleHome)'"
+                }
             }
 
             if ($null -ne $resolved[0].OracleBase) {
                 $env:ORACLE_BASE = $resolved[0].OracleBase
                 Write-Verbose "[Set-OracleEnv] ORACLE_BASE set to '$($resolved[0].OracleBase)' at $(Get-Date -Format u)"
-                Write-Host "ORACLE_BASE set to '$($resolved[0].OracleBase)'"
+                if ($VerbosePreference -eq 'Continue') {
+                    Write-Host "ORACLE_BASE set to '$($resolved[0].OracleBase)'"
+                }
             }
 
             if ($serviceWarning)    { Write-Warning $serviceWarning }

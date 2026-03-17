@@ -6,6 +6,19 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.5] - 2026-03-17
+
+### Changed
+
+- `Set-OracleEnv`: `ORACLE_HOME` and `ORACLE_BASE` are always set in the session but
+  are only printed to the host when `-Verbose` is specified. `ORACLE_SID` is always printed.
+- `Invoke-OraEnv`: passes `-Verbose` through to `Set-OracleEnv` so that `oraset -v`
+  and `oraset <SID> -v` display all three environment variables.
+- Unit test count: 102 → 107 (all passing). New context covers verbose display behaviour:
+  confirms HOME/BASE are suppressed by default and shown with `-Verbose`.
+
+---
+
 ## [0.1.4] - 2026-03-13
 
 ### Added

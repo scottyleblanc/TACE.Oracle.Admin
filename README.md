@@ -40,7 +40,7 @@ Install-Module 'TACE.Oracle.Admin' -Scope AllUsers
 | Function | Description |
 |---|---|
 | `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host. Windows: queries `Win32_Service` for `OracleService*` services. Linux: parses `/etc/oratab`. Returns `SID`, `Status`, `ServiceName`, `OracleHome`, and `OracleBase` for each instance. |
-| `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current PowerShell session from a validated instance. Auto-selects when one instance is found; presents a numbered menu when multiple instances are present. |
+| `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current PowerShell session from a validated instance. Auto-selects when one instance is found; presents a numbered menu when multiple instances are present. Always prints `ORACLE_SID`; add `-Verbose` to also print `ORACLE_HOME` and `ORACLE_BASE`. |
 | `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Suppresses the return object for clean output. Target of the `oraset` and `oraenv` aliases. Use `Set-OracleEnv` directly in scripts and automation. |
 
 ## Aliases
@@ -70,6 +70,10 @@ Set-OracleEnv -SID ORCL
 # Interactive shorthand (alias — suppresses return object for clean terminal output)
 oraset
 oraset ORCL
+
+# Add -Verbose (-v) to also print ORACLE_HOME and ORACLE_BASE
+oraset -v
+oraset ORCL -v
 ```
 
 ---

@@ -12,6 +12,7 @@ Tests/TestResults/
 # PowerShell module build artifacts
 *.nupkg
 Release/
+build/
 
 # Editor
 .vscode/

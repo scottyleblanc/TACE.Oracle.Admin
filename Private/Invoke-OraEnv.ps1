@@ -32,7 +32,8 @@ function Invoke-OraEnv {
     $ErrorActionPreference = 'Stop'
 
     $callParams = @{}
-    if ($PSBoundParameters.ContainsKey('SID')) { $callParams['SID'] = $SID }
+    if ($PSBoundParameters.ContainsKey('SID'))     { $callParams['SID']     = $SID  }
+    if ($PSBoundParameters.ContainsKey('Verbose')) { $callParams['Verbose'] = $true }
 
     $result = Set-OracleEnv @callParams
     if ($result -and -not $result.Success) {
