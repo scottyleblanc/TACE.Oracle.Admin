@@ -432,6 +432,12 @@ Describe 'Set-OracleEnv' {
             $result.Data.SID | Should -Not -BeNullOrEmpty
         }
 
+        It 'Data.Applied is true when the variables are set' {
+            $result = Set-OracleEnv
+            $result.Data.Applied | Should -BeTrue
+            $result.Message      | Should -Not -BeLike 'WhatIf:*'
+        }
+
         It 'Data.OracleHome is a non-empty string when path is available' {
             $result = Set-OracleEnv
             $result.Data.OracleHome | Should -BeOfType [string]
@@ -442,6 +448,48 @@ Describe 'Set-OracleEnv' {
             $result = Set-OracleEnv
             $result.Data.OracleBase | Should -BeOfType [string]
             $result.Data.OracleBase | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    Context 'WhatIf support' {
+
+        BeforeAll {
+            $script:savedEnv = @{
+                ORACLE_SID  = $env:ORACLE_SID
+                ORACLE_HOME = $env:ORACLE_HOME
+                ORACLE_BASE = $env:ORACLE_BASE
+            }
+        }
+
+        AfterAll {
+            $env:ORACLE_SID  = $script:savedEnv.ORACLE_SID
+            $env:ORACLE_HOME = $script:savedEnv.ORACLE_HOME
+            $env:ORACLE_BASE = $script:savedEnv.ORACLE_BASE
+        }
+
+        BeforeEach {
+            Mock Get-OracleDatabaseList {
+                [PSCustomObject]@{
+                    Success = $true
+                    Data    = $script:oneInstance
+                    Message = 'Found 1 Oracle database instance(s).'
+                }
+            } -ModuleName 'TACE.Oracle.Admin'
+            $env:ORACLE_SID  = 'BEFORE_SID'
+            $env:ORACLE_HOME = 'C:\before\home'
+            $env:ORACLE_BASE = 'C:\before'
+        }
+
+        It 'R6 WhatIf sets no variable and returns a preview' {
+            $result = Set-OracleEnv -SID 'ORCL' -WhatIf
+            $env:ORACLE_SID  | Should -Be 'BEFORE_SID'
+            $env:ORACLE_HOME | Should -Be 'C:\before\home'
+            $env:ORACLE_BASE | Should -Be 'C:\before'
+            $result.Success      | Should -BeTrue
+            $result.Data.SID     | Should -Be 'ORCL'
+            $result.Data.Applied | Should -BeFalse
+            $result.Message      | Should -BeLike 'WhatIf:*'
+            $result.Message      | Should -Not -BeLike '*set to*'
         }
     }
 

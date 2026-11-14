@@ -60,6 +60,66 @@ function Get-RmanBackupStatus {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 DatabaseName is a non-empty string.
+    #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #   P2 WalletAlias and Credential are not both supplied.
+    #       Guard: the check at the start of the body returns Success = $false.
+    #   P3 It runs on Windows. On any other platform it returns Success = $false before
+    #       it reads the config or starts a process (rule C-07).
+    #       Test: 'P3 returns Success false on a platform other than Windows'.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 ORACLE_SID is never set on the current session.
+    #       Test: 'ORACLE_SID should not be set on current session after call'.
+    #   [SEC] S2 Message holds no credential when RMAN succeeds.
+    #       Test: 'Message should not contain credential fragments',
+    #       '[SEC] Message does not contain credential fragments when WalletAlias is used'.
+    #   [SEC] S5 Exception text is scrubbed before it is placed in Message.
+    #       Test: none yet. No test raises an exception that carries a credential.
+    #   [SEC] S3 Credential is handed to Invoke-RmanProcess and to nothing else. It is
+    #       never logged or returned.
+    #       Static: none yet.
+    #   [SEC] S4 Data.RawLog holds RMAN output as scrubbed by Invoke-RmanProcess.
+    #       Limitation: it is only as clean as that scrub. See Invoke-CredentialScrub S2.
+    #
+    # POST-CONDITIONS
+    #   R1 Returns Success, Data and Message on every path, and never throws once its
+    #       parameters are bound.
+    #       Test: 'Should return Success=$false and safe Message when binary integrity check fails'.
+    #   R2 On success Data is one record, not an array.
+    #       Test: 'Data should be a single object, not an array'.
+    #   R3 The record chosen has the latest CompletionTime. A record with no
+    #       CompletionTime is chosen only when none has one, by highest Key.
+    #       Test: 'Should select the most recent record by CompletionTime (Key 94 over Key 95)'.
+    #   R4 When CompletionTime is null, IsRecentDay is false and AgeHours is -1.
+    #       Test: 'Data.AgeHours should be -1 (sentinel) when CompletionTime is null'.
+    #   R5 No backup records, or an RMAN failure, gives Success = $false.
+    #       Test: 'Should return Success=$false when RMAN output contains no backup records',
+    #       'Should return Success=$false when RMAN fails'.
+    #
+    # EXECUTION INVARIANTS
+    #   L1 Read-only: the only RMAN command sent is LIST BACKUP SUMMARY.
+    #       Test: 'Should include LIST BACKUP SUMMARY in the RMAN script'.
+    #   L2 The first call can create the config file on disk.
+    #       Limitation: see Get-OracleBackupConfigStore L1.
+    #   L3 Invoke-RmanProcess receives the home that Assert-OracleEnvironment validated,
+    #       including one found through the ORACLE_HOME fallback when the config has none.
+    #       Test: 'L3 passes the validated home to RMAN when the config has none'.
+    #--------------------------------------------------------------
+
+    # ── Platform check (C-07) ─────────────────────────────────────────────────
+    if (-not (Test-WindowsPlatform)) {
+        return [PSCustomObject]@{
+            Success = $false
+            Data    = $null
+            Message = 'Get-RmanBackupStatus is Windows only. Linux support is not yet built.'
+        }
+    }
+
     # ── Auth mode resolution ──────────────────────────────────────────────────
     if (-not [string]::IsNullOrWhiteSpace($WalletAlias) -and $null -ne $Credential) {
         return [PSCustomObject]@{
@@ -78,6 +138,10 @@ function Get-RmanBackupStatus {
         $config   = Get-OracleBackupConfigStore
         $rmanPath = Assert-OracleEnvironment -OracleHome $config.OracleHome -WalletAlias $WalletAlias
 
+        # The validated home, which may have come from the ORACLE_HOME fallback (L3).
+        # Assert-OracleEnvironment always resolves the binary as <home>\bin\<binary>.
+        $oracleHome = Split-Path -Path (Split-Path -Path $rmanPath -Parent) -Parent
+
         # ── Build RMAN script ─────────────────────────────────────────────
         $listScript = 'LIST BACKUP SUMMARY;'
 
@@ -87,7 +151,7 @@ function Get-RmanBackupStatus {
         $rmanInvokeParams = @{
             RmanBinaryPath = $rmanPath
             RmanScript     = $listScript
-            OracleHome     = $config.OracleHome
+            OracleHome     = $oracleHome
         }
         switch ($authMode) {
             'WalletAuth'      { $rmanInvokeParams['WalletAlias'] = $WalletAlias }

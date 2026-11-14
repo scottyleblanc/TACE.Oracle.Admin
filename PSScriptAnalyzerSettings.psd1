@@ -11,11 +11,8 @@
         # for PS7 — adding a BOM would violate the project encoding standard.
         'PSUseBOMForUnicodeEncodedFile'
 
-        # Write-Host is used intentionally in Set-OracleEnv and Invoke-OraEnv.
-        # Both functions are explicitly interactive — they present menus and
-        # confirm environment variable changes to the user at the terminal.
-        # Write-Host is correct for this purpose; Write-Output would pollute
-        # the pipeline and interfere with the return object contract.
-        'PSAvoidUsingWriteHost'
+        # PSAvoidUsingWriteHost is NOT excluded (rule C-31). The two interactive
+        # functions, Set-OracleEnv and Invoke-OraEnv, carry a SuppressMessageAttribute
+        # with the reason, so every other function is still checked.
     )
 }

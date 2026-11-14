@@ -174,6 +174,28 @@ Describe 'Get-OracleDatabaseList' {
         }
     }
 
+    Context 'Windows — Get-CimInstance writes a non-terminating error' -Skip:(-not $IsWindows) {
+
+        BeforeEach {
+            # A non-terminating error, as a failed CIM query raises it. A Pester mock does
+            # not apply the caller's -ErrorAction to its own body, so the mock passes it
+            # on, as the real cmdlet would: suppressed under SilentlyContinue, terminating
+            # under Stop.
+            Mock Get-CimInstance {
+                $action = if ($PesterBoundParameters.ContainsKey('ErrorAction')) { $PesterBoundParameters['ErrorAction'] } else { 'Continue' }
+                Write-Error -Message 'Invalid query' -ErrorAction $action
+            } -ModuleName 'TACE.Oracle.Admin'
+        }
+
+        It 'L2 a non-terminating service query error returns Success false' {
+            $result = Get-OracleDatabaseList -Platform Windows
+            $result.Success | Should -BeFalse
+            $result.Data    | Should -BeNullOrEmpty
+            $result.Message | Should -Match 'Invalid query'
+            $result.Message | Should -Not -Match 'No Oracle database services found'
+        }
+    }
+
     # -------------------------------------------------------------------------
     # Linux path
     # -------------------------------------------------------------------------

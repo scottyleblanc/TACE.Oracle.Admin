@@ -23,7 +23,6 @@ Describe 'Remove-RmanObsoleteBackup' {
         $modulePath = [System.IO.Path]::GetFullPath($modulePath)
 
         $testConfigPath = Join-Path $TestDrive 'OracleBackup.json'
-        $env:ORACLE_BACKUP_CONFIG_PATH = $testConfigPath
 
         [PSCustomObject]@{
             BackupBasePath       = (Join-Path $TestDrive 'backup')
@@ -41,6 +40,9 @@ Describe 'Remove-RmanObsoleteBackup' {
 
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
         Import-Module $modulePath -Force
+        InModuleScope TACE.Oracle.Admin -Parameters @{ Path = $testConfigPath } {
+            $script:ConfigPathOverride = $Path
+        }
 
         Mock -CommandName Assert-OracleEnvironment -ModuleName TACE.Oracle.Admin -MockWith {
             return $script:fakeRmanPath
@@ -57,7 +59,6 @@ Describe 'Remove-RmanObsoleteBackup' {
 
     AfterAll {
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
-        $env:ORACLE_BACKUP_CONFIG_PATH = $null
     }
 
     # ── Parameter validation ──────────────────────────────────────────────────
@@ -121,6 +122,59 @@ Describe 'Remove-RmanObsoleteBackup' {
             Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -WhatIf
             $script:rmanCalled | Should -Be $false
         }
+
+        It 'L1 WhatIf reads no config and runs no environment check' {
+            Mock -CommandName Get-OracleBackupConfigStore -ModuleName TACE.Oracle.Admin -MockWith {
+                return [PSCustomObject]@{ OracleHome = '' }
+            }
+            Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -WhatIf | Out-Null
+            Should -Invoke -CommandName Get-OracleBackupConfigStore -ModuleName TACE.Oracle.Admin -Times 0 -Exactly
+            Should -Invoke -CommandName Assert-OracleEnvironment -ModuleName TACE.Oracle.Admin -Times 0 -Exactly
+        }
+
+        It 'L2 passes the validated home to RMAN when the config has none' {
+            $script:capturedHome = $null
+            Mock -CommandName Get-OracleBackupConfigStore -ModuleName TACE.Oracle.Admin -MockWith {
+                return [PSCustomObject]@{ OracleHome = '' }
+            }
+            Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
+                $script:capturedHome = $OracleHome
+                return [PSCustomObject]@{ ExitCode = 0; StdOut = ''; StdErr = ''; Success = $true }
+            }
+            Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Confirm:$false | Out-Null
+            $script:capturedHome | Should -Be (Split-Path (Split-Path $script:fakeRmanPath -Parent) -Parent)
+        }
+
+        It 'P3 returns Success false on a platform other than Windows' {
+            Mock -CommandName Test-WindowsPlatform -ModuleName TACE.Oracle.Admin -MockWith { $false }
+            Mock -CommandName Get-OracleBackupConfigStore -ModuleName TACE.Oracle.Admin -MockWith {
+                return [PSCustomObject]@{ OracleHome = '' }
+            }
+            $result = Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Confirm:$false
+            $result.Success | Should -Be $false
+            $result.Data    | Should -BeNullOrEmpty
+            $result.Message | Should -BeLike '*Windows only*'
+            Should -Invoke -CommandName Get-OracleBackupConfigStore -ModuleName TACE.Oracle.Admin -Times 0 -Exactly
+            Should -Invoke -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -Times 0 -Exactly
+        }
+
+        It 'R3 WhatIf returns a preview with Applied false' {
+            $result = Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -WhatIf
+            $result.Success           | Should -Be $true
+            $result.Data.DatabaseName | Should -Be 'ORCL'
+            $result.Data.Applied      | Should -Be $false
+            $result.Message           | Should -BeLike 'WhatIf:*'
+            Should -Invoke -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -Times 0 -Exactly
+        }
+
+        It 'R2 a real run returns the full Data with Applied true' {
+            $result = Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Confirm:$false
+            $result.Success | Should -Be $true
+            $expected = 'DatabaseName', 'StartTime', 'EndTime', 'DurationSec', 'DeletedCount', 'AuthMode', 'RawLog', 'Applied'
+            @($result.Data.PSObject.Properties.Name) | Should -Be $expected
+            $result.Data.Applied | Should -Be $true
+            $result.Message      | Should -Not -BeLike 'WhatIf:*'
+        }
     }
 
     # ── Security ──────────────────────────────────────────────────────────────
@@ -162,6 +216,20 @@ Describe 'Remove-RmanObsoleteBackup' {
             Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Confirm:$false | Out-Null
             $script:capturedScript | Should -Not -Match '\w+/\w+@\w+'
             $script:capturedScript | Should -Not -Match 'password'
+        }
+
+        It 'S9 RMAN script is fixed text and no catalog parameter exists' -Tag 'SEC' {
+            $params = (Get-Command Remove-RmanObsoleteBackup).Parameters.Keys
+            $params | Should -Not -Contain 'CatalogConnection'
+            $params | Should -Not -Contain 'CatalogCredential'
+
+            $script:capturedScript = $null
+            Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
+                $script:capturedScript = $RmanScript
+                return [PSCustomObject]@{ ExitCode = 0; StdOut = ''; StdErr = ''; Success = $true }
+            }
+            Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Confirm:$false | Out-Null
+            $script:capturedScript | Should -BeExactly 'DELETE NOPROMPT OBSOLETE;'
         }
 
         It 'Message should not contain credential fragments' {

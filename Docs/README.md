@@ -65,6 +65,10 @@ Every public function returns a `PSCustomObject` with exactly this shape:
 Callers must check `Success` before consuming `Data`. `Message` is always safe
 to write to a log file — it will never contain passwords or credential values.
 
+Under `-WhatIf`, or a declined `-Confirm`, a state-changing function changes nothing
+and returns `Success = $true`, `Data.Applied = $false`, and a `Message` starting with
+`WhatIf:`. A real run returns `Data.Applied = $true` (rule C-27).
+
 ## Error Handling
 
 - **Terminating throw**: unrecoverable failures (e.g. module load failure for a
@@ -91,10 +95,10 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.2.0 |
-| Last audit | 2026-03-17 |
-| Tests | 291 unit tests (all passing) |
-| Open SEC items | 5 — carried in with the RMAN functions copied at Stack 0 (v0.2.0, not yet audited here) |
+| Version | 0.2.1 |
+| Last audit | 2026-11-14 — Stack 1 invariant review of every function |
+| Tests | 317 unit tests and 11 static checks (all passing) |
+| Open SEC items | 5 — see the Open Items in SECURITY.md |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.
 

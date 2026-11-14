@@ -17,7 +17,7 @@
         LogBasePath         : C:\app\oracle\backup\logs
         LogRetentionHotDays : 15
         LogRetentionWarmDays: 90
-        OracleHome          : (empty — must be set via Set-OracleBackupConfig)
+        OracleHome          : (empty — set it in the config file, or ORACLE_HOME is used)
 
 .OUTPUTS
     [PSCustomObject] — the current configuration object.
@@ -39,9 +39,46 @@ function Get-OracleBackupConfigStore {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    # Resolve config path — allow override via environment variable for test isolation
-    $configPath = if ($env:ORACLE_BACKUP_CONFIG_PATH) {
-        $env:ORACLE_BACKUP_CONFIG_PATH
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 The config file is Config\OracleBackup.json under the module folder, unless
+    #       the module-scoped test override $script:ConfigPathOverride is set.
+    #       Guard: the path resolution at the start of the body.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 A config file created here is given restricted permissions straight
+    #       after it is written.
+    #       Guard: the Set-RestrictiveAcl call that follows the write.
+    #   [SEC] S2 The config holds paths and defaults, never a credential.
+    #       Limitation: nothing checks what the file contains.
+    #   [SEC] S3 OracleHome read from the config is untrusted until checked.
+    #       Limitation: the caller's duty, met by Assert-OracleEnvironment.
+    #   [SEC] S4 No environment variable or caller input decides where the config is
+    #       read from or created. Only the module-scoped test override can change the path.
+    #       Test: 'S4 ORACLE_BACKUP_CONFIG_PATH does not change the config path'.
+    #
+    # POST-CONDITIONS
+    #   R1 Returns an object with all eight settings. A setting missing from the file
+    #       takes its default.
+    #       Test: 'R1 a setting missing from the file takes its default'.
+    #   R2 When the file does not exist it is written with the defaults, and the defaults
+    #       are returned.
+    #       Test: none yet.
+    #   T1 Every throw starts with 'Failed to load OracleBackup configuration from' and
+    #       names the path.
+    #       Test: none yet.
+    #
+    # EXECUTION INVARIANTS
+    #   L1 The first call can create a folder and a file. It is not under ShouldProcess.
+    #       Limitation: a caller's -WhatIf does not reliably prevent the write.
+    #--------------------------------------------------------------
+
+    # [SEC] S4 — fixed path under the module folder. Only the module-scoped test
+    # override (set through InModuleScope) can change it; no environment variable can.
+    $configPath = if (-not [string]::IsNullOrWhiteSpace($script:ConfigPathOverride)) {
+        $script:ConfigPathOverride
     }
     else {
         $resolved = Join-Path $PSScriptRoot '..' 'Config' 'OracleBackup.json'
@@ -83,17 +120,20 @@ function Get-OracleBackupConfigStore {
         $raw = Get-Content -Path $configPath -Raw -Encoding UTF8
         $loaded = $raw | ConvertFrom-Json
 
-        # Ensure all expected keys are present — merge with defaults for forward compatibility
-        $merged = [PSCustomObject]@{
-            BackupBasePath       = if ($null -ne $loaded.BackupBasePath)       { $loaded.BackupBasePath }       else { $defaultConfig.BackupBasePath }
-            FastRecoveryArea     = if ($null -ne $loaded.FastRecoveryArea)     { $loaded.FastRecoveryArea }     else { $defaultConfig.FastRecoveryArea }
-            LogBasePath          = if ($null -ne $loaded.LogBasePath)          { $loaded.LogBasePath }          else { $defaultConfig.LogBasePath }
-            LogRetentionHotDays  = if ($null -ne $loaded.LogRetentionHotDays)  { $loaded.LogRetentionHotDays }  else { $defaultConfig.LogRetentionHotDays }
-            LogRetentionWarmDays = if ($null -ne $loaded.LogRetentionWarmDays) { $loaded.LogRetentionWarmDays } else { $defaultConfig.LogRetentionWarmDays }
-            OracleHome           = if ($null -ne $loaded.OracleHome)           { $loaded.OracleHome }           else { $defaultConfig.OracleHome }
-            DefaultAuthMode      = if ($null -ne $loaded.PSObject.Properties['DefaultAuthMode'])    { $loaded.DefaultAuthMode }    else { $defaultConfig.DefaultAuthMode }
-            DefaultWalletAlias   = if ($null -ne $loaded.PSObject.Properties['DefaultWalletAlias']) { $loaded.DefaultWalletAlias } else { $defaultConfig.DefaultWalletAlias }
+        # Merge with defaults: a setting missing from the file (or null in it) takes its
+        # default (R1). Look each one up through PSObject.Properties — under StrictMode,
+        # reading a missing property directly throws.
+        $merged = [ordered]@{}
+        foreach ($property in $defaultConfig.PSObject.Properties) {
+            $fileValue = $loaded.PSObject.Properties[$property.Name]
+            $merged[$property.Name] = if ($null -ne $fileValue -and $null -ne $fileValue.Value) {
+                $fileValue.Value
+            }
+            else {
+                $property.Value
+            }
         }
+        $merged = [PSCustomObject]$merged
 
         Write-Verbose "[Get-OracleBackupConfigStore] Configuration loaded from $configPath"
         return $merged

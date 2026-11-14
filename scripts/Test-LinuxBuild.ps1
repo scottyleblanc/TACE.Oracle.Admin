@@ -18,20 +18,30 @@
 
     Requirements:
       - PowerShell 7.0+
-      - AWS CLI configured with credentials for tacedata-s3-bucket-02
+      - AWS CLI configured with credentials for the staging bucket
       - Run on Linux
 
+.PARAMETER S3Bucket
+    Name of the S3 staging bucket (the name only, without s3://). Required. The latest
+    build is read from s3://<S3Bucket>/staging/TACE.Oracle.Admin/. No bucket name is kept
+    in this repository.
+
 .EXAMPLE
-    pwsh ./scripts/Test-LinuxBuild.ps1
+    pwsh ./scripts/Test-LinuxBuild.ps1 -S3Bucket '<staging-bucket>'
 
 .NOTES
     Copyright © TACE Data Management Inc.
     Module  : TACE.Oracle.Admin
     Platform: Linux
+    **Invocation:** Standalone — run on the Linux test host, not from this checkout.
 #>
 
 [CmdletBinding()]
-param()
+param(
+    [Parameter(Mandatory)]
+    [ValidatePattern('^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$')]
+    [string] $S3Bucket
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -40,7 +50,7 @@ if (-not $IsLinux) {
     Write-Error '[Test-LinuxBuild] This script must be run on Linux.'
 }
 
-$s3Prefix  = 's3://tacedata-s3-bucket-02/staging/TACE.Oracle.Admin/'
+$s3Prefix  = "s3://$S3Bucket/staging/TACE.Oracle.Admin/"
 $workDir   = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'TACE.Oracle.Admin.Test'
 $repoDir   = Join-Path -Path $workDir -ChildPath 'repo'
 $repoName  = 'TACELinuxTest'

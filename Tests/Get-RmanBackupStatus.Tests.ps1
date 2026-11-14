@@ -21,7 +21,6 @@ Describe 'Get-RmanBackupStatus' {
         $modulePath = [System.IO.Path]::GetFullPath($modulePath)
 
         $testConfigPath = Join-Path $TestDrive 'OracleBackup.json'
-        $env:ORACLE_BACKUP_CONFIG_PATH = $testConfigPath
 
         [PSCustomObject]@{
             BackupBasePath       = (Join-Path $TestDrive 'backup')
@@ -39,6 +38,9 @@ Describe 'Get-RmanBackupStatus' {
 
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
         Import-Module $modulePath -Force
+        InModuleScope TACE.Oracle.Admin -Parameters @{ Path = $testConfigPath } {
+            $script:ConfigPathOverride = $Path
+        }
 
         Mock -CommandName Assert-OracleEnvironment -ModuleName TACE.Oracle.Admin -MockWith {
             return $script:fakeRmanPath
@@ -78,7 +80,6 @@ Recovery Manager complete.
 
     AfterAll {
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
-        $env:ORACLE_BACKUP_CONFIG_PATH = $null
     }
 
     # ── Parameter validation ──────────────────────────────────────────────────
@@ -233,6 +234,32 @@ Recovery Manager complete.
             }
             Get-RmanBackupStatus -DatabaseName 'ORCL' | Out-Null
             $script:capturedScript | Should -Match 'LIST BACKUP SUMMARY'
+        }
+
+        It 'L3 passes the validated home to RMAN when the config has none' {
+            $script:capturedHome = $null
+            Mock -CommandName Get-OracleBackupConfigStore -ModuleName TACE.Oracle.Admin -MockWith {
+                return [PSCustomObject]@{ OracleHome = '' }
+            }
+            Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
+                $script:capturedHome = $OracleHome
+                return [PSCustomObject]@{ ExitCode = 0; StdOut = $script:mockOutput; StdErr = ''; Success = $true }
+            }
+            Get-RmanBackupStatus -DatabaseName 'ORCL' | Out-Null
+            $script:capturedHome | Should -Be (Split-Path (Split-Path $script:fakeRmanPath -Parent) -Parent)
+        }
+
+        It 'P3 returns Success false on a platform other than Windows' {
+            Mock -CommandName Test-WindowsPlatform -ModuleName TACE.Oracle.Admin -MockWith { $false }
+            Mock -CommandName Get-OracleBackupConfigStore -ModuleName TACE.Oracle.Admin -MockWith {
+                return [PSCustomObject]@{ OracleHome = '' }
+            }
+            $result = Get-RmanBackupStatus -DatabaseName 'ORCL'
+            $result.Success | Should -Be $false
+            $result.Data    | Should -BeNullOrEmpty
+            $result.Message | Should -BeLike '*Windows only*'
+            Should -Invoke -CommandName Get-OracleBackupConfigStore -ModuleName TACE.Oracle.Admin -Times 0 -Exactly
+            Should -Invoke -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -Times 0 -Exactly
         }
     }
 

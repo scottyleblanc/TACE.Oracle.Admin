@@ -139,6 +139,14 @@ Every function returns a `PSCustomObject` with this shape:
 Always check `Success` before consuming `Data`. `Message` is always safe to write
 to a log file — it will never contain passwords or credential values.
 
+### -WhatIf and -Confirm
+
+When a state-changing function is run with `-WhatIf`, or `-Confirm` is answered "No",
+nothing is changed and the result is a successful preview: `Success = $true`,
+`Data.Applied = $false`, and a `Message` that starts with `WhatIf:` and says what would
+have happened. A real run returns `Data.Applied = $true`. Check `Applied`, not
+`Success`, to tell a preview from a change.
+
 ### Error handling
 
 - **Terminating throw**: unrecoverable failures (e.g. required helper not found at load time)

@@ -38,7 +38,15 @@ Breaking changes require a `BREAKING CHANGE:` footer in the commit body.
 `v0.2.0` marks the start of the stack work: Stack 0 adds public functions, so it is
 a minor release. Stack 1 to Stack 10 add checks, tooling and documentation, not
 public functions, so each closes as a patch release (`v0.2.1` onward). A stack stage
-that does change a function signature or return shape follows the table above.
+that does change a function signature or return shape follows the table above, with
+one exception: while the module is unpublished during the stack work, a breaking
+change does not trigger a major bump. It is still marked with a `BREAKING CHANGE:`
+footer and recorded in `CHANGELOG.md`, and the stage closes as its planned patch
+release.
+
+Stack releases are git tags only. Nothing is published to PSGallery while the stack
+work is in progress: the module is a test bed, not a functional tool, until the stages
+are complete. The last version on PSGallery stays `0.1.6` until then.
 
 ## Branching Strategy
 

@@ -13,11 +13,16 @@ Completed work for Stage 1, Stage 1.3, Stage 1.4 and Stage 2 is recorded in
 
 ## AI Development Stack
 
-Goals, deliverables and definitions of done are in `STAGES.md`. Every stack stage
+Each stack section opens with a goal: what its items accomplish when they are all
+checked off. Deliverables and definitions of done are in `STAGES.md`. Every stack stage
 ends with the same three closing tasks: record the seeded-defect result in
 `Docs\audit\`, update `CHANGELOG.md` and tag, and publish the write-up.
 
 ### Stack 0 — Setup and scope
+
+**Goal:** three example functions, with their helpers and tests, run in this repo, and
+the starting unit-test count and analyzer findings are recorded as the baseline every
+later stage is measured against.
 
 - [x] Record the plan in `STAGES.md` and `TODO.md`
 - [x] Sync the local clone of the Oracle backup module with its remote
@@ -25,8 +30,10 @@ ends with the same three closing tasks: record the seeded-defect result in
       discarded from this repo; kept privately as reference for Stack 1
 - [x] [SEC] Move untracked local working files out of the repo tree so they cannot
       be committed by mistake
-- [ ] [SEC] Review the earlier standards variance notes for sensitive detail before
-      any part of them is committed to this public repo
+- [x] [SEC] Review the earlier standards variance notes for sensitive detail before
+      any part of them is committed to this public repo — closed at Stack 1 as not
+      applicable: no part of them was committed. They stay in the private archive, and
+      the Stack 1 standards were written fresh
 - [x] Select three example functions: one read-only, one state-changing, one on the
       credential-handling path; list the private helpers each depends on —
       `Get-RmanBackupStatus`, `Remove-RmanObsoleteBackup`, `Invoke-RmanProcess`;
@@ -47,25 +54,138 @@ ends with the same three closing tasks: record the seeded-defect result in
 
 ### Stack 1 — Intent
 
-- [ ] List the candidate standards; mark each ratified, rejected or deferred
-- [ ] Write the ratified standards to `Docs\standards\`, one sentence plus one example each
-- [ ] Write `Docs\standards\invariants.md`: pre- and post-conditions per function
-- [ ] [SEC] Write the security invariants: output contract, stdin-only credential
-      handling, no credential fragments in `Message`, verbose or error output
+**Goal:** every rule the code must follow is written down — the ratified standards, and
+an invariant block in every function naming what enforces each entry — and every gap
+found while writing them is either fixed or accepted as a stated limitation.
+
+- [x] List the candidate standards; mark each ratified, rejected or deferred —
+      see `Docs\standards\decisions.md`
+- [x] Write the ratified standards to `Docs\standards\`, one sentence plus one example each
+- [x] Settle the four open items in `Docs\standards\decisions.md` — decisions 15 to 18:
+      test runners (T-10), module layout (C-28, C-29), aliases (C-30), `Write-Host` (C-31)
+- [x] Settle the invariant block format: sections, identifiers, and how each entry
+      names what enforces it — `Docs\standards\invariants.md`
+- [x] Write an `# INVARIANTS` block into each function body: what must hold before,
+      during and after, each entry with an ID — 149 invariants in 13 functions
+- [x] [SEC] Write the security invariants: stdin-only credential handling, no
+      credential fragments in `Message`, verbose or error output, no session
+      environment changes — 54 security invariants
+- [x] Add a script that lists every invariant and what enforces it —
+      `scripts\Invoke-InvariantLint.ps1`, index in `Docs\standards\invariants-index.md`
+- [x] [SEC] Check that every test cited for a security invariant would fail if the
+      invariant were broken — five citations withdrawn and marked `Test: none yet`
+- [x] Decide the findings below: fix, or accept as a limitation — all decided; one
+      accepted as a limitation, the rest fixed with tests
+- [x] Seeded defect: a function with no block, and a malformed entry, both fail the
+      static tier — both exit 1 on the rule-specific check; recorded in
+      `Docs\audit\stack-1-seeded-defects.md`
 - [ ] Closing tasks
+
+#### Findings from writing the invariant blocks
+
+Each was recorded as a `Limitation:` in the named block. A fixed finding's entry now
+names the test or guard that enforces it; an accepted one stays a `Limitation:` with its
+reason. Items marked "found while" were discovered while working on the one above.
+
+- [x] [SEC] `Remove-RmanObsoleteBackup` S7 — `-CatalogConnection` reaches the RMAN
+      script after a non-empty check only — parameter removed; S9 added
+- [x] [SEC] `Remove-RmanObsoleteBackup` S6 — `-CatalogCredential` is accepted and not
+      used — parameter removed; S9 added
+- [x] [SEC] `Remove-RmanObsoleteBackup` L1 — the environment check runs before the
+      confirmation gate, so `-WhatIf` can create the config file and run `tnsping` —
+      gate moved first; L1 now has a test
+- [x] [SEC] `Get-OracleBackupConfigStore` S4 — an environment variable decides where
+      the config file is read from and created — replaced by a module-scoped test
+      override; S4 now has a test
+- [x] [SEC] `Assert-OracleEnvironment` S9 — `tnsping.exe` is not signature-checked —
+      accepted as a limitation: Oracle binaries are unsigned, so the check would add
+      nothing. S4 and S9 reworded to say so
+- [x] `Assert-OracleEnvironment` L1, `Get-RmanBackupStatus` L3, `Remove-RmanObsoleteBackup`
+      L2 — the `ORACLE_HOME` fallback is not passed on (suspected; needs a test) —
+      confirmed: both functions failed on parameter binding. Callers now derive the
+      home from the validated binary path; L2 and L3 have tests
+- [x] `Get-OracleBackupConfigStore` R1 — found while confirming the item above: a config
+      file missing any setting failed to load under StrictMode instead of taking the
+      default. Fixed; R1 has a test
+- [x] `Assert-OracleEnvironment` T2 — error message names a function this module lacks —
+      message now names the config file and `ORACLE_HOME`; T2 has a test
+- [x] `Set-OracleEnv` R6 — reports success with "ORACLE_SID set to" under `-WhatIf` —
+      new rule C-27: a declined `ShouldProcess` returns a successful preview with
+      `Data.Applied = $false` and a `WhatIf:` Message. Applied to `Set-OracleEnv` and
+      `Remove-RmanObsoleteBackup` (whose R3 returned `Success = $false`); both tested
+- [x] `Get-RmanBackupStatus` P3, `Remove-RmanObsoleteBackup` P3 — no platform check (rule
+      C-07) — both return `Success = $false` off Windows before touching the config or
+      RMAN, through a mockable `Test-WindowsPlatform` helper; P3 tested in both.
+      Linux stays out of scope; see Post-Project Notes
+- [x] `Invoke-TnspingProcess` L1, L2 — output read order and no exit check — worse than
+      recorded: the synchronous stdout read blocked before the 30-second wait, so a hung
+      tnsping hung its caller indefinitely. Now reads both streams asynchronously, kills
+      the process tree on timeout, and takes `-TimeoutSeconds`; L1, L2, S1, R1 and the
+      new L4 have tests that run the real helper
+- [x] `Invoke-RmanProcess` T1, L5 — found while fixing the item above: a timeout killed
+      only the RMAN process, not its tree, with no guard around `Kill()` and no wait
+      after it. Fixed to the same pattern; T1 and T2 have a test
+- [x] `Invoke-RmanProcess` and `Invoke-TnspingProcess` L4 — child `PATH` now built with
+      `Join-Path` and `[System.IO.Path]::PathSeparator`, under the exact name `PATH`
+- [x] `Get-OracleDatabaseList` L2 — a failed service query reads as "no instances" —
+      the query now uses `-ErrorAction Stop`, so any error returns `Success = $false`;
+      a query that matches nothing still returns an empty result. L2 has a test
 
 ### Stack 2 — Deterministic checks
 
-- [ ] Extend `PSScriptAnalyzerSettings.psd1` from the ratified standards
+**Goal:** one command, `scripts\Invoke-Gate.ps1`, runs every static check — the
+analyzer, the house rules, secret scanning and the `-WhatIf` checks — and fails on a
+planted lint violation and a planted secret.
+
+- [ ] Move to the `source\` layout first (rules C-28, C-29; decision 16), so every
+      check below is written once, against the final layout:
+      - `Public\` and `Private\` move under `source\`; `Invoke-OraEnv` moves to
+        `source\Public\`; no `source\Classes\` until a class exists
+      - A build merges `source\` (classes, private, public) into one `.psm1` under
+        `output\TACE.Oracle.Admin\<version>\`, with `FileList`, `FunctionsToExport`
+        and `AliasesToExport` generated (aliases from `[Alias()]` attributes, rule C-30);
+        `output\` is gitignored; `Build-Module.ps1` packages from it
+      - Tests move to `Tests\Unit\Public\` and `Tests\Unit\Private\`, plus
+        `Tests\Unit\Module\` for the module-level test, and import the built module
+      - Decide where linters live: `scripts\Invoke-InvariantLint.ps1` now, or a
+        `Tests\Lint\` folder beside the static tests that call them
+      - Update with it: both tier scripts and rule T-10, rule T-02, the invariant
+        linter's source folders and its source-to-test lookup (I-09),
+        `Test-LinuxBuild.ps1`, and the README and PREREQUISITES instructions
+- [ ] Extend `PSScriptAnalyzerSettings.psd1` from the ratified standards. Decide whether
+      the analyzer covers `scripts\`, and with which settings: those console tools use
+      `Write-Host` throughout, and C-31 covers module code only
 - [ ] Write custom analyzer rules for house standards that can be machine-checked
-- [ ] [SEC] Add secret scanning
+- [ ] [SEC] Add secret scanning. The pattern checks for rule S-16 exist
+      (`Tests\Static\PublicRepoHygiene.Tests.ps1`); add with them:
+      - a general secret scanner for credential formats the patterns do not cover
+      - a local-only script that checks changed files, the diff and commit messages
+        against the private resource list, taking its path as a parameter (CI cannot
+        read the private repository); run before every push
+      - a commit-message check, since the static tier reads files only
+- [ ] Static check: a state-changing call in a function with no `ShouldProcess` gate of
+      its own fails the static tier — under an inherited `-WhatIf` it is skipped or
+      runs unguarded
+- [ ] Cleanup of temporary files pins `-WhatIf:$false`, so a preview still removes
+      them; checked statically
 - [ ] Create `scripts\Invoke-Gate.ps1` as the single entry point
 - [ ] Seeded defects: one lint violation, one planted secret
 - [ ] Closing tasks
 
 ### Stack 3 — Tests
 
+**Goal:** every invariant is proven by a test that fails when the invariant is broken,
+coverage cannot fall below a set floor, the unit suite passes on Windows and Linux, and
+a local tier tests the code against a real Oracle database.
+
 - [ ] Map every invariant to at least one Pester test; fill the gaps
+- [ ] Bring every cited test to rule T-09: rename the cited tests whose title does not
+      start with the IDs they prove (54 at the end of Stack 1), tag the security ones
+      `SEC`, update the citations, and add the linter check
+- [ ] `Set-OracleEnv` is documented for scripts and automation, but writes to the host
+      and can show a `Read-Host` menu (its L1, L2). Move the menu and host output into
+      `Invoke-OraEnv`, the interactive wrapper, so `Set-OracleEnv` is silent and needs
+      no `Write-Host` suppression. A behaviour change: decide it with its tests
 - [ ] [SEC] Every security invariant has a test in a `Security` context
 - [ ] Measure coverage; set a floor in the gate script
 - [ ] Unit tests pass on Windows and Linux
@@ -77,6 +197,10 @@ ends with the same three closing tasks: record the seeded-defect result in
 
 ### Stack 4 — Enforced gate
 
+**Goal:** a change that fails the gate cannot be merged to `master`: CI runs the gate on
+every pull request, branch protection requires it to pass, and the workflow holds no
+secrets.
+
 - [ ] Add `.github\workflows\gate.yml` calling only the gate script
 - [ ] Turn on branch protection: pull request required, checks required
 - [ ] [SEC] Workflow runs with least privilege and no stored secrets
@@ -85,11 +209,19 @@ ends with the same three closing tasks: record the seeded-defect result in
 
 ### Stack 5 — Agent instructions
 
+**Goal:** the AI agent is given the standards through instruction files generated from
+`Docs\standards\`, the same source the gate enforces, and their effect on gate failures
+is measured.
+
 - [ ] Generate agent instruction files from `Docs\standards\`
 - [ ] Run one small generation task with and without them; compare gate failures
 - [ ] Closing tasks
 
 ### Stack 6 — Independent review
+
+**Goal:** no change is examined only by its author: every pull request follows a fixed
+review path — template, human checklist and a second-model review — shown working on
+one real pull request.
 
 - [ ] Add a pull request template
 - [ ] Write the review order and the human checklist
@@ -99,6 +231,9 @@ ends with the same three closing tasks: record the seeded-defect result in
 
 ### Stack 7 — Containment
 
+**Goal:** the AI agent can run and read only what its committed rules allow; credential
+material is outside its reach, and a planted attempt to read it is blocked.
+
 - [ ] Commit agent permission settings
 - [ ] [SEC] Add ignore files covering credential material
 - [ ] [SEC] Write the rules for what the agent may run or read
@@ -106,6 +241,9 @@ ends with the same three closing tasks: record the seeded-defect result in
 - [ ] Closing tasks
 
 ### Stack 8 — Release
+
+**Goal:** the gate refuses a release whose version differs between manifest, tag and
+changelog, or whose package contains a file not listed in `FileList`.
 
 - [ ] Gate check: version agreement across manifest, tag and changelog
 - [ ] [SEC] Gate check: `FileList` completeness and package contents
@@ -115,12 +253,19 @@ ends with the same three closing tasks: record the seeded-defect result in
 
 ### Stack 9 — Feedback loop
 
+**Goal:** every defect that escapes the stack becomes a new check, and the committed
+docs and tests alone are shown to be enough to find and fix a planted defect.
+
 - [ ] Start the escaped-defect log in `Docs\audit\`
 - [ ] Convert at least one entry into a check
 - [ ] Run one ownership drill; record the result
 - [ ] Closing tasks
 
 ### Stack 10 — Wrap-up
+
+**Goal:** the gate script, settings, templates and CI wrapper work as a reusable
+template, proven by producing a working gate on a fresh, empty repo, and the project is
+written up.
 
 - [ ] Lift the gate script, settings, templates and CI wrapper into a template
 - [ ] Prove the template on a fresh, empty repo
@@ -135,3 +280,58 @@ Built through the stack, after Stack 10.
 - [ ] `Get-OracleStatus` — report instance open mode, database role, archivelog mode
 - [ ] `Test-OracleConnection` — validate connectivity via OS auth; return structured result
 - [ ] Additional DBA utility functions (to be defined)
+
+---
+
+## OracleBackup Migration (after Stack 10)
+
+All of `OracleBackup` moves into this module once the current stack scope is complete.
+Each function comes in through the stack's checks, with its own invariant block.
+
+- [ ] [SEC] Carry the Stack 1 config-path fix across: `Set-OracleBackupConfig` and any
+      other config reader or writer use the fixed module path and
+      `$script:ConfigPathOverride`, never `ORACLE_BACKUP_CONFIG_PATH`. In `OracleBackup`
+      today, `Set-OracleBackupConfig` also writes to the path that variable names
+- [ ] [SEC] Re-check each Stack 1 finding fixed here against the incoming copy of the
+      same function, so an older version does not bring a fixed defect back
+- [ ] Config file location: `Get-OracleBackupConfigStore` writes
+      `Config\OracleBackup.json` inside the module folder. A module installed for all
+      users lives under `Program Files`, which an ordinary user cannot write, so the
+      first call there fails. Choose a per-user or per-machine location before the
+      config writer moves in
+
+---
+
+## Backlog — Outside the AI Development Stack Project
+
+Not part of the stack or the OracleBackup migration. Recorded so the idea is not lost.
+
+- [ ] [SEC] Binary write-permission check: fail when `ORACLE_HOME\bin` or a resolved
+      binary is writable by `Users`, `Authenticated Users` or `Everyone`. Survives
+      patching; does not depend on the file owner
+- [ ] [SEC] Binary baseline: record SHA-256 of the binaries the module runs, with the
+      patch level, in a restricted file; fail on mismatch with a message that says to
+      update the baseline after patching. Needs a `ShouldProcess` update command and a
+      step in the patch runbook
+
+---
+
+## Post-Project Notes — Linux Support
+
+The RMAN functions are Windows only for now, and guarded (rule C-07). Notes for a later
+port; no code is planned. `Get-OracleDatabaseList` and `Set-OracleEnv` already support
+Linux through `oratab`. Porting the OracleBackup functions as they move in would share
+this work.
+
+- Binary names: `rman.exe` and `tnsping.exe` are hard-coded in `Assert-OracleEnvironment`;
+  Linux uses `rman` and `tnsping`. Choose the name by platform
+- Child `PATH`: done in Stack 1. Both process helpers use `Join-Path`,
+  `[System.IO.Path]::PathSeparator` and the exact name `PATH` (environment names are
+  case-sensitive off Windows). Keep that pattern in any process helper that moves in
+- Binary integrity: `Get-AuthenticodeSignature` is Windows only. On Linux the
+  write-permission check in the backlog above is the replacement
+- Config file permissions: `Set-RestrictiveAcl` does nothing off Windows, so the config
+  file is left at the umask default. Set mode `600` on Linux
+- Default paths: the config defaults are under `C:\app\oracle`. Linux needs its own, for
+  example under `/u01/app/oracle`
+- Remove the C-07 guard from each function as it is ported, with a Linux test tier

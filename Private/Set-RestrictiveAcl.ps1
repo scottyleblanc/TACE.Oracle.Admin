@@ -50,6 +50,44 @@ function Set-RestrictiveAcl {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 Path is a non-empty string.
+    #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #   P2 Path exists on disk.
+    #       Guard: the Test-Path check throws when it does not.
+    #   P3 Path was created by this module immediately before the call.
+    #       Limitation: the caller's duty. Nothing here checks who created the path.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 On Windows, inheritance is disabled and inherited rules are removed.
+    #       Test: 'Inheritance is disabled on the directory after the call',
+    #       'Inheritance is disabled on the file after the call'.
+    #   [SEC] S2 On Windows, the current user and BUILTIN\Administrators are granted
+    #       access, and Everyone and BUILTIN\Users are not.
+    #       Test: 'Current user rule is present on directory',
+    #       'BUILTIN\Administrators rule is present on directory',
+    #       'No broad identity (Everyone / BUILTIN\Users) rules are present on directory'.
+    #   [SEC] S3 Rules on a directory are inherited by what is created inside it. Rules on
+    #       a file are not inheritable.
+    #       Test: 'SEC-07: child file created inside a secured directory inherits the restrictive ACEs',
+    #       'File ACEs use InheritanceFlags::None (files have no child objects)'.
+    #   [SEC] S4 On a platform other than Windows nothing is changed.
+    #       Limitation: permissions are left to the operating system.
+    #
+    # POST-CONDITIONS
+    #   R1 Returns nothing.
+    #       Type: OutputType void.
+    #   T1 Every throw starts with 'Failed to apply restrictive ACL to' and names the path.
+    #       Test: none yet.
+    #
+    # EXECUTION INVARIANTS
+    #   L1 Permissions are changed without a ShouldProcess check of its own.
+    #       Limitation: a private helper. The calling function decides.
+    #--------------------------------------------------------------
+
     try {
         if (-not (Test-Path -Path $Path)) {
             throw "Path does not exist: '$Path'"

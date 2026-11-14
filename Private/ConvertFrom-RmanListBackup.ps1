@@ -55,6 +55,41 @@ function ConvertFrom-RmanListBackup {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 RawLog is a string, and may be empty.
+    #       Type: Mandatory and AllowEmptyString.
+    #   P2 Completion times in RawLog are in the form yyyy-MM-dd HH:mm:ss.
+    #       Limitation: the caller's duty, met by Invoke-RmanProcess. Another format gives
+    #       a null CompletionTime, not an error.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 It reads RawLog and nothing else: no file, no process, no credential.
+    #       Static: none yet.
+    #
+    # POST-CONDITIONS
+    #   R1 Returns an array of zero or more records, and does not throw on text it cannot
+    #       parse.
+    #       Test: none yet.
+    #   R2 Empty input, no separator line, or fewer than ten columns gives an empty array.
+    #       Test: none yet.
+    #   R3 Each record has Key, Level, Status, DeviceType, CompletionTime, BackupTime,
+    #       PieceCount, CopyCount, Compressed and Tag.
+    #       Test: none yet.
+    #   R4 A level or status code it does not know becomes 'Unknown'.
+    #       Test: none yet.
+    #   R5 BackupTime is null unless the tag has the form TAGyyyyMMddTHHmmss.
+    #       Test: none yet.
+    #
+    # EXECUTION INVARIANTS
+    #   L1 Column positions are taken from the separator line, not hard-coded.
+    #       Guard: the column start scan.
+    #   L2 A row whose Key is not a positive integer is skipped.
+    #       Guard: the TryParse check at the start of the row loop.
+    #--------------------------------------------------------------
+
     if ([string]::IsNullOrWhiteSpace($RawLog)) {
         return [PSCustomObject[]]@()
     }
