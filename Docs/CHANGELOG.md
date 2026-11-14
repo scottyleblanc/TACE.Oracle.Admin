@@ -6,6 +6,20 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.7] - 2026-11-14
+
+### Changed
+
+- `Docs/STAGES.md` and `Docs/TODO.md`: Stage 2 (PSGallery publication) closed out. It was
+  still shown as pending although the module was published at v0.1.5 and v0.1.6. The
+  planned `Publish-Module` steps are replaced with the build and publish workflow actually
+  used (`Build-Module.ps1`, `Publish-ToGallery.ps1`).
+- `Docs/README.md` and `Docs/SECURITY.md`: status blocks corrected — version, and unit
+  test count 107 → 117.
+- Documentation only. No functional changes; not published to PSGallery.
+
+---
+
 ## [0.1.6] - 2026-03-17
 
 ### Changed

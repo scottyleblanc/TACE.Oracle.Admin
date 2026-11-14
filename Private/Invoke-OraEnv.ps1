@@ -18,7 +18,7 @@ function Invoke-OraEnv {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.1.6
+        Version : 0.1.7
         Alias   : oraset
     #>
     [CmdletBinding()]
