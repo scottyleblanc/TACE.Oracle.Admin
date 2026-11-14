@@ -4,30 +4,84 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1.7 |
+| Version | 0.2.0 |
 | Last audit | 2026-03-17 |
 | Findings resolved | 0 |
-| Unit tests | 117 (all passing) |
-| Open SEC items | None |
+| Unit tests | 291 (all passing) |
+| Open SEC items | 5 — see Open Items |
+
+The RMAN functions added at Stack 0 (v0.2.0, not on PSGallery) were copied from
+the Oracle backup module. Their security mechanisms are described below as built.
+They have not yet been audited in this repo; the audit date above predates them.
 
 ---
 
 ## Security Mechanisms
 
-### 1. No Credential Handling
+### 1. Credential Handling
 
-**Status:** N/A — this module does not handle passwords or credentials.
+**Status:** Implemented at Stack 0 for the RMAN functions. Not applicable to
+`Get-OracleDatabaseList`, `Set-OracleEnv` and `Invoke-OraEnv`, which make no Oracle
+connection and take no credentials.
 
-**Why:** `Get-OracleDatabaseList` and `Set-OracleEnv` operate on Windows services
-and environment variables only. No Oracle connection is made, no password is
-required, and no credential material exists in the module at Stage 1.
+**Why:** `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup` connect to a
+database through RMAN and support three authentication modes: OS authentication,
+wallet alias, and a named credential.
 
-**Contract:** If future functions require credentials, they must use `[SecureString]`
-parameters and follow the credential handling standards defined in `dev/.claude/CLAUDE.md`.
+**How:** Passwords are accepted only as `[PSCredential]` or `[SecureString]`.
+Plaintext is extracted by `ConvertFrom-SecureStringToPlaintext`, called inline at
+the point the value is written to the RMAN process's stdin. It is never assigned
+to a variable.
+
+**Contract:** No function accepts a plaintext password parameter. No password
+appears in a process argument list. A wallet alias is a connection name, not a
+credential, and may appear in the argument list.
 
 ---
 
-### 2. Environment Variable Isolation
+### 2. Stdin-Only Injection
+
+**Status:** Implemented at Stack 0.
+
+**Why:** Process argument lists are visible to other users and to process logging.
+
+**How:** `Invoke-RmanProcess` starts RMAN with redirected stdin. For a named
+credential it starts RMAN with no target and writes the `CONNECT TARGET` statement
+as the first stdin line, followed by the RMAN script.
+
+**Contract:** Credentials reach Oracle tools through stdin only.
+
+---
+
+### 3. Child Process Environment Isolation
+
+**Status:** Implemented at Stack 0.
+
+**How:** `Invoke-RmanProcess` and `Invoke-TnspingProcess` set `ORACLE_HOME`,
+`ORACLE_SID`, `PATH` and `NLS_DATE_FORMAT` on the child process's environment
+collection only.
+
+**Contract:** The RMAN functions never modify the current session environment.
+Changing the session environment is the stated purpose of `Set-OracleEnv` alone
+(see section 5).
+
+---
+
+### 4. Oracle Binary Validation
+
+**Status:** Implemented at Stack 0.
+
+**How:** `Assert-OracleEnvironment` resolves the binary from `ORACLE_HOME\bin`,
+never from `PATH` alone, and checks that it exists. It checks the Authenticode
+signature and fails on `HashMismatch` or `TrustFailure`, or when a valid signature
+is not Oracle's. A wallet alias is resolved with `tnsping` before RMAN is started.
+
+**Contract:** `ORACLE_HOME` from configuration or the environment is untrusted
+input and is validated before use in any path or process start.
+
+---
+
+### 5. Session Environment Variables (`Set-OracleEnv`)
 
 **Status:** Implemented at Stage 1.
 
@@ -41,7 +95,7 @@ Session-only, always.
 
 ---
 
-### 3. Input Validation
+### 6. Input Validation
 
 **Status:** Implemented at Stage 1.
 
@@ -54,19 +108,59 @@ service discovery — never from a hardcoded list or user-supplied config file.
 
 ---
 
-### 4. Output Scrubbing
+### 7. Output Scrubbing
 
-**Status:** Implemented at Stage 1 (trivially — no credentials exist).
+**Status:** Implemented at Stack 0 for the RMAN functions; best-effort.
+
+**How:** `Invoke-CredentialScrub` replaces the password in any
+`user/password@service` pattern. `Invoke-RmanProcess` applies it to RMAN stdout,
+stderr and exception messages before they are returned or re-thrown. The public
+RMAN functions apply it again to exception text placed in `Message`.
 
 **Contract:** `Message` on every return object must be safe to write to a log.
-At Stage 1, all `Message` values contain only SID names, counts, and status
-strings. No sensitive data is present on any code path.
+The primary defence is that credentials are never placed where they could be
+echoed; the scrub is a second line, not a guarantee.
+
+---
+
+### 8. Configuration File Permissions
+
+**Status:** Implemented at Stack 0 (Windows).
+
+**How:** `Get-OracleBackupConfigStore` creates `Config\OracleBackup.json` on first
+use and `Set-RestrictiveAcl` disables inheritance and grants access to the current
+user and Administrators only. The file holds paths and defaults, not credentials.
+
+**Contract:** Importing the module writes nothing to disk. The configuration file
+is created only when an RMAN function first runs.
+
+---
+
+### 9. Confirmation on Destructive Operations
+
+**Status:** Implemented at Stack 0.
+
+**How:** `Remove-RmanObsoleteBackup` declares `SupportsShouldProcess` with
+`ConfirmImpact = 'High'`. RMAN is run with `NOPROMPT`, so the PowerShell
+confirmation is the only gate.
+
+**Contract:** No function deletes backups without passing `ShouldProcess`.
 
 ---
 
 ## Open Items
 
-None at Stage 1.
+Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
+
+- `Remove-RmanObsoleteBackup` accepts `-CatalogCredential` but does not use it;
+  the catalog connection is written without a credential.
+- `Invoke-CredentialScrub` covers one pattern (`user/password@service`). Other
+  credential formats would pass through.
+- `Set-RestrictiveAcl` changes file permissions without `ShouldProcess`.
+- The copied RMAN functions assume Windows (paths, `.exe` names, ACLs). Their
+  behaviour on Linux is untested.
+- The copied code has not been audited in this repo. The STIG table below
+  reflects the module before Stack 0.
 
 ---
 
@@ -93,6 +187,9 @@ Sign with: `Set-AuthenticodeSignature -FilePath <file> -Certificate <cert>`
 ---
 
 ## STIG Compliance
+
+Status as of v0.1.7, before the RMAN functions were added. To be re-assessed for
+the credential-handling code during the AI Development Stack work.
 
 | Control | Requirement | Status |
 |---|---|---|

@@ -42,6 +42,8 @@ Install-Module 'TACE.Oracle.Admin' -Scope AllUsers
 | `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host. Windows: queries `Win32_Service` for `OracleService*` services. Linux: parses `/etc/oratab`. Returns `SID`, `Status`, `ServiceName`, `OracleHome`, and `OracleBase` for each instance. |
 | `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current PowerShell session from a validated instance. Auto-selects when one instance is found; presents a numbered menu when multiple instances are present. Always prints `ORACLE_SID`; add `-Verbose` to also print `ORACLE_HOME` and `ORACLE_BASE`. |
 | `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Suppresses the return object for clean output. Target of the `oraset` and `oraenv` aliases. Use `Set-OracleEnv` directly in scripts and automation. |
+| `Get-RmanBackupStatus` | Returns the most recent RMAN backup for a database, with its age. Read-only. Windows only. In development — not in the published release. |
+| `Remove-RmanObsoleteBackup` | Deletes RMAN backups that are obsolete under the configured retention policy. Asks for confirmation; supports `-WhatIf`. Windows only. In development — not in the published release. |
 
 ## Aliases
 
@@ -160,13 +162,20 @@ Verbose output never contains passwords, credential values, or sensitive path fr
 
 ## Security
 
-This module does not handle passwords or credentials. All operations work through
-Windows services (`Win32_Service`), Linux `/etc/oratab`, and session environment
-variables only. No Oracle connection is made and no credential material is required.
+The environment functions (`Get-OracleDatabaseList`, `Set-OracleEnv`, `Invoke-OraEnv`)
+do not handle passwords or credentials. They work through Windows services
+(`Win32_Service`), Linux `/etc/oratab`, and session environment variables only. No
+Oracle connection is made and no credential material is required.
 
 `Set-OracleEnv` is session-only — nothing is written to disk, the registry, or any
 external process. SID validation always derives from live service discovery — never
 from a hardcoded list.
+
+The RMAN functions (in development) connect to a database through RMAN. Passwords are
+accepted only as `PSCredential` or `SecureString`, are passed to RMAN through stdin
+and never on the command line, and Oracle environment variables are set on the RMAN
+child process only. Importing the module writes nothing to disk; a local configuration
+file is created with restricted permissions the first time an RMAN function runs.
 
 For the full security reference and STIG compliance status, see
 [SECURITY.md](https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/Docs/SECURITY.md).

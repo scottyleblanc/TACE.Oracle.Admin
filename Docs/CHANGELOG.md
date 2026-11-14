@@ -6,6 +6,37 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.0] - 2026-11-14
+
+Stack 0 of the AI Development Stack — setup and baseline. Not published to PSGallery.
+
+### Added
+
+- `Docs/STAGES.md` and `Docs/TODO.md`: AI Development Stack plan recorded — the layer
+  model, build rules, test bed, and goals, deliverables and tasks for Stack 0 to Stack 10.
+- `Get-RmanBackupStatus` — reports the most recent RMAN backup for a database. Read-only.
+- `Remove-RmanObsoleteBackup` — runs RMAN `DELETE OBSOLETE`. `SupportsShouldProcess`,
+  `ConfirmImpact = 'High'`.
+- Private helpers: `Invoke-RmanProcess` (with `Invoke-CredentialScrub`),
+  `ConvertFrom-SecureStringToPlaintext`, `Assert-OracleEnvironment` (with
+  `Invoke-TnspingProcess`), `ConvertFrom-RmanListBackup`, `Get-OracleBackupConfigStore`,
+  `Set-RestrictiveAcl`.
+- Unit tests for the copied functions. Unit test count: 117 → 291 (all passing).
+- `Docs/audit/stack-0-baseline.md` — size, test and analyzer baseline, and known gaps.
+- These functions were copied from the Oracle backup module as working examples for the
+  AI Development Stack. `Get-RmanBackupStatus` reads its configuration through
+  `Get-OracleBackupConfigStore` in place of a module-level cache, so importing the module
+  still writes nothing to disk.
+- `.gitignore`: `Config/` (local runtime configuration, created on first use).
+
+### Changed
+
+- Completed Stage 1, 1.3, 1.4 and 2 items removed from `Docs/TODO.md` and
+  `Docs/STAGES.md`. Items not already in this changelog were added to the 0.1.0,
+  0.1.3, 0.1.4, 0.1.5 and 0.1.6 entries.
+
+---
+
 ## [0.1.7] - 2026-11-14
 
 ### Changed
@@ -27,12 +58,21 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Version bump to resolve PSGallery 409 conflict. v0.1.5 was published with an
   incomplete package (no `FileList`) during an earlier session and cannot be
   overwritten. No functional changes.
+- Published to PSGallery; `master` pushed and tagged `v0.1.6`. No record was kept of
+  the propagation check or the clean-session install smoke test.
 
 ---
 
 ## [0.1.5] - 2026-03-17
 
+Stage 2 — PSGallery publication. Published to PSGallery with an incomplete package
+(see 0.1.6).
+
 ### Added
+
+- Root `README.md` for PSGallery — `Install-Module` first, absolute GitHub links.
+- `PSScriptAnalyzerSettings.psd1` — suppresses `PSUseBOMForUnicodeEncodedFile`
+  (PS7 false positive) and `PSAvoidUsingWriteHost` (intentional interactive design).
 
 - `scripts/Build-Module.ps1` — stages module files to `build\<version>\staging\`, builds
   a `.nupkg` to `build\<version>\repo\`, lists package contents, and uploads the `.nupkg`
@@ -65,6 +105,28 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - `.gitignore`: added `build/`; `Docs/HANDOFF.md` and `Docs/Publish-Steps.md` removed
   from the repository (ephemeral planning docs).
 - Unit test count: 102 → 117 (all passing).
+- Module renamed for publication: `OracleAdmin.psd1` → `TACE.Oracle.Admin.psd1`,
+  `OracleAdmin.psm1` → `TACE.Oracle.Admin.psm1`, repo folder `OracleAdmin\` →
+  `TACE.Oracle.Admin\`. `RootModule`, all file headers and `.NOTES` blocks, and the
+  `Import-Module` path and `-ModuleName` references in all test files updated to match.
+- Manifest: `Tags` expanded — added `Windows`, `Linux`, `OracleDB`, `PowerShell`.
+- Manifest: `Invoke-OraEnv` retained in `FunctionsToExport`. PowerShell resolves
+  exported alias targets in the caller's scope — if `Invoke-OraEnv` is not exported,
+  `oraset` and `oraenv` throw "not recognized" at call time.
+- `LICENSE`: effective date filled in (`2026-03-17`).
+- `Docs\README.md`, `PREREQUISITES.md`, `SECURITY.md`, `VERSIONING.md`, `CHANGELOG.md`,
+  `TODO.md` — all updated to the `TACE.Oracle.Admin` name.
+- PSGallery account confirmed; Publish-scoped API key generated and stored outside
+  this repo. Publishing uses `Publish-PSResource` (`Microsoft.PowerShell.PSResourceGet`)
+  in place of the `PowerShellGet` 2.x `Publish-Module` steps originally planned.
+- Pre-publish validation: `Test-ModuleManifest` passed; `Invoke-ScriptAnalyzer` clean
+  apart from 3 Information-level `Join-Path` positional parameter findings in test
+  files (accepted); `Invoke-Pester` 101 passed, 0 failed.
+
+### Fixed
+
+- `PSShouldProcess` analyzer finding — removed `SupportsShouldProcess` from `Invoke-OraEnv`.
+- `PSAvoidUsingPositionalParameters` in the `.psm1` — `Join-Path` now uses named parameters.
 
 ---
 
@@ -84,6 +146,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   `Get-Content` failure, and unsupported platform.
 - `VERSIONING.md`: documented branch/tag naming convention (`vX.Y.Z-dev` for branches,
   `vX.Y.Z` for tags) to prevent push ambiguity.
+- Project documentation updated for the multi-platform release.
 
 ---
 
@@ -104,6 +167,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Unit test count: 70 → 82 (all passing). New tests cover `OracleBase` derivation,
   quoted and unquoted `PathName` parsing, null `PathName` handling, and
   `$env:ORACLE_BASE` set/not-set behaviour.
+- Project documentation updated for the environment variable derivation.
 
 ---
 
@@ -157,6 +221,14 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   against discovered instances. Auto-selects when one instance found; presents
   numbered menu when multiple instances found. Warns on stopped service but
   allows the set. Session-only — no disk writes.
-- Unit tests for both public functions (`Tests\*.Tests.ps1`).
+- Unit tests for both public functions (`Tests\*.Tests.ps1`). Pester suite run;
+  all tests passing.
 - Required project documentation: `README.md`, `SECURITY.md`, `CHANGELOG.md`,
   `VERSIONING.md`, `PREREQUISITES.md`, `TODO.md`.
+- Local shell profiles (`profile.ps1`, `profile.common.ps1`, outside this repo)
+  updated to import the module and alias `oraset`.
+- Git repository initialised; initial commit.
+
+### Security
+
+- Confirmed no credential leakage in `Message`, verbose output, or pipeline output.

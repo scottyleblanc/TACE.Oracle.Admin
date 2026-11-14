@@ -14,7 +14,7 @@
     Copyright © TACE Data Management Inc.
     Published name : TACE.Oracle.Admin
     Internal name  : OracleAdmin
-    Version        : 0.1.7
+    Version        : 0.2.0
     Stage          : 1 — Foundation
 #>
 
@@ -25,6 +25,12 @@ $ErrorActionPreference = 'Stop'
 
 $privateFunctions = @(
     'Invoke-OraEnv.ps1'
+    'ConvertFrom-SecureStringToPlaintext.ps1'
+    'Set-RestrictiveAcl.ps1'
+    'Assert-OracleEnvironment.ps1'
+    'Get-OracleBackupConfigStore.ps1'
+    'Invoke-RmanProcess.ps1'
+    'ConvertFrom-RmanListBackup.ps1'
 )
 
 foreach ($function in $privateFunctions) {
@@ -42,6 +48,8 @@ foreach ($function in $privateFunctions) {
 $publicFunctions = @(
     'Get-OracleDatabaseList.ps1'
     'Set-OracleEnv.ps1'
+    'Get-RmanBackupStatus.ps1'
+    'Remove-RmanObsoleteBackup.ps1'
 )
 
 foreach ($function in $publicFunctions) {

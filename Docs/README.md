@@ -36,6 +36,12 @@ The profile at `profile.ps1` imports this module automatically on session start.
 | `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host. Windows: via `Win32_Service` (WMI). Linux: via `/etc/oratab`. Returns SID, Status, ServiceName, OracleHome, and OracleBase for each instance. |
 | `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current session from a validated Oracle instance. Prompts interactively when no SID is supplied. Always prints `ORACLE_SID`; prints `ORACLE_HOME` and `ORACLE_BASE` only when `-Verbose` is specified. Returns a standard `PSCustomObject`. |
 | `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Suppresses the return object for clean terminal output; writes `[ERROR]` to host on failure. Target of the `oraset` and `oraenv` aliases. Not intended for scripted use — use `Set-OracleEnv` directly in automation. |
+| `Get-RmanBackupStatus` | Added in v0.2.0; not on PSGallery. Runs RMAN `LIST BACKUP SUMMARY` and returns the most recent backup with `IsRecentDay` and `AgeHours`. Read-only. Windows only. |
+| `Remove-RmanObsoleteBackup` | Added in v0.2.0; not on PSGallery. Runs RMAN `DELETE NOPROMPT OBSOLETE`. Destructive: `SupportsShouldProcess` with `ConfirmImpact = 'High'`; supports `-WhatIf`. Windows only. |
+
+The two RMAN functions were copied from the Oracle backup module as working
+examples for the AI Development Stack (see [STAGES.md](STAGES.md)). They support OS
+authentication, a wallet alias (`-WalletAlias`) or a named credential (`-Credential`).
 
 ## Aliases
 
@@ -62,7 +68,9 @@ to write to a log file — it will never contain passwords or credential values.
 ## Error Handling
 
 - **Terminating throw**: unrecoverable failures (e.g. module load failure for a
-  required helper).
+  required helper). Private helpers such as `Assert-OracleEnvironment` and
+  `Invoke-RmanProcess` throw; the public RMAN functions catch, scrub the message
+  and return `Success=$false`.
 - **Success=$false**: expected, handleable outcomes (e.g. SID not found, no
   Oracle services present, invalid menu selection). The caller can inspect
   `Message` and decide how to proceed.
@@ -83,10 +91,10 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.1.7 |
+| Version | 0.2.0 |
 | Last audit | 2026-03-17 |
-| Tests | 117 unit tests (all passing) |
-| Open SEC items | None |
+| Tests | 291 unit tests (all passing) |
+| Open SEC items | 5 — carried in with the RMAN functions copied at Stack 0 (v0.2.0, not yet audited here) |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.
 

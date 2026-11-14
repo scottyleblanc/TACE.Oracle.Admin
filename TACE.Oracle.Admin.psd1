@@ -8,7 +8,7 @@
 @{
     # Module identity
     RootModule        = 'TACE.Oracle.Admin.psm1'
-    ModuleVersion     = '0.1.7'
+    ModuleVersion     = '0.2.0'
     GUID              = '50e4f865-a551-4f83-beb1-329987147747'
     Author            = 'TACE Data Management Inc.'
     CompanyName       = 'TACE Data Management Inc.'
@@ -23,6 +23,8 @@
         'Get-OracleDatabaseList'
         'Set-OracleEnv'
         'Invoke-OraEnv'
+        'Get-RmanBackupStatus'
+        'Remove-RmanObsoleteBackup'
     )
 
     # No cmdlets exported from the module itself
@@ -40,7 +42,15 @@
         'LICENSE'
         'Public\Get-OracleDatabaseList.ps1'
         'Public\Set-OracleEnv.ps1'
+        'Public\Get-RmanBackupStatus.ps1'
+        'Public\Remove-RmanObsoleteBackup.ps1'
         'Private\Invoke-OraEnv.ps1'
+        'Private\ConvertFrom-SecureStringToPlaintext.ps1'
+        'Private\Set-RestrictiveAcl.ps1'
+        'Private\Assert-OracleEnvironment.ps1'
+        'Private\Get-OracleBackupConfigStore.ps1'
+        'Private\Invoke-RmanProcess.ps1'
+        'Private\ConvertFrom-RmanListBackup.ps1'
     )
 
     # Private data
@@ -49,7 +59,7 @@
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell', 'oraset', 'oraenv')
             ProjectUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin'
             LicenseUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE'
-            ReleaseNotes = 'v0.1.7 — Documentation only: Stage 2 (PSGallery publication) closed out in the project docs. No functional changes.'
+            ReleaseNotes = 'v0.2.0 — Adds Get-RmanBackupStatus and Remove-RmanObsoleteBackup with their RMAN helpers (Windows only). Not published to PSGallery.'
         }
     }
 }
