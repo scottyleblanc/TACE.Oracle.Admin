@@ -3,6 +3,9 @@
 *.claude.md
 CLAUDE.md
 
+# Session handoff notes — local only
+MEMORY.md
+
 # PowerShell temp
 *.ps1xml~
 
