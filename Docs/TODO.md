@@ -48,10 +48,10 @@ items are checked off.
 
 ---
 
-## Stage 2 — PSGallery Publication
+## Stage 2 — PSGallery Publication (v0.1.5, v0.1.6)
 
-PSGallery publication progress is tracked in `STAGES.md` Stage 2.
-Phases 2, 3, and 4 are complete. Phase 5 (publish) is pending PSGallery account and API key.
+- [x] Complete — published to PSGallery at v0.1.5 and v0.1.6. Phase detail is in
+      `STAGES.md` Stage 2.
 
 ---
 

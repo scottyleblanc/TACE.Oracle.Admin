@@ -83,9 +83,9 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.1.5 |
+| Version | 0.1.7 |
 | Last audit | 2026-03-17 |
-| Tests | 107 unit tests (all passing) |
+| Tests | 117 unit tests (all passing) |
 | Open SEC items | None |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.

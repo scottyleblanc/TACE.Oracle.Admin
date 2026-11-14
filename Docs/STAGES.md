@@ -24,7 +24,9 @@ See `TODO.md` for the full task list.
 
 ---
 
-## Stage 2 — PSGallery Publication
+## Stage 2 — PSGallery Publication (v0.1.5, v0.1.6) — COMPLETE
+
+Published to PSGallery on 2026-03-17. See `CHANGELOG.md` entries 0.1.5 and 0.1.6.
 
 ### Prerequisites — COMPLETE
 
@@ -37,13 +39,13 @@ See `TODO.md` for the full task list.
 
 ---
 
-### Phase 1 — Account and Tooling
+### Phase 1 — Account and Tooling — COMPLETE
 
-- [ ] Confirm PSGallery account exists at `powershellgallery.com`
-- [ ] Generate a Publish-scoped API key; store in Windows Credential Manager or Oracle Wallet —
+- [x] Confirm PSGallery account exists at `powershellgallery.com`
+- [x] Generate a Publish-scoped API key; store in Windows Credential Manager or Oracle Wallet —
       never in any file in this repo
-- [ ] Verify `PowerShellGet` 2.x is current:
-      `Install-Module PowerShellGet -Force -AllowClobber -Scope CurrentUser`
+- Superseded: the `PowerShellGet` 2.x check. Publishing uses `Publish-PSResource`
+  (`Microsoft.PowerShell.PSResourceGet`) via `scripts\Publish-ToGallery.ps1`.
 
 ---
 
@@ -66,7 +68,8 @@ No staging build step is required.
 - [x] Set `ProjectUri` (`https://github.com/scottyleblanc/TACE.Oracle.Admin`)
 - [x] Add `LicenseUri` (`https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE`)
 - [x] Expand `Tags` — added `Windows`, `Linux`, `OracleDB`, `PowerShell`
-- [x] Resolve `Invoke-OraEnv` export policy — removed from `FunctionsToExport`
+- [x] Resolve `Invoke-OraEnv` export policy — retained in `FunctionsToExport`
+      (see Prerequisites)
 - [x] Fill in `LICENSE` effective date (`2026-03-17`)
 - [x] Create root `README.md` for PSGallery — `Install-Module` first, absolute GitHub links
 - [x] Update `Docs\README.md`, `PREREQUISITES.md`, `SECURITY.md`, `VERSIONING.md`,
@@ -88,21 +91,28 @@ No staging build step is required.
 
 ---
 
-### Phase 5 — Publish
+### Phase 5 — Publish — COMPLETE
 
-- [ ] `Publish-Module -Path . -NuGetApiKey '<key>' -WhatIf`
-- [ ] `Publish-Module -Path . -NuGetApiKey '<key>'`
-- [ ] Verify propagation (allow 5–15 minutes):
-      `Find-Module -Name 'TACE.Oracle.Admin'`
-- [ ] Smoke test in a clean session:
-      `Install-Module 'TACE.Oracle.Admin' -Scope CurrentUser`
+The `Publish-Module` steps originally planned here were replaced by the staged
+build and publish workflow added in v0.1.5.
+
+- [x] `scripts\Build-Module.ps1` — stage publishable files, build the `.nupkg`,
+      list package contents for review
+- [x] `scripts\Publish-ToGallery.ps1` — `Publish-PSResource` from the staged build;
+      requires a clean working tree and a matching git tag
+- [x] v0.1.5 published. The package was incomplete (no `FileList` in the manifest)
+      and PSGallery versions cannot be overwritten.
+- [x] v0.1.6 published — version bump to resolve the resulting 409 conflict.
+      No functional changes.
+
+No record was kept of the propagation check or the clean-session install smoke test.
 
 ---
 
-### Phase 6 — Post-Publish Housekeeping
+### Phase 6 — Post-Publish Housekeeping — COMPLETE
 
-- [ ] Push `master` and tag
-- [ ] Delete `Docs\HANDOFF.md`
+- [x] Push `master` and tag (`v0.1.6`)
+- [x] Delete `Docs\HANDOFF.md` (removed in v0.1.5)
 
 ---
 

@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1.5 |
+| Version | 0.1.7 |
 | Last audit | 2026-03-17 |
 | Findings resolved | 0 |
-| Unit tests | 107 (all passing) |
+| Unit tests | 117 (all passing) |
 | Open SEC items | None |
 
 ---
