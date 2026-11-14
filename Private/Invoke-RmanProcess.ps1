@@ -127,6 +127,73 @@ function Invoke-RmanProcess {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 RmanBinaryPath, RmanScript and OracleHome are non-empty strings.
+    #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #   P2 Exactly one authentication mode is chosen: OracleSid (OSAuth), WalletAlias
+    #       (WalletAuth), or ServiceAlias with Credential (NamedCredential).
+    #       Type: parameter sets.
+    #   P3 TimeoutSeconds is between 1 and 86400.
+    #       Type: ValidateRange.
+    #   P4 RmanBinaryPath was validated by Assert-OracleEnvironment before this call.
+    #       Limitation: the caller's duty. This function does not check the path again.
+    #   P5 RmanScript holds no password.
+    #       Limitation: cannot be checked here. Each caller builds its own script.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 No password is placed in the process argument list, in any mode.
+    #       Test: none yet.
+    #   [SEC] S2 In NamedCredential mode the password is extracted inline at the stdin
+    #       write and is never assigned to a variable.
+    #       Static: none yet.
+    #   [SEC] S3 ORACLE_HOME, ORACLE_SID, PATH and NLS_DATE_FORMAT are set on the child
+    #       process only. The current session environment is not changed.
+    #       Test: 'OSAuth: ORACLE_SID is NOT set on the current session after the call',
+    #       'OSAuth: ORACLE_HOME on the current session is unchanged after the call',
+    #       'WalletAuth: ORACLE_SID is NOT set on the current session after the call',
+    #       'NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment'.
+    #   [SEC] S4 Stdout and stderr are scrubbed before they are returned.
+    #       Test: none yet. The existing 'does not contain the plaintext password' tests
+    #       run a fake RMAN that never echoes its input, so they pass without the scrub.
+    #   [SEC] S5 An exception message is scrubbed before it is re-thrown.
+    #       Test: none yet.
+    #   [SEC] S6 Verbose output names the mode and the SID, alias or user name. It never
+    #       holds a password.
+    #       Test: none yet.
+    #   [SEC] S7 The WalletAlias placed in the argument list is a connection name, not a
+    #       credential.
+    #       Limitation: true by definition of a TNS alias. Nothing checks the value.
+    #
+    # POST-CONDITIONS
+    #   R1 Returns an object with exactly ExitCode, StdOut, StdErr, Success and AuthMode.
+    #       Test: 'Returns a PSCustomObject with the correct five properties'.
+    #   R2 Success is false when stdout or stderr holds an RMAN-nnnnn or ORA-nnnnn code.
+    #       The exit code does not decide Success.
+    #       Test: 'Returns Success=$false when output contains ORA- error code',
+    #       'Returns Success=$false when output contains RMAN- error code'.
+    #   R3 AuthMode is the name of the parameter set that was used.
+    #       Test: 'AuthMode = OSAuth exactly for OS authentication',
+    #       'AuthMode = WalletAuth exactly for wallet authentication',
+    #       'AuthMode = NamedCredential exactly for named credential authentication'.
+    #   T1 When RMAN runs past TimeoutSeconds the process is killed and the function throws.
+    #       Test: none yet.
+    #   T2 Every throw starts with 'RMAN process invocation failed:'.
+    #       Test: none yet.
+    #
+    # EXECUTION INVARIANTS
+    #   L1 Both output streams are read asynchronously before stdin is written, so a full
+    #       stderr pipe cannot stall the process.
+    #       Test: 'SEC-04: stderr content written by the RMAN process is captured in StdErr',
+    #       'SEC-04: stdout is captured correctly when the RMAN process also writes to stderr'.
+    #   L2 EXIT; is written after the script, and stdin is then closed.
+    #       Guard: the three StandardInput calls that follow the script write.
+    #   L3 The process object is disposed on every path.
+    #       Guard: the finally block.
+    #--------------------------------------------------------------
+
     $process = $null
 
     try {
@@ -275,6 +342,28 @@ function Invoke-CredentialScrub {
         [AllowEmptyString()]
         [string]$Content
     )
+
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 Content is a string, and may be empty.
+    #       Type: Mandatory and AllowEmptyString.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 The password in every user/password@service pattern is replaced with
+    #       ***SCRUBBED***. The user name and the service name are kept.
+    #       Test: 'Invoke-CredentialScrub scrubs credential fragment matching user/pass@service'.
+    #   [SEC] S2 A credential in any other format passes through unchanged.
+    #       Limitation: one pattern only. The main defence is that a credential is never
+    #       placed where it could be echoed.
+    #
+    # POST-CONDITIONS
+    #   R1 Empty content is returned unchanged.
+    #       Test: 'Invoke-CredentialScrub handles empty string without error'.
+    #   R2 Content with no matching pattern is returned unchanged.
+    #       Test: 'Invoke-CredentialScrub returns clean content unchanged'.
+    #--------------------------------------------------------------
 
     if ([string]::IsNullOrEmpty($Content)) { return $Content }
 

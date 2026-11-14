@@ -39,6 +39,42 @@ function Get-OracleBackupConfigStore {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 The config file is the one named by ORACLE_BACKUP_CONFIG_PATH when that is
+    #       set, and Config\OracleBackup.json under the module folder otherwise.
+    #       Guard: the path resolution at the start of the body.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 A config file created here is given restricted permissions straight
+    #       after it is written.
+    #       Guard: the Set-RestrictiveAcl call that follows the write.
+    #   [SEC] S2 The config holds paths and defaults, never a credential.
+    #       Limitation: nothing checks what the file contains.
+    #   [SEC] S3 OracleHome read from the config is untrusted until checked.
+    #       Limitation: the caller's duty, met by Assert-OracleEnvironment.
+    #   [SEC] S4 ORACLE_BACKUP_CONFIG_PATH is used without validation, so an environment
+    #       variable decides where the config is read from and created.
+    #       Limitation: accepted for test isolation. Not reviewed for production use.
+    #
+    # POST-CONDITIONS
+    #   R1 Returns an object with all eight settings. A setting missing from the file
+    #       takes its default.
+    #       Test: none yet.
+    #   R2 When the file does not exist it is written with the defaults, and the defaults
+    #       are returned.
+    #       Test: none yet.
+    #   T1 Every throw starts with 'Failed to load OracleBackup configuration from' and
+    #       names the path.
+    #       Test: none yet.
+    #
+    # EXECUTION INVARIANTS
+    #   L1 The first call can create a folder and a file. It is not under ShouldProcess.
+    #       Limitation: a caller's -WhatIf does not reliably prevent the write.
+    #--------------------------------------------------------------
+
     # Resolve config path — allow override via environment variable for test isolation
     $configPath = if ($env:ORACLE_BACKUP_CONFIG_PATH) {
         $env:ORACLE_BACKUP_CONFIG_PATH

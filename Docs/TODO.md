@@ -47,12 +47,46 @@ ends with the same three closing tasks: record the seeded-defect result in
 
 ### Stack 1 — Intent
 
-- [ ] List the candidate standards; mark each ratified, rejected or deferred
-- [ ] Write the ratified standards to `Docs\standards\`, one sentence plus one example each
-- [ ] Write `Docs\standards\invariants.md`: pre- and post-conditions per function
-- [ ] [SEC] Write the security invariants: output contract, stdin-only credential
-      handling, no credential fragments in `Message`, verbose or error output
+- [x] List the candidate standards; mark each ratified, rejected or deferred —
+      see `Docs\standards\decisions.md`
+- [x] Write the ratified standards to `Docs\standards\`, one sentence plus one example each
+- [ ] Settle the four open items in `Docs\standards\decisions.md`
+- [x] Settle the invariant block format: sections, identifiers, and how each entry
+      names what enforces it — `Docs\standards\invariants.md`
+- [x] Write an `# INVARIANTS` block into each function body: what must hold before,
+      during and after, each entry with an ID — 149 invariants in 13 functions
+- [x] [SEC] Write the security invariants: stdin-only credential handling, no
+      credential fragments in `Message`, verbose or error output, no session
+      environment changes — 54 security invariants
+- [x] Add a script that lists every invariant and what enforces it —
+      `scripts\Invoke-InvariantLint.ps1`, index in `Docs\standards\invariants-index.md`
+- [x] [SEC] Check that every test cited for a security invariant would fail if the
+      invariant were broken — five citations withdrawn and marked `Test: none yet`
+- [ ] Decide the findings below: fix, or accept as a limitation
+- [ ] Seeded defect: a function with no block, and a malformed entry, both fail the
+      static tier
 - [ ] Closing tasks
+
+#### Findings from writing the invariant blocks
+
+Each is recorded as a `Limitation:` in the named block. None is fixed yet. Where one is
+fixed, its block entry changes in the same commit.
+
+- [ ] [SEC] `Remove-RmanObsoleteBackup` S7 — `-CatalogConnection` reaches the RMAN
+      script after a non-empty check only
+- [ ] [SEC] `Remove-RmanObsoleteBackup` S6 — `-CatalogCredential` is accepted and not used
+- [ ] [SEC] `Remove-RmanObsoleteBackup` L1 — the environment check runs before the
+      confirmation gate, so `-WhatIf` can create the config file and run `tnsping`
+- [ ] [SEC] `Get-OracleBackupConfigStore` S4 — an environment variable decides where
+      the config file is read from and created
+- [ ] [SEC] `Assert-OracleEnvironment` S9 — `tnsping.exe` is not signature-checked
+- [ ] `Assert-OracleEnvironment` L1, `Get-RmanBackupStatus` L3, `Remove-RmanObsoleteBackup`
+      L2 — the `ORACLE_HOME` fallback is not passed on (suspected; needs a test)
+- [ ] `Assert-OracleEnvironment` T2 — error message names a function this module lacks
+- [ ] `Set-OracleEnv` R6 — reports success with "ORACLE_SID set to" under `-WhatIf`
+- [ ] `Get-RmanBackupStatus` P3, `Remove-RmanObsoleteBackup` P3 — no platform check (rule C-07)
+- [ ] `Invoke-TnspingProcess` L1, L2 — output read order and no exit check
+- [ ] `Get-OracleDatabaseList` L2 — a failed service query reads as "no instances"
 
 ### Stack 2 — Deterministic checks
 

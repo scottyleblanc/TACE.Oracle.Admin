@@ -6,6 +6,28 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+Stack 1 of the AI Development Stack — intent. In progress.
+
+### Added
+
+- `Docs/standards/` — the ratified standards, one sentence plus one example each, with
+  an ID and the layer that enforces each: `coding.md`, `security.md`, `testing.md`,
+  `documentation.md`, and `decisions.md` for contested, deferred and open questions.
+- `Docs/standards/invariants.md` — the format of the invariant block: sections,
+  identifiers, and the five ways an entry can be enforced.
+- An `# INVARIANTS` block in every function under `Public\` and `Private\`: 149
+  invariants in 13 functions, 54 of them security invariants. Comments only; no
+  behaviour changes.
+- `scripts/Invoke-InvariantLint.ps1` — checks every block and generates
+  `Docs/standards/invariants-index.md`.
+- `Tests/Static/InvariantConformance.Tests.ps1` and `scripts/test.static.ps1` — the
+  first checks in the static tier. They fail when a function has no block, an entry is
+  malformed, or the committed index is out of date.
+
+---
+
 ## [0.2.0] - 2026-11-14
 
 Stack 0 of the AI Development Stack — setup and baseline. Not published to PSGallery.

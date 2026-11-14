@@ -72,6 +72,36 @@ function Invoke-TnspingProcess {
         [Parameter(Mandatory)] [string]$OracleHome
     )
 
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 TnspingPath, WalletAlias and OracleHome are supplied.
+    #       Type: Mandatory.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 ORACLE_HOME and PATH are set on the child process only.
+    #       Test: none yet. The existing test with this name mocks this function, so it
+    #       does not run the code that sets the variables.
+    #   [SEC] S2 WalletAlias is passed as the process argument. It is a connection name,
+    #       not a credential.
+    #       Limitation: true by definition of a TNS alias. Nothing checks the value.
+    #   [SEC] S3 Output is returned as captured, not scrubbed.
+    #       Limitation: the caller scrubs it. See Assert-OracleEnvironment S7.
+    #
+    # POST-CONDITIONS
+    #   R1 Returns an object with ExitCode, StdOut and StdErr.
+    #       Test: none yet.
+    #
+    # EXECUTION INVARIANTS
+    #   L1 Stdout is read to the end before stderr.
+    #       Limitation: a large stderr could stall the read. tnsping writes little.
+    #   L2 It waits up to 30 seconds and does not check that the process has exited.
+    #       Limitation: a tnsping that hangs would fail when ExitCode is read.
+    #   L3 The process object is disposed on every path.
+    #       Guard: the finally block.
+    #--------------------------------------------------------------
+
     $psi = [System.Diagnostics.ProcessStartInfo]::new()
     $psi.FileName               = $TnspingPath
     $psi.Arguments              = $WalletAlias
@@ -122,6 +152,59 @@ function Assert-OracleEnvironment {
 
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
+
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 OracleHome is a string, and may be empty.
+    #       Type: Mandatory and AllowEmptyString.
+    #   P2 Binary is a non-empty file name. It defaults to rman.exe.
+    #       Type: ValidateNotNullOrEmpty.
+    #   P3 An empty or blank WalletAlias means no alias check is made.
+    #       Guard: the IsNullOrWhiteSpace check before the tnsping step.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 OracleHome, from the config or the environment, is checked to exist
+    #       before it is used in a path.
+    #       Test: 'Throws when OracleHome does not exist on disk'.
+    #   [SEC] S2 The binary is resolved from OracleHome\bin, never from PATH.
+    #       Test: 'Returned binary path is rooted under the validated OracleHome — never from PATH'.
+    #   [SEC] S3 A signature status of HashMismatch or TrustFailure, or a valid signature
+    #       that is not Oracle's, stops the call.
+    #       Test: 'Throws when Authenticode status is HashMismatch',
+    #       'Throws when Authenticode status is TrustFailure',
+    #       'Throws when Authenticode signer subject does not contain Oracle'.
+    #   [SEC] S4 An unsigned binary is accepted.
+    #       Limitation: Oracle does not sign individual executables, so an unsigned
+    #       replacement is not detected.
+    #   [SEC] S5 No parameter turns the signature check off.
+    #       Test: 'No bypass parameter exists — SkipSignatureCheck, Force, and SkipOwnerCheck are absent'.
+    #   [SEC] S6 A WalletAlias is resolved with tnsping before the function returns.
+    #       Test: 'Throws when tnsping exits with a non-zero exit code',
+    #       'Throws when tnsping stdout contains a TNS-NNNNN error code'.
+    #   [SEC] S7 tnsping output is scrubbed before it is placed in an error message.
+    #       Test: 'Error message on tnsping failure contains no credential fragments'.
+    #   [SEC] S8 The current session environment is not changed.
+    #       Test: 'Current session environment is not modified when all checks pass'.
+    #   [SEC] S9 tnsping.exe is checked to exist, but its signature is not checked.
+    #       Limitation: only the requested binary gets the signature check.
+    #
+    # POST-CONDITIONS
+    #   R1 Returns the full path of the validated binary.
+    #       Test: 'Returns the binary path when all checks pass (valid Oracle signature, SYSTEM owner)'.
+    #   T1 Every throw starts with 'Oracle environment validation failed:'.
+    #       Test: none yet.
+    #   T2 The error for a missing OracleHome tells the reader to run
+    #       Set-OracleBackupConfig, which this module does not have.
+    #       Limitation: known defect in the message.
+    #
+    # EXECUTION INVARIANTS
+    #   L1 When OracleHome is empty it falls back to the ORACLE_HOME environment variable,
+    #       but the home it resolved is not returned to the caller.
+    #       Limitation: callers pass their own empty value on to Invoke-RmanProcess.
+    #       Suspected defect, not yet confirmed by a test.
+    #--------------------------------------------------------------
 
     try {
         # Resolve OracleHome — use config value; fall back to environment variable

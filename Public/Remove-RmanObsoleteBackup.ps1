@@ -65,6 +65,60 @@ function Remove-RmanObsoleteBackup {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 DatabaseName is a non-empty string.
+    #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #   P2 WalletAlias and Credential are not both supplied.
+    #       Guard: the check at the start of the body returns Success = $false.
+    #   P3 It runs on Windows.
+    #       Limitation: there is no platform check. Known finding against rule C-07.
+    #   P4 A crosscheck has been run, so expired pieces are already marked.
+    #       Limitation: the operator's duty. Nothing here checks it.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 Nothing is deleted unless ShouldProcess approves, with ConfirmImpact High.
+    #       Test: 'RMAN must not be invoked on WhatIf — ShouldProcess is the sole gate'.
+    #   [SEC] S2 RMAN is run with NOPROMPT, so ShouldProcess is the only confirmation.
+    #       Test: 'RMAN script must contain NOPROMPT'.
+    #   [SEC] S3 ORACLE_SID is never set on the current session.
+    #       Test: 'ORACLE_SID should not be set on current session'.
+    #   [SEC] S4 Message holds no credential when RMAN succeeds.
+    #       Test: 'Message should not contain credential fragments'.
+    #   [SEC] S8 Exception text is scrubbed before it is placed in Message.
+    #       Test: none yet. No test raises an exception that carries a credential.
+    #   [SEC] S5 The RMAN script holds no credential.
+    #       Test: 'RMAN script should not contain credential fragments'.
+    #   [SEC] S6 CatalogCredential is accepted and not used. The catalog connect line is
+    #       written without a credential.
+    #       Limitation: unfinished. Open [SEC] TODO in the body.
+    #   [SEC] S7 CatalogConnection is placed in the RMAN script after a non-empty check
+    #       only.
+    #       Limitation: caller text reaches RMAN unvalidated. Finding against rule S-11.
+    #
+    # POST-CONDITIONS
+    #   R1 Returns Success, Data and Message on every path, and never throws once its
+    #       parameters are bound.
+    #       Test: 'Should return Success=$false and safe Message when binary integrity check fails'.
+    #   R2 On success Data has DatabaseName, StartTime, EndTime, DurationSec, DeletedCount,
+    #       AuthMode and RawLog.
+    #       Test: none yet.
+    #   R3 When ShouldProcess declines, or under -WhatIf, RMAN is not run and Success is
+    #       false.
+    #       Test: 'Should not invoke RMAN on WhatIf'.
+    #   R4 DeletedCount is the number of 'deleted backup piece' lines in the RMAN output.
+    #       Test: 'Should count deleted pieces from RMAN output'.
+    #
+    # EXECUTION INVARIANTS
+    #   L1 The environment check runs before the ShouldProcess gate.
+    #       Limitation: under -WhatIf it can still create the config file and run tnsping.
+    #   L2 The OracleHome from the config is passed to Invoke-RmanProcess even when it is
+    #       empty and the environment variable was used to find RMAN.
+    #       Limitation: suspected defect, not yet confirmed by a test.
+    #--------------------------------------------------------------
+
     # ── Auth mode resolution ──────────────────────────────────────────────────
     if (-not [string]::IsNullOrWhiteSpace($WalletAlias) -and $null -ne $Credential) {
         return [PSCustomObject]@{

@@ -55,6 +55,50 @@ function Set-OracleEnv {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    #--------------------------------------------------------------
+    # INVARIANTS
+    #
+    # PRE-CONDITIONS
+    #   P1 SID, when supplied, is a non-empty string.
+    #       Type: ValidateNotNullOrEmpty.
+    #   P2 A supplied SID matches an instance discovered on this host.
+    #       Guard: the match check returns Success = $false when there is none.
+    #
+    # SECURITY INVARIANTS
+    #   [SEC] S1 The list of valid SIDs always comes from live discovery, never from a
+    #       stored list.
+    #       Guard: the Get-OracleDatabaseList call at the start of every run.
+    #   [SEC] S2 Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are
+    #       changed. Nothing is written to disk, the registry or another process.
+    #       Static: none yet.
+    #   [SEC] S3 The catch block places the raw exception message in Message.
+    #       Limitation: not scrubbed. Accepted because nothing in this function
+    #       handles a credential.
+    #
+    # POST-CONDITIONS
+    #   R1 Returns Success, Data and Message on every path, and never throws.
+    #       Test: 'Has Success property', 'Has Data property', 'Has Message property'.
+    #   R2 On success Data has SID, OracleHome and OracleBase.
+    #       Test: 'Data.SID is a non-empty string on success'.
+    #   R3 ORACLE_HOME and ORACLE_BASE are left unset when they cannot be determined, and
+    #       a warning is written for each.
+    #       Test: 'Does not set $env:ORACLE_HOME when OracleHome is null',
+    #       'Does not set $env:ORACLE_BASE when OracleBase is null'.
+    #   R4 A stopped service does not prevent the SID being set. A warning is written.
+    #       Test: 'Sets $env:ORACLE_SID despite stopped service'.
+    #   R5 On a failure path ORACLE_SID is not changed.
+    #       Test: 'Does not set $env:ORACLE_SID'.
+    #   R6 Under -WhatIf no variable is set, but the return still reports Success with
+    #       the message 'ORACLE_SID set to'.
+    #       Limitation: the message is wrong under -WhatIf. Known defect.
+    #
+    # EXECUTION INVARIANTS
+    #   L1 With no SID and more than one instance it prompts with Read-Host.
+    #       Limitation: not suitable for unattended use. Pass -SID in automation.
+    #   L2 User-facing lines are written with Write-Host, by design.
+    #       Limitation: an interactive function. The analyzer rule is excluded for it.
+    #--------------------------------------------------------------
+
     try {
         $serviceWarning    = $null
         $oracleHomeWarning = $null

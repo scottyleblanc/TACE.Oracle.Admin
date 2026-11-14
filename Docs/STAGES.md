@@ -85,7 +85,7 @@ soak tests run locally against an Oracle database; they do not run in public CI.
 | Stack | Name | Layer | Status |
 |---|---|---|---|
 | 0 | Setup and scope | — | Complete (v0.2.0) |
-| 1 | Intent | 1 | Not started |
+| 1 | Intent | 1 | In progress |
 | 2 | Deterministic checks | 3 | Not started |
 | 3 | Tests | 4 | Not started |
 | 4 | Enforced gate | 6 | Not started |
@@ -119,8 +119,8 @@ are checked off.
 **Goal:** the rules exist in writing before anything enforces them.
 
 **Deliverables:** `Docs\standards\` with the ratified standards, one file per
-topic; `Docs\standards\invariants.md` with pre- and post-conditions per function
-and the security invariants.
+topic; invariants written into an `# INVARIANTS` block in each function body, in
+the code, with an ID each; a script that lists every invariant and whether a test cites it.
 
 **Done when:** every function has written invariants; every candidate standard
 is ratified, rejected or deferred; each standard is one sentence plus one example.
