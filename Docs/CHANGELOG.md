@@ -6,12 +6,28 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.2.0] - 2026-11-14
+
+Stack 0 of the AI Development Stack — setup and baseline. Not published to PSGallery.
 
 ### Added
 
 - `Docs/STAGES.md` and `Docs/TODO.md`: AI Development Stack plan recorded — the layer
   model, build rules, test bed, and goals, deliverables and tasks for Stack 0 to Stack 10.
+- `Get-RmanBackupStatus` — reports the most recent RMAN backup for a database. Read-only.
+- `Remove-RmanObsoleteBackup` — runs RMAN `DELETE OBSOLETE`. `SupportsShouldProcess`,
+  `ConfirmImpact = 'High'`.
+- Private helpers: `Invoke-RmanProcess` (with `Invoke-CredentialScrub`),
+  `ConvertFrom-SecureStringToPlaintext`, `Assert-OracleEnvironment` (with
+  `Invoke-TnspingProcess`), `ConvertFrom-RmanListBackup`, `Get-OracleBackupConfigStore`,
+  `Set-RestrictiveAcl`.
+- Unit tests for the copied functions. Unit test count: 117 → 291 (all passing).
+- `Docs/audit/stack-0-baseline.md` — size, test and analyzer baseline, and known gaps.
+- These functions were copied from the Oracle backup module as working examples for the
+  AI Development Stack. `Get-RmanBackupStatus` reads its configuration through
+  `Get-OracleBackupConfigStore` in place of a module-level cache, so importing the module
+  still writes nothing to disk.
+- `.gitignore`: `Config/` (local runtime configuration, created on first use).
 
 ### Changed
 

@@ -18,8 +18,12 @@ Windows PowerShell 5.1.
 | `/etc/oratab` | `Get-OracleDatabaseList` (Linux) | Created by Oracle installer |
 | `ora_pmon_<SID>` process | `Get-OracleDatabaseList` (Linux) | Running Oracle instance |
 
-No Oracle binaries (`sqlplus`, `rman`, `mkstore`, `orapki`) are required at Stage 1.
-Future functions may introduce binary dependencies — they will be documented here.
+| `rman.exe` under `ORACLE_HOME\bin` | `Get-RmanBackupStatus`, `Remove-RmanObsoleteBackup` | Oracle Database installation |
+| `tnsping.exe` under `ORACLE_HOME\bin` | The RMAN functions, when `-WalletAlias` is used | Oracle Database or Client installation |
+
+The environment functions need no Oracle binaries. The RMAN functions, added at
+Stack 0 (v0.2.0) and not on PSGallery, need the two above. `sqlplus`, `mkstore` and `orapki` are
+not used.
 
 ## Environment Setup
 
@@ -62,6 +66,8 @@ No test requires a live Oracle instance. All Oracle service calls are mocked.
 | Linux | Supported — discovery via `/etc/oratab` and `ora_pmon` process check |
 | macOS | Not supported |
 
+The RMAN functions are written for Windows and are untested on Linux.
+
 ## Known Limitations
 
 - Windows: instance discovery relies on `OracleService*` Windows service naming convention.
@@ -70,3 +76,8 @@ No test requires a live Oracle instance. All Oracle service calls are mocked.
   will not be detected.
 - `Set-OracleEnv` sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current
   session only. Changes do not persist across sessions or affect other processes.
+- The RMAN functions read `ORACLE_HOME` from `Config\OracleBackup.json` in the module
+  folder, falling back to `$env:ORACLE_HOME`. The function that sets that value in the
+  backup module was not brought across, so the file must be edited by hand.
+- The RMAN functions have unit tests only in this repo. They have not been run here
+  against a live database.

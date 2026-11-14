@@ -20,21 +20,30 @@ ends with the same three closing tasks: record the seeded-defect result in
 ### Stack 0 — Setup and scope
 
 - [x] Record the plan in `STAGES.md` and `TODO.md`
-- [ ] Sync the local clone of the Oracle backup module with its remote
-- [ ] Decide what happens to the parked standards-audit work: reuse, merge or leave
-- [ ] [SEC] Move untracked local working files out of the repo tree so they cannot
+- [x] Sync the local clone of the Oracle backup module with its remote
+- [x] Decide what happens to the parked standards-audit work: reuse, merge or leave —
+      discarded from this repo; kept privately as reference for Stack 1
+- [x] [SEC] Move untracked local working files out of the repo tree so they cannot
       be committed by mistake
 - [ ] [SEC] Review the earlier standards variance notes for sensitive detail before
       any part of them is committed to this public repo
-- [ ] Select three example functions: one read-only, one state-changing, one on the
-      credential-handling path; list the private helpers each depends on
-- [ ] Copy functions, helpers and tests into `Public\`, `Private\` and `Tests\`;
+- [x] Select three example functions: one read-only, one state-changing, one on the
+      credential-handling path; list the private helpers each depends on —
+      `Get-RmanBackupStatus`, `Remove-RmanObsoleteBackup`, `Invoke-RmanProcess`;
+      see `Docs\audit\stack-0-baseline.md`
+- [x] Copy functions, helpers and tests into `Public\`, `Private\` and `Tests\`;
       update `FunctionsToExport` and `FileList`
-- [ ] Record the baseline: unit test count, PSScriptAnalyzer findings by rule
-- [ ] Confirm the local Oracle database version and edition against the 19c target
-- [ ] Confirm the version scheme for stack stages; record it in `VERSIONING.md`
-- [ ] Unit suite passes
-- [ ] Write-up: project page status and Stack 0 post
+- [x] Record the baseline: unit test count, PSScriptAnalyzer findings by rule
+- [x] Decide how the Oracle database for the integration tier is provided and which
+      version, against the 19c target — Oracle Database Express Edition, installed
+      locally; version confirmed in Stack 3
+- [x] Confirm the version scheme for stack stages; record it in `VERSIONING.md` —
+      Stack 0 is `v0.2.0`; later stack stages are patch releases
+- [x] Unit suite passes (291 of 291)
+- [x] Update `README.md`, `Docs\README.md`, `Docs\SECURITY.md` and
+      `Docs\PREREQUISITES.md` for the two new public functions and the
+      credential-handling path
+- [x] Write-up: project page status and Stack 0 post
 
 ### Stack 1 — Intent
 
@@ -60,6 +69,7 @@ ends with the same three closing tasks: record the seeded-defect result in
 - [ ] [SEC] Every security invariant has a test in a `Security` context
 - [ ] Measure coverage; set a floor in the gate script
 - [ ] Unit tests pass on Windows and Linux
+- [ ] Install the Oracle database chosen in Stack 0; confirm version and edition
 - [ ] Add the local-only integration and soak tier behind a gate-script switch
 - [ ] Decide how a local integration result is attached to a pull request
 - [ ] Seeded defect: one behaviour change that breaks an invariant

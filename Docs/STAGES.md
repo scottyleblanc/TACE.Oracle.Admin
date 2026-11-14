@@ -84,7 +84,7 @@ soak tests run locally against an Oracle database; they do not run in public CI.
 
 | Stack | Name | Layer | Status |
 |---|---|---|---|
-| 0 | Setup and scope | — | Not started |
+| 0 | Setup and scope | — | Complete (v0.2.0) |
 | 1 | Intent | 1 | Not started |
 | 2 | Deterministic checks | 3 | Not started |
 | 3 | Tests | 4 | Not started |

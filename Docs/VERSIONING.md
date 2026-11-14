@@ -33,6 +33,13 @@ Optional body — why, not what.
 
 Breaking changes require a `BREAKING CHANGE:` footer in the commit body.
 
+### AI Development Stack stages
+
+`v0.2.0` marks the start of the stack work: Stack 0 adds public functions, so it is
+a minor release. Stack 1 to Stack 10 add checks, tooling and documentation, not
+public functions, so each closes as a patch release (`v0.2.1` onward). A stack stage
+that does change a function signature or return shape follows the table above.
+
 ## Branching Strategy
 
 - `master` — stable, tagged releases only

@@ -13,6 +13,9 @@ Tests/TestResults/
 Docs/HANDOFF.md
 Docs/Publish-Steps.md
 
+# Local runtime configuration — created on first use, never committed
+Config/
+
 # Script output artifacts
 scripts/pssa_results.txt
 
