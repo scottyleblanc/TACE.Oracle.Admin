@@ -178,10 +178,11 @@ function Invoke-RmanProcess {
     #       Test: 'AuthMode = OSAuth exactly for OS authentication',
     #       'AuthMode = WalletAuth exactly for wallet authentication',
     #       'AuthMode = NamedCredential exactly for named credential authentication'.
-    #   T1 When RMAN runs past TimeoutSeconds the process is killed and the function throws.
-    #       Test: none yet.
+    #   T1 When RMAN runs past TimeoutSeconds the process is killed and the function throws
+    #       'timed out after N seconds and the process was killed'.
+    #       Test: 'T1, T2 kills an RMAN process that runs past TimeoutSeconds and throws'.
     #   T2 Every throw starts with 'RMAN process invocation failed:'.
-    #       Test: none yet.
+    #       Test: 'T1, T2 kills an RMAN process that runs past TimeoutSeconds and throws'.
     #
     # EXECUTION INVARIANTS
     #   L1 Both output streams are read asynchronously before stdin is written, so a full
@@ -192,6 +193,12 @@ function Invoke-RmanProcess {
     #       Guard: the three StandardInput calls that follow the script write.
     #   L3 The process object is disposed on every path.
     #       Guard: the finally block.
+    #   L4 The child PATH starts with OracleHome\bin, built with Join-Path and joined to
+    #       the inherited PATH with [System.IO.Path]::PathSeparator.
+    #       Test: 'L4 child PATH starts with OracleHome bin and the platform separator'.
+    #   L5 A timeout kills the whole process tree. A failed kill does not replace the
+    #       timeout error, and the killed process is given 5 seconds to exit.
+    #       Guard: the try blocks around Kill and WaitForExit in the timeout branch.
     #--------------------------------------------------------------
 
     $process = $null
@@ -211,7 +218,12 @@ function Invoke-RmanProcess {
 
         # [SEC] Set Oracle environment on child process only — never on current session
         $psi.EnvironmentVariables['ORACLE_HOME']     = $OracleHome
-        $psi.EnvironmentVariables['PATH']            = "$OracleHome\bin;$($psi.EnvironmentVariables['PATH'])"
+        # L4: OracleHome\bin first on the child PATH, joined with the platform separator.
+        # The key is exactly 'PATH' — environment names are case-sensitive off Windows.
+        $binDir    = Join-Path -Path $OracleHome -ChildPath 'bin'
+        $childPath = $psi.EnvironmentVariables['PATH']
+        $psi.EnvironmentVariables['PATH'] = if ([string]::IsNullOrEmpty($childPath)) { $binDir }
+                                            else { $binDir + [System.IO.Path]::PathSeparator + $childPath }
         # AD-029: fix NLS_DATE_FORMAT on child process so all RMAN date output is
         # YYYY-MM-DD HH24:MI:SS — independent of database or session NLS settings.
         $psi.EnvironmentVariables['NLS_DATE_FORMAT'] = 'YYYY-MM-DD HH24:MI:SS'
@@ -272,9 +284,21 @@ function Invoke-RmanProcess {
         $completed = $process.WaitForExit($TimeoutSeconds * 1000)
 
         if (-not $completed) {
-            $process.Kill()
-            throw "RMAN process timed out after $TimeoutSeconds seconds"
+            # T1, L5: kill the whole process tree, so no child keeps a pipe open. The
+            # process can exit between the timeout and the kill, and Kill() then throws;
+            # that must not replace the timeout error. Then allow it a moment to exit.
+            try { $process.Kill($true) } catch {
+                Write-Verbose "[Invoke-RmanProcess] KILL on rman failed at $([datetime]::UtcNow.ToString('o'))"
+            }
+            try { $null = $process.WaitForExit(5000) } catch {
+                Write-Verbose "[Invoke-RmanProcess] WAIT on killed rman failed at $([datetime]::UtcNow.ToString('o'))"
+            }
+            throw "RMAN process timed out after $TimeoutSeconds seconds and the process was killed"
         }
+
+        # A timed WaitForExit can return before the redirected streams are fully read;
+        # the untimed call waits for that too.
+        $null = $process.WaitForExit()
 
         $exitCode = $process.ExitCode
 

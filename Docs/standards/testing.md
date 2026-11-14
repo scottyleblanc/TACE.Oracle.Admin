@@ -16,5 +16,7 @@
   Example: a mocked `LIST BACKUP SUMMARY` uses the real column layout. *Review.*
 - **T-08** — Every `Security` context asserts all of these: no password in the argument list; no credential fragment in `Message` on success or failure; none in verbose output; none in a re-thrown error; and no change to the session environment.
   Example: `$result.Message | Should -Not -Match $testPassword`. *Test.*
-- **T-09** — A test that proves an invariant names that invariant's ID.
-  Example: `It 'S2: argument list contains no password' { ... }`. *Linter.*
+- **T-09** — A test cited on an invariant's `Test:` line starts its title with the ID of each invariant it is cited for, comma-separated, then says what it proves. A test cited for a security invariant also carries the Pester tag `SEC`.
+  Example: `It 'S1, L2 kills a tnsping that runs past TimeoutSeconds and throws' -Tag 'SEC' { ... }`. *Linter.*
+- **T-10** — Each test tier has one entry script, `scripts\Invoke-<Tier>Test.ps1`, that holds its own Pester configuration, resolves every path from its own location, writes NUnit XML results to `Tests\TestResults\<tier>.xml`, and exits 1 when any test or any test file fails (`FailedCount` or `FailedContainersCount`) and 0 otherwise. The tiers are `static` (`Invoke-StaticTest.ps1`, `Tests\Static\`), `unit` (`Invoke-UnitTest.ps1`, `Tests\*.Tests.ps1`, not recursive) and, from Stack 3, `integration` (`Invoke-IntegrationTest.ps1`, `Tests\Integration\`).
+  Example: `.\scripts\Invoke-UnitTest.ps1` writes `Tests\TestResults\unit.xml` and exits 1 if a test file fails to parse. *Test.*

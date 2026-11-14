@@ -27,7 +27,6 @@ Describe 'Set-RestrictiveAcl' {
         $modulePath  = [System.IO.Path]::GetFullPath($modulePath)
 
         $testConfigPath = Join-Path $TestDrive 'OracleBackup.json'
-        $env:ORACLE_BACKUP_CONFIG_PATH = $testConfigPath
 
         [PSCustomObject]@{
             BackupBasePath       = (Join-Path $TestDrive 'backup')
@@ -43,6 +42,9 @@ Describe 'Set-RestrictiveAcl' {
 
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
         Import-Module $modulePath -Force
+        InModuleScope TACE.Oracle.Admin -Parameters @{ Path = $testConfigPath } {
+            $script:ConfigPathOverride = $Path
+        }
 
         $script:testDir  = Join-Path $TestDrive 'acltest_dir'
         $script:testFile = Join-Path $TestDrive 'acltest_file.txt'
@@ -53,7 +55,6 @@ Describe 'Set-RestrictiveAcl' {
 
     AfterAll {
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
-        $env:ORACLE_BACKUP_CONFIG_PATH = $null
     }
 
     # ── Parameter validation ───────────────────────────────────────────────────

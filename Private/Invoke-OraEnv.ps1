@@ -18,10 +18,13 @@ function Invoke-OraEnv {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.2.0
-        Alias   : oraset
+        Version : 0.2.1
+        Aliases : oraset, oraenv (declared by the [Alias()] attribute below; rule C-30)
     #>
     [CmdletBinding()]
+    [Alias('oraset', 'oraenv')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
+        Justification = 'Interactive terminal wrapper: shows the failure message to the user (rule C-31).')]
     param(
         [Parameter(Position = 0)]
         [ValidateNotNullOrEmpty()]

@@ -6,26 +6,28 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 
 | Measure | Count |
 |---|--:|
-| Functions | 13 |
-| Invariants | 149 |
-| Security invariants | 54 |
-| Enforced (type, guard, test or static check in place) | 82 |
-| Unproven (test or static check not written yet) | 29 |
-| Unproven security invariants | 14 |
-| Accepted limitations | 38 |
+| Functions | 14 |
+| Invariants | 153 |
+| Security invariants | 53 |
+| Enforced (type, guard, test or static check in place) | 106 |
+| Unproven (test or static check not written yet) | 23 |
+| Unproven security invariants | 13 |
+| Accepted limitations | 24 |
 
 ## Private/Assert-OracleEnvironment.ps1
 
 ### Invoke-TnspingProcess
 
-- **P1** TnspingPath, WalletAlias and OracleHome are supplied. *(Type)*
-- **S1** `[SEC]` ORACLE_HOME and PATH are set on the child process only. *(Test, none yet)*
+- **P1** TnspingPath, WalletAlias and OracleHome are non-empty strings. *(Type)*
+- **P2** TimeoutSeconds is between 1 and 300. It defaults to 30. *(Type)*
+- **S1** `[SEC]` ORACLE_HOME and PATH are set on the child process only. The current session environment is not changed, including after a timeout kill. *(Test)*
 - **S2** `[SEC]` WalletAlias is passed as the process argument. It is a connection name, not a credential. *(Limitation)*
 - **S3** `[SEC]` Output is returned as captured, not scrubbed. *(Limitation)*
-- **R1** Returns an object with ExitCode, StdOut and StdErr. *(Test, none yet)*
-- **L1** Stdout is read to the end before stderr. *(Limitation)*
-- **L2** It waits up to 30 seconds and does not check that the process has exited. *(Limitation)*
+- **R1** Returns an object with exactly ExitCode, StdOut and StdErr. *(Test)*
+- **L1** Both output streams are read asynchronously before the wait, so a full stderr pipe cannot stall the process. *(Test)*
+- **L2** The wait is bounded by TimeoutSeconds. A tnsping still running then has its whole process tree killed, and the function throws 'timed out after N seconds and the process was killed'. A failed kill does not replace that error. *(Test)*
 - **L3** The process object is disposed on every path. *(Guard)*
+- **L4** The child PATH starts with OracleHome\bin, built with Join-Path and joined to the inherited PATH with [System.IO.Path]::PathSeparator. *(Test)*
 
 ### Assert-OracleEnvironment
 
@@ -35,7 +37,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S1** `[SEC]` OracleHome, from the config or the environment, is checked to exist before it is used in a path. *(Test)*
 - **S2** `[SEC]` The binary is resolved from OracleHome\bin, never from PATH. *(Test)*
 - **S3** `[SEC]` A signature status of HashMismatch or TrustFailure, or a valid signature that is not Oracle's, stops the call. *(Test)*
-- **S4** `[SEC]` An unsigned binary is accepted. *(Limitation)*
+- **S4** `[SEC]` An unsigned binary is accepted. Oracle does not sign individual executables, so the signature check cannot detect a replaced Oracle binary, whether the replacement came from a patch or from tampering. *(Limitation)*
 - **S5** `[SEC]` No parameter turns the signature check off. *(Test)*
 - **S6** `[SEC]` A WalletAlias is resolved with tnsping before the function returns. *(Test)*
 - **S7** `[SEC]` tnsping output is scrubbed before it is placed in an error message. *(Test)*
@@ -43,8 +45,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S9** `[SEC]` tnsping.exe is checked to exist, but its signature is not checked. *(Limitation)*
 - **R1** Returns the full path of the validated binary. *(Test)*
 - **T1** Every throw starts with 'Oracle environment validation failed:'. *(Test, none yet)*
-- **T2** The error for a missing OracleHome tells the reader to run Set-OracleBackupConfig, which this module does not have. *(Limitation)*
-- **L1** When OracleHome is empty it falls back to the ORACLE_HOME environment variable, but the home it resolved is not returned to the caller. *(Limitation)*
+- **T2** The error for a missing OracleHome names the two ways to set one: OracleHome in Config\OracleBackup.json, or the ORACLE_HOME environment variable. *(Test)*
+- **L1** When OracleHome is empty it falls back to the ORACLE_HOME environment variable. It returns only the binary path, always <home>\bin\<binary> (S2), so a caller recovers the validated home from that path. *(Guard)*
 
 ## Private/ConvertFrom-RmanListBackup.ps1
 
@@ -78,12 +80,12 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 
 ### Get-OracleBackupConfigStore
 
-- **P1** The config file is the one named by ORACLE_BACKUP_CONFIG_PATH when that is set, and Config\OracleBackup.json under the module folder otherwise. *(Guard)*
+- **P1** The config file is Config\OracleBackup.json under the module folder, unless the module-scoped test override $script:ConfigPathOverride is set. *(Guard)*
 - **S1** `[SEC]` A config file created here is given restricted permissions straight after it is written. *(Guard)*
 - **S2** `[SEC]` The config holds paths and defaults, never a credential. *(Limitation)*
 - **S3** `[SEC]` OracleHome read from the config is untrusted until checked. *(Limitation)*
-- **S4** `[SEC]` ORACLE_BACKUP_CONFIG_PATH is used without validation, so an environment variable decides where the config is read from and created. *(Limitation)*
-- **R1** Returns an object with all eight settings. A setting missing from the file takes its default. *(Test, none yet)*
+- **S4** `[SEC]` No environment variable or caller input decides where the config is read from or created. Only the module-scoped test override can change the path. *(Test)*
+- **R1** Returns an object with all eight settings. A setting missing from the file takes its default. *(Test)*
 - **R2** When the file does not exist it is written with the defaults, and the defaults are returned. *(Test, none yet)*
 - **T1** Every throw starts with 'Failed to load OracleBackup configuration from' and names the path. *(Test, none yet)*
 - **L1** The first call can create a folder and a file. It is not under ShouldProcess. *(Limitation)*
@@ -118,11 +120,13 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **R1** Returns an object with exactly ExitCode, StdOut, StdErr, Success and AuthMode. *(Test)*
 - **R2** Success is false when stdout or stderr holds an RMAN-nnnnn or ORA-nnnnn code. The exit code does not decide Success. *(Test)*
 - **R3** AuthMode is the name of the parameter set that was used. *(Test)*
-- **T1** When RMAN runs past TimeoutSeconds the process is killed and the function throws. *(Test, none yet)*
-- **T2** Every throw starts with 'RMAN process invocation failed:'. *(Test, none yet)*
+- **T1** When RMAN runs past TimeoutSeconds the process is killed and the function throws 'timed out after N seconds and the process was killed'. *(Test)*
+- **T2** Every throw starts with 'RMAN process invocation failed:'. *(Test)*
 - **L1** Both output streams are read asynchronously before stdin is written, so a full stderr pipe cannot stall the process. *(Test)*
 - **L2** EXIT; is written after the script, and stdin is then closed. *(Guard)*
 - **L3** The process object is disposed on every path. *(Guard)*
+- **L4** The child PATH starts with OracleHome\bin, built with Join-Path and joined to the inherited PATH with [System.IO.Path]::PathSeparator. *(Test)*
+- **L5** A timeout kills the whole process tree. A failed kill does not replace the timeout error, and the killed process is given 5 seconds to exit. *(Guard)*
 
 ### Invoke-CredentialScrub
 
@@ -147,6 +151,12 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **T1** Every throw starts with 'Failed to apply restrictive ACL to' and names the path. *(Test, none yet)*
 - **L1** Permissions are changed without a ShouldProcess check of its own. *(Limitation)*
 
+## Private/Test-WindowsPlatform.ps1
+
+### Test-WindowsPlatform
+
+- **R1** Returns $IsWindows: $true on Windows and $false on every other platform. *(Test)*
+
 ## Public/Get-OracleDatabaseList.ps1
 
 ### Get-OracleDatabaseList
@@ -160,7 +170,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **R4** OracleHome and OracleBase are null when they cannot be derived. *(Test)*
 - **R5** ServiceName is null on Linux. *(Test)*
 - **L1** Read-only: it reads services, /etc/oratab and the process list, and changes nothing. *(Static, none yet)*
-- **L2** On Windows a non-terminating error from the service query is suppressed and reads as no instances found. *(Limitation)*
+- **L2** On Windows any error from the service query, terminating or not, returns Success = $false. It is never read as no instances found. *(Test)*
 
 ## Public/Get-RmanBackupStatus.ps1
 
@@ -168,7 +178,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 
 - **P1** DatabaseName is a non-empty string. *(Type)*
 - **P2** WalletAlias and Credential are not both supplied. *(Guard)*
-- **P3** It runs on Windows. *(Limitation)*
+- **P3** It runs on Windows. On any other platform it returns Success = $false before it reads the config or starts a process (rule C-07). *(Test)*
 - **S1** `[SEC]` ORACLE_SID is never set on the current session. *(Test)*
 - **S2** `[SEC]` Message holds no credential when RMAN succeeds. *(Test)*
 - **S5** `[SEC]` Exception text is scrubbed before it is placed in Message. *(Test, none yet)*
@@ -181,7 +191,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **R5** No backup records, or an RMAN failure, gives Success = $false. *(Test)*
 - **L1** Read-only: the only RMAN command sent is LIST BACKUP SUMMARY. *(Test)*
 - **L2** The first call can create the config file on disk. *(Limitation)*
-- **L3** The OracleHome from the config is passed to Invoke-RmanProcess even when it is empty and the environment variable was used to find RMAN. *(Limitation)*
+- **L3** Invoke-RmanProcess receives the home that Assert-OracleEnvironment validated, including one found through the ORACLE_HOME fallback when the config has none. *(Test)*
 
 ## Public/Remove-RmanObsoleteBackup.ps1
 
@@ -189,7 +199,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 
 - **P1** DatabaseName is a non-empty string. *(Type)*
 - **P2** WalletAlias and Credential are not both supplied. *(Guard)*
-- **P3** It runs on Windows. *(Limitation)*
+- **P3** It runs on Windows. On any other platform it returns Success = $false before the ShouldProcess gate, the config read or any process (rule C-07). *(Test)*
 - **P4** A crosscheck has been run, so expired pieces are already marked. *(Limitation)*
 - **S1** `[SEC]` Nothing is deleted unless ShouldProcess approves, with ConfirmImpact High. *(Test)*
 - **S2** `[SEC]` RMAN is run with NOPROMPT, so ShouldProcess is the only confirmation. *(Test)*
@@ -197,14 +207,13 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S4** `[SEC]` Message holds no credential when RMAN succeeds. *(Test)*
 - **S8** `[SEC]` Exception text is scrubbed before it is placed in Message. *(Test, none yet)*
 - **S5** `[SEC]` The RMAN script holds no credential. *(Test)*
-- **S6** `[SEC]` CatalogCredential is accepted and not used. The catalog connect line is written without a credential. *(Limitation)*
-- **S7** `[SEC]` CatalogConnection is placed in the RMAN script after a non-empty check only. *(Limitation)*
+- **S9** `[SEC]` The RMAN script is fixed text. No parameter value is placed in it, and there is no catalog parameter. S6 and S7 are retired with those parameters. *(Test)*
 - **R1** Returns Success, Data and Message on every path, and never throws once its parameters are bound. *(Test)*
-- **R2** On success Data has DatabaseName, StartTime, EndTime, DurationSec, DeletedCount, AuthMode and RawLog. *(Test, none yet)*
-- **R3** When ShouldProcess declines, or under -WhatIf, RMAN is not run and Success is false. *(Test)*
+- **R2** On success Data has DatabaseName, StartTime, EndTime, DurationSec, DeletedCount, AuthMode, RawLog and Applied = $true. *(Test)*
+- **R3** When ShouldProcess declines, or under -WhatIf, RMAN is not run and the return is a preview: Success = $true, Data.Applied = $false, and a Message that starts with 'WhatIf:' (rule C-27). *(Test)*
 - **R4** DeletedCount is the number of 'deleted backup piece' lines in the RMAN output. *(Test)*
-- **L1** The environment check runs before the ShouldProcess gate. *(Limitation)*
-- **L2** The OracleHome from the config is passed to Invoke-RmanProcess even when it is empty and the environment variable was used to find RMAN. *(Limitation)*
+- **L1** Nothing is read, written or started before the ShouldProcess gate approves: under -WhatIf the config store and the environment check are not called. *(Test)*
+- **L2** Invoke-RmanProcess receives the home that Assert-OracleEnvironment validated, including one found through the ORACLE_HOME fallback when the config has none. *(Test)*
 
 ## Public/Set-OracleEnv.ps1
 
@@ -216,10 +225,10 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S2** `[SEC]` Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are changed. Nothing is written to disk, the registry or another process. *(Static, none yet)*
 - **S3** `[SEC]` The catch block places the raw exception message in Message. *(Limitation)*
 - **R1** Returns Success, Data and Message on every path, and never throws. *(Test)*
-- **R2** On success Data has SID, OracleHome and OracleBase. *(Test)*
+- **R2** On success Data has SID, OracleHome, OracleBase and Applied. *(Test)*
 - **R3** ORACLE_HOME and ORACLE_BASE are left unset when they cannot be determined, and a warning is written for each. *(Test)*
 - **R4** A stopped service does not prevent the SID being set. A warning is written. *(Test)*
 - **R5** On a failure path ORACLE_SID is not changed. *(Test)*
-- **R6** Under -WhatIf no variable is set, but the return still reports Success with the message 'ORACLE_SID set to'. *(Limitation)*
+- **R6** Under -WhatIf, or a declined -Confirm, no variable is set and the return is a preview: Success = $true, Data.Applied = $false, and a Message that starts with 'WhatIf:' (rule C-27). *(Test)*
 - **L1** With no SID and more than one instance it prompts with Read-Host. *(Limitation)*
-- **L2** User-facing lines are written with Write-Host, by design. *(Limitation)*
+- **L2** User-facing lines are written with Write-Host, by design, even when called from a script. *(Limitation)*

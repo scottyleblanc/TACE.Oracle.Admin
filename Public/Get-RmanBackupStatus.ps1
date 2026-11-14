@@ -68,8 +68,9 @@ function Get-RmanBackupStatus {
     #       Type: Mandatory and ValidateNotNullOrEmpty.
     #   P2 WalletAlias and Credential are not both supplied.
     #       Guard: the check at the start of the body returns Success = $false.
-    #   P3 It runs on Windows.
-    #       Limitation: there is no platform check. Known finding against rule C-07.
+    #   P3 It runs on Windows. On any other platform it returns Success = $false before
+    #       it reads the config or starts a process (rule C-07).
+    #       Test: 'P3 returns Success false on a platform other than Windows'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 ORACLE_SID is never set on the current session.
@@ -105,10 +106,19 @@ function Get-RmanBackupStatus {
     #       Test: 'Should include LIST BACKUP SUMMARY in the RMAN script'.
     #   L2 The first call can create the config file on disk.
     #       Limitation: see Get-OracleBackupConfigStore L1.
-    #   L3 The OracleHome from the config is passed to Invoke-RmanProcess even when it is
-    #       empty and the environment variable was used to find RMAN.
-    #       Limitation: suspected defect, not yet confirmed by a test.
+    #   L3 Invoke-RmanProcess receives the home that Assert-OracleEnvironment validated,
+    #       including one found through the ORACLE_HOME fallback when the config has none.
+    #       Test: 'L3 passes the validated home to RMAN when the config has none'.
     #--------------------------------------------------------------
+
+    # ── Platform check (C-07) ─────────────────────────────────────────────────
+    if (-not (Test-WindowsPlatform)) {
+        return [PSCustomObject]@{
+            Success = $false
+            Data    = $null
+            Message = 'Get-RmanBackupStatus is Windows only. Linux support is not yet built.'
+        }
+    }
 
     # ── Auth mode resolution ──────────────────────────────────────────────────
     if (-not [string]::IsNullOrWhiteSpace($WalletAlias) -and $null -ne $Credential) {
@@ -128,6 +138,10 @@ function Get-RmanBackupStatus {
         $config   = Get-OracleBackupConfigStore
         $rmanPath = Assert-OracleEnvironment -OracleHome $config.OracleHome -WalletAlias $WalletAlias
 
+        # The validated home, which may have come from the ORACLE_HOME fallback (L3).
+        # Assert-OracleEnvironment always resolves the binary as <home>\bin\<binary>.
+        $oracleHome = Split-Path -Path (Split-Path -Path $rmanPath -Parent) -Parent
+
         # ── Build RMAN script ─────────────────────────────────────────────
         $listScript = 'LIST BACKUP SUMMARY;'
 
@@ -137,7 +151,7 @@ function Get-RmanBackupStatus {
         $rmanInvokeParams = @{
             RmanBinaryPath = $rmanPath
             RmanScript     = $listScript
-            OracleHome     = $config.OracleHome
+            OracleHome     = $oracleHome
         }
         switch ($authMode) {
             'WalletAuth'      { $rmanInvokeParams['WalletAlias'] = $WalletAlias }

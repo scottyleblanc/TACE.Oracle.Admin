@@ -43,7 +43,9 @@
 
 .NOTES
     Copyright © TACE Data Management Inc.
-    Part of the static tier: fast, and safe to run on every change.
+    **Invocation:** Standalone — safe to run with `pwsh -File`; also called by
+    Tests\Static\InvariantConformance.Tests.ps1. Part of the static tier: fast, and safe
+    to run on every change.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 [OutputType([PSCustomObject])]

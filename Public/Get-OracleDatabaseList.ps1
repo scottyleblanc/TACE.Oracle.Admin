@@ -36,7 +36,7 @@ function Get-OracleDatabaseList {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.2.0
+        Version : 0.2.1
     #>
     [CmdletBinding()]
     param(
@@ -80,9 +80,9 @@ function Get-OracleDatabaseList {
     #   L1 Read-only: it reads services, /etc/oratab and the process list, and changes
     #       nothing.
     #       Static: none yet.
-    #   L2 On Windows a non-terminating error from the service query is suppressed and
-    #       reads as no instances found.
-    #       Limitation: -ErrorAction SilentlyContinue on the query.
+    #   L2 On Windows any error from the service query, terminating or not, returns
+    #       Success = $false. It is never read as no instances found.
+    #       Test: 'L2 a non-terminating service query error returns Success false'.
     #--------------------------------------------------------------
 
     try {
@@ -92,7 +92,10 @@ function Get-OracleDatabaseList {
 
         if ($Platform -eq 'Windows') {
 
-            $services = @(Get-CimInstance -ClassName Win32_Service -Filter "Name LIKE 'OracleService%'" -ErrorAction SilentlyContinue)
+            # L2: Stop, so a failed query (WMI stopped, access denied, RPC failure) reaches
+            # the catch as Success = $false. A query that matches nothing raises no error
+            # and still returns an empty result (R2).
+            $services = @(Get-CimInstance -ClassName Win32_Service -Filter "Name LIKE 'OracleService%'" -ErrorAction Stop)
 
             $databases = @($services | ForEach-Object {
                 # PathName may be quoted ("C:\...\bin\ORACLE.EXE" args) or unquoted

@@ -27,8 +27,8 @@ All in `Docs\`, plus a `README.md` at the repo root for the published package.
   Example: a stage with an unticked `[SEC]` line is not tagged. *Linter.*
 - **D-10** — A version number is the same everywhere it appears: manifest, module file, function headers, changelog and tag.
   Example: `ModuleVersion = '0.2.0'` with tag `v0.2.0`. *Linter.*
-- **D-11** — A statement in a document that the code contradicts is a defect in the document.
-  Example: "this module handles no credentials" once a function accepts one. *Review.*
+- **D-11** — A document describes what the code does now. A statement the code contradicts is a defect, fixed in the change that finds it: in the document when the document is out of date, in the code when the code breaks a stated requirement.
+  Example: "this module handles no credentials" is corrected once a function accepts one; a `SECURITY.md` contract the code breaks is a code defect. *Review.*
 
 ## Writing a standard
 

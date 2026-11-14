@@ -14,17 +14,27 @@
     Copyright © TACE Data Management Inc.
     Published name : TACE.Oracle.Admin
     Internal name  : OracleAdmin
-    Version        : 0.2.0
+    Version        : 0.2.1
     Stage          : 1 — Foundation
 #>
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+#region -- Module state
+
+# [SEC] Test-only override for the config file path used by Get-OracleBackupConfigStore.
+# Module-scoped, so only code running inside the module (tests via InModuleScope) can
+# set it. Production always uses Config\OracleBackup.json under the module folder.
+$script:ConfigPathOverride = $null
+
+#endregion
+
 #region -- Load private functions
 
 $privateFunctions = @(
     'Invoke-OraEnv.ps1'
+    'Test-WindowsPlatform.ps1'
     'ConvertFrom-SecureStringToPlaintext.ps1'
     'Set-RestrictiveAcl.ps1'
     'Assert-OracleEnvironment.ps1'
@@ -64,7 +74,8 @@ foreach ($function in $publicFunctions) {
 
 #region -- Aliases
 
-Set-Alias -Name oraset -Value Invoke-OraEnv
-Set-Alias -Name oraenv -Value Invoke-OraEnv
+# Aliases are declared with an [Alias()] attribute on the function they target (rule
+# C-30): oraset and oraenv are on Invoke-OraEnv. They are exported through
+# AliasesToExport in the manifest.
 
 #endregion

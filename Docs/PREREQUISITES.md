@@ -39,17 +39,23 @@ PATH is not modified — that is managed by the profile.
 | Minimum version | 5.0 |
 | Install | `Install-Module Pester -MinimumVersion 5.0 -Force` |
 
-Run all unit tests:
-```powershell
-Invoke-Pester -Path .\Tests\
-```
+Each test tier has its own script (rule T-10). Each runs from any working directory,
+writes NUnit XML results to `Tests\TestResults\<tier>.xml`, and exits 1 on any failure.
+
+| Tier | Command | Runs |
+|---|---|---|
+| Static | `.\scripts\Invoke-StaticTest.ps1` | `Tests\Static\` — checks that read source text only |
+| Unit | `.\scripts\Invoke-UnitTest.ps1` | `Tests\*.Tests.ps1` — functions run against mocks |
 
 Run a single test file:
 ```powershell
 Invoke-Pester -Path .\Tests\Set-OracleEnv.Tests.ps1
 ```
 
-No test requires a live Oracle instance. All Oracle service calls are mocked.
+Do not run `Invoke-Pester -Path .\Tests\` to run the unit tests: it recurses into
+`Tests\Static\` and mixes the two tiers.
+
+No unit test requires a live Oracle instance. All Oracle service calls are mocked.
 
 ## Execution Policy
 

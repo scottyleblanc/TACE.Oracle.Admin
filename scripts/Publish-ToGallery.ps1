@@ -27,6 +27,8 @@
     Copyright © TACE Data Management Inc.
     Module  : TACE.Oracle.Admin
     Requires: Microsoft.PowerShell.PSResourceGet, git
+    **Invocation:** Standalone — interactive; prompts for the API key with
+    Read-Host -AsSecureString. Run Build-Module.ps1 first.
 #>
 
 [CmdletBinding(SupportsShouldProcess)]

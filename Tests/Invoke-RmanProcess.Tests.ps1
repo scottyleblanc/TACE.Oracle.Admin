@@ -29,7 +29,6 @@ Describe 'Invoke-RmanProcess' {
         $modulePath = [System.IO.Path]::GetFullPath($modulePath)
 
         $testConfigPath = Join-Path $TestDrive 'OracleBackup.json'
-        $env:ORACLE_BACKUP_CONFIG_PATH = $testConfigPath
 
         $script:fakeOracleHome = Join-Path $TestDrive 'oracle' 'home'
         $script:fakeBinDir     = Join-Path $script:fakeOracleHome 'bin'
@@ -77,11 +76,13 @@ Describe 'Invoke-RmanProcess' {
 
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
         Import-Module $modulePath -Force
+        InModuleScope TACE.Oracle.Admin -Parameters @{ Path = $testConfigPath } {
+            $script:ConfigPathOverride = $Path
+        }
     }
 
     AfterAll {
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
-        $env:ORACLE_BACKUP_CONFIG_PATH = $null
     }
 
     # ── Parameter validation ───────────────────────────────────────────────────
@@ -1092,6 +1093,59 @@ Describe 'Invoke-RmanProcess' {
                 $result.StdOut | Should -Match 'Recovery Manager complete'
                 $result.Success | Should -Be $true
             }
+        }
+    }
+
+    # ── Timeout and child PATH ────────────────────────────────────────────────
+
+    Context 'Timeout and child PATH' {
+
+        BeforeAll {
+            # Sleeps well past the 2-second test timeout.
+            $script:fakeRmanHangCmd = Join-Path $TestDrive 'fakerManHang.cmd'
+            Set-Content -Path $script:fakeRmanHangCmd -Encoding ASCII -Value "@ping -n 30 127.0.0.1 >nul`r`n@echo Recovery Manager complete."
+
+            $script:fakeRmanPathCmd = Join-Path $TestDrive 'fakerManPath.cmd'
+            Set-Content -Path $script:fakeRmanPathCmd -Encoding ASCII -Value "@echo PATH=%PATH%`r`n@echo Recovery Manager complete."
+        }
+
+        It 'T1, T2 kills an RMAN process that runs past TimeoutSeconds and throws' {
+            $sidBefore  = $env:ORACLE_SID
+            $homeBefore = $env:ORACLE_HOME
+            $watch = [System.Diagnostics.Stopwatch]::StartNew()
+            {
+                InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanHangCmd; FakeHome = $script:fakeOracleHome } {
+                    param($FakeCmd, $FakeHome)
+                    $params = @{
+                        RmanBinaryPath = $FakeCmd
+                        RmanScript     = 'LIST BACKUP SUMMARY;'
+                        OracleHome     = $FakeHome
+                        OracleSid      = 'ORCL'
+                        TimeoutSeconds = 2
+                    }
+                    Invoke-RmanProcess @params
+                }
+            } | Should -Throw -ExpectedMessage 'RMAN process invocation failed: *timed out after 2 seconds and the process was killed*'
+            $watch.Stop()
+            $watch.Elapsed.TotalSeconds | Should -BeLessThan 15
+            $env:ORACLE_SID  | Should -Be $sidBefore
+            $env:ORACLE_HOME | Should -Be $homeBefore
+        }
+
+        It 'L4 child PATH starts with OracleHome bin and the platform separator' {
+            $result = InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanPathCmd; FakeHome = $script:fakeOracleHome } {
+                param($FakeCmd, $FakeHome)
+                $params = @{
+                    RmanBinaryPath = $FakeCmd
+                    RmanScript     = 'LIST BACKUP SUMMARY;'
+                    OracleHome     = $FakeHome
+                    OracleSid      = 'ORCL'
+                }
+                Invoke-RmanProcess @params
+            }
+            $expectedStart = 'PATH=' + (Join-Path $script:fakeOracleHome 'bin') + [System.IO.Path]::PathSeparator
+            $pathLine = @($result.StdOut -split "`r?`n" | Where-Object { $PSItem -like 'PATH=*' })[0]
+            $pathLine.StartsWith($expectedStart) | Should -BeTrue
         }
     }
 }

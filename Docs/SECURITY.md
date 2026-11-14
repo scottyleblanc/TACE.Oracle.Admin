@@ -4,15 +4,16 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.2.0 |
-| Last audit | 2026-03-17 |
-| Findings resolved | 0 |
-| Unit tests | 291 (all passing) |
+| Version | 0.2.1 |
+| Last audit | 2026-11-14 — Stack 1 invariant review |
+| Findings resolved | 13 of 14 fixed, including 4 of 5 `[SEC]`; 1 `[SEC]` accepted as a limitation |
+| Unit tests | 317 (all passing); 11 static checks, 6 of them for public-repo hygiene |
 | Open SEC items | 5 — see Open Items |
 
 The RMAN functions added at Stack 0 (v0.2.0, not on PSGallery) were copied from
 the Oracle backup module. Their security mechanisms are described below as built.
-They have not yet been audited in this repo; the audit date above predates them.
+At Stack 1 every function was given an invariant block stating what must hold and
+what enforces it; the defects that exposed are in the Audit Record.
 
 ---
 
@@ -78,6 +79,12 @@ is not Oracle's. A wallet alias is resolved with `tnsping` before RMAN is starte
 
 **Contract:** `ORACLE_HOME` from configuration or the environment is untrusted
 input and is validated before use in any path or process start.
+
+**Limit:** Oracle does not sign individual executables. On a 21c home every binary
+checked (`rman.exe`, `tnsping.exe`, `sqlplus.exe`, `oracle.exe`) reports `NotSigned`,
+so the signature check cannot tell a patched binary from a tampered one, and passes
+both. It catches only a broken signature or a non-Oracle signer. Detecting a replaced
+binary would need a recorded baseline; that is not built.
 
 ---
 
@@ -152,15 +159,15 @@ confirmation is the only gate.
 
 Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 
-- `Remove-RmanObsoleteBackup` accepts `-CatalogCredential` but does not use it;
-  the catalog connection is written without a credential.
+- The binary signature check cannot detect a replaced Oracle binary, because Oracle
+  binaries are unsigned. See section 4.
 - `Invoke-CredentialScrub` covers one pattern (`user/password@service`). Other
   credential formats would pass through.
 - `Set-RestrictiveAcl` changes file permissions without `ShouldProcess`.
-- The copied RMAN functions assume Windows (paths, `.exe` names, ACLs). Their
-  behaviour on Linux is untested.
-- The copied code has not been audited in this repo. The STIG table below
-  reflects the module before Stack 0.
+- The RMAN functions are Windows only. Off Windows they return `Success = $false`
+  before touching the config or RMAN (rule C-07); Linux support is not built.
+- The copied code has had the Stack 1 invariant review, not a STIG assessment. The
+  STIG table below reflects the module before Stack 0.
 
 ---
 
@@ -172,6 +179,7 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | 2026-03-13 | 0.1.3 | None | Environment variable derivation review — `ORACLE_HOME` and `ORACLE_BASE` derived from Win32_Service PathName. No credential handling added; session-only contract unchanged. |
 | 2026-03-17 | 0.1.5 | None | Verbose display change review — `ORACLE_HOME`/`ORACLE_BASE` `Write-Host` lines gated on `$VerbosePreference`. No credential handling; no new child processes; session-only contract unchanged. |
 | 2026-03-13 | 0.1.4 | None | Multi-platform discovery review — Linux path reads `/etc/oratab` and checks `ora_pmon` process. No credential handling; no child processes spawned; session-only contract unchanged. |
+| 2026-11-14 | 0.2.1 | 14 (5 `[SEC]`) | Stack 1 invariant review of all 14 functions. `[SEC]`: catalog parameters let caller text into the RMAN script and accepted an unused credential (removed); `-WhatIf` could write the config file and run `tnsping` (gate moved first); an environment variable chose the config file (replaced by a test-only override); `tnsping.exe` is unsigned like every Oracle binary (accepted, documented in section 4). Nine others fixed, among them a `tnsping` that could hang its caller indefinitely and a timeout kill that left child processes running. Details in `CHANGELOG.md` 0.2.1 and `TODO.md` Stack 1. |
 
 ---
 

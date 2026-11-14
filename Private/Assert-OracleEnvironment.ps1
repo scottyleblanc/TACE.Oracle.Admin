@@ -66,23 +66,31 @@
 # Returns [PSCustomObject]@{ ExitCode; StdOut; StdErr }
 function Invoke-TnspingProcess {
     [CmdletBinding()]
+    [OutputType([PSCustomObject])]
     param(
-        [Parameter(Mandatory)] [string]$TnspingPath,
-        [Parameter(Mandatory)] [string]$WalletAlias,
-        [Parameter(Mandatory)] [string]$OracleHome
+        [Parameter(Mandatory)] [ValidateNotNullOrEmpty()] [string]$TnspingPath,
+        [Parameter(Mandatory)] [ValidateNotNullOrEmpty()] [string]$WalletAlias,
+        [Parameter(Mandatory)] [ValidateNotNullOrEmpty()] [string]$OracleHome,
+        [Parameter()] [ValidateRange(1, 300)] [int]$TimeoutSeconds = 30
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     #--------------------------------------------------------------
     # INVARIANTS
     #
     # PRE-CONDITIONS
-    #   P1 TnspingPath, WalletAlias and OracleHome are supplied.
-    #       Type: Mandatory.
+    #   P1 TnspingPath, WalletAlias and OracleHome are non-empty strings.
+    #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #   P2 TimeoutSeconds is between 1 and 300. It defaults to 30.
+    #       Type: ValidateRange.
     #
     # SECURITY INVARIANTS
-    #   [SEC] S1 ORACLE_HOME and PATH are set on the child process only.
-    #       Test: none yet. The existing test with this name mocks this function, so it
-    #       does not run the code that sets the variables.
+    #   [SEC] S1 ORACLE_HOME and PATH are set on the child process only. The current
+    #       session environment is not changed, including after a timeout kill.
+    #       Test: 'S1 child gets ORACLE_HOME and the session environment is unchanged',
+    #       'S1, L2 kills a tnsping that runs past TimeoutSeconds and throws'.
     #   [SEC] S2 WalletAlias is passed as the process argument. It is a connection name,
     #       not a credential.
     #       Limitation: true by definition of a TNS alias. Nothing checks the value.
@@ -90,16 +98,22 @@ function Invoke-TnspingProcess {
     #       Limitation: the caller scrubs it. See Assert-OracleEnvironment S7.
     #
     # POST-CONDITIONS
-    #   R1 Returns an object with ExitCode, StdOut and StdErr.
-    #       Test: none yet.
+    #   R1 Returns an object with exactly ExitCode, StdOut and StdErr.
+    #       Test: 'R1 returns exactly ExitCode, StdOut and StdErr'.
     #
     # EXECUTION INVARIANTS
-    #   L1 Stdout is read to the end before stderr.
-    #       Limitation: a large stderr could stall the read. tnsping writes little.
-    #   L2 It waits up to 30 seconds and does not check that the process has exited.
-    #       Limitation: a tnsping that hangs would fail when ExitCode is read.
+    #   L1 Both output streams are read asynchronously before the wait, so a full stderr
+    #       pipe cannot stall the process.
+    #       Test: 'L1 a tnsping that floods stderr still completes'.
+    #   L2 The wait is bounded by TimeoutSeconds. A tnsping still running then has its
+    #       whole process tree killed, and the function throws 'timed out after N
+    #       seconds and the process was killed'. A failed kill does not replace that error.
+    #       Test: 'S1, L2 kills a tnsping that runs past TimeoutSeconds and throws'.
     #   L3 The process object is disposed on every path.
     #       Guard: the finally block.
+    #   L4 The child PATH starts with OracleHome\bin, built with Join-Path and joined to
+    #       the inherited PATH with [System.IO.Path]::PathSeparator.
+    #       Test: 'L4 child PATH starts with OracleHome bin and the platform separator'.
     #--------------------------------------------------------------
 
     $psi = [System.Diagnostics.ProcessStartInfo]::new()
@@ -109,24 +123,46 @@ function Invoke-TnspingProcess {
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError  = $true
     $psi.CreateNoWindow         = $true
-    $psi.EnvironmentVariables['ORACLE_HOME'] = $OracleHome
-    $psi.EnvironmentVariables['PATH']        = "$OracleHome\bin;$($psi.EnvironmentVariables['PATH'])"
 
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
+    # [SEC] Child environment only (S1). The key is exactly 'PATH' — environment names
+    # are case-sensitive off Windows (L4).
+    $psi.EnvironmentVariables['ORACLE_HOME'] = $OracleHome
+    $binDir    = Join-Path -Path $OracleHome -ChildPath 'bin'
+    $childPath = $psi.EnvironmentVariables['PATH']
+    $psi.EnvironmentVariables['PATH'] = if ([string]::IsNullOrEmpty($childPath)) { $binDir }
+                                        else { $binDir + [System.IO.Path]::PathSeparator + $childPath }
 
     $proc = $null
     try {
         $proc = [System.Diagnostics.Process]::new()
         $proc.StartInfo = $psi
         $null = $proc.Start()
-        $stdout = $proc.StandardOutput.ReadToEnd()
-        $stderr = $proc.StandardError.ReadToEnd()
-        $null   = $proc.WaitForExit(30000)
+
+        # L1: drain both pipes before waiting. A synchronous ReadToEnd() on stdout blocks
+        # until stdout closes, so a hung tnsping would never reach the timeout, and a full
+        # stderr pipe would stall the child.
+        $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+        $stderrTask = $proc.StandardError.ReadToEndAsync()
+
+        if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
+            # L2: kill the whole tree; a kill that fails because the process has just
+            # exited must not replace the timeout error.
+            try { $proc.Kill($true) } catch {
+                Write-Verbose "[Invoke-TnspingProcess] KILL on tnsping failed at $([datetime]::UtcNow.ToString('o'))"
+            }
+            try { $null = $proc.WaitForExit(5000) } catch {
+                Write-Verbose "[Invoke-TnspingProcess] WAIT on killed tnsping failed at $([datetime]::UtcNow.ToString('o'))"
+            }
+            throw "tnsping timed out after $TimeoutSeconds seconds and the process was killed"
+        }
+
+        # The untimed wait also waits for the redirected streams to finish.
+        $null = $proc.WaitForExit()
+
         return [PSCustomObject]@{
             ExitCode = $proc.ExitCode
-            StdOut   = $stdout
-            StdErr   = $stderr
+            StdOut   = $stdoutTask.GetAwaiter().GetResult()
+            StdErr   = $stderrTask.GetAwaiter().GetResult()
         }
     }
     finally {
@@ -175,9 +211,11 @@ function Assert-OracleEnvironment {
     #       Test: 'Throws when Authenticode status is HashMismatch',
     #       'Throws when Authenticode status is TrustFailure',
     #       'Throws when Authenticode signer subject does not contain Oracle'.
-    #   [SEC] S4 An unsigned binary is accepted.
-    #       Limitation: Oracle does not sign individual executables, so an unsigned
-    #       replacement is not detected.
+    #   [SEC] S4 An unsigned binary is accepted. Oracle does not sign individual
+    #       executables, so the signature check cannot detect a replaced Oracle binary,
+    #       whether the replacement came from a patch or from tampering.
+    #       Limitation: accepted. Detecting replacement needs a recorded baseline, which
+    #       is outside this module's current scope.
     #   [SEC] S5 No parameter turns the signature check off.
     #       Test: 'No bypass parameter exists — SkipSignatureCheck, Force, and SkipOwnerCheck are absent'.
     #   [SEC] S6 A WalletAlias is resolved with tnsping before the function returns.
@@ -188,22 +226,24 @@ function Assert-OracleEnvironment {
     #   [SEC] S8 The current session environment is not changed.
     #       Test: 'Current session environment is not modified when all checks pass'.
     #   [SEC] S9 tnsping.exe is checked to exist, but its signature is not checked.
-    #       Limitation: only the requested binary gets the signature check.
+    #       Limitation: accepted. tnsping.exe is unsigned like every Oracle binary (S4),
+    #       so the same check would not detect a replacement.
     #
     # POST-CONDITIONS
     #   R1 Returns the full path of the validated binary.
     #       Test: 'Returns the binary path when all checks pass (valid Oracle signature, SYSTEM owner)'.
     #   T1 Every throw starts with 'Oracle environment validation failed:'.
     #       Test: none yet.
-    #   T2 The error for a missing OracleHome tells the reader to run
-    #       Set-OracleBackupConfig, which this module does not have.
-    #       Limitation: known defect in the message.
+    #   T2 The error for a missing OracleHome names the two ways to set one: OracleHome in
+    #       Config\OracleBackup.json, or the ORACLE_HOME environment variable.
+    #       Test: 'T2 the missing-home error names the config file and ORACLE_HOME'.
     #
     # EXECUTION INVARIANTS
-    #   L1 When OracleHome is empty it falls back to the ORACLE_HOME environment variable,
-    #       but the home it resolved is not returned to the caller.
-    #       Limitation: callers pass their own empty value on to Invoke-RmanProcess.
-    #       Suspected defect, not yet confirmed by a test.
+    #   L1 When OracleHome is empty it falls back to the ORACLE_HOME environment variable.
+    #       It returns only the binary path, always <home>\bin\<binary> (S2), so a caller
+    #       recovers the validated home from that path.
+    #       Guard: callers derive the home from the returned path. See Get-RmanBackupStatus
+    #       L3 and Remove-RmanObsoleteBackup L2.
     #--------------------------------------------------------------
 
     try {
@@ -219,7 +259,7 @@ function Assert-OracleEnvironment {
             $resolvedHome = $env:ORACLE_HOME
 
             if ([string]::IsNullOrWhiteSpace($resolvedHome)) {
-                throw 'OracleHome is not configured. Set it via Set-OracleBackupConfig -OracleHome <path>.'
+                throw 'OracleHome is not configured. Set OracleHome in Config\OracleBackup.json, or set the ORACLE_HOME environment variable.'
             }
         }
 

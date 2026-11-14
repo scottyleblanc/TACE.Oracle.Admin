@@ -5,8 +5,12 @@
     Syncs the TACE.Oracle.Admin module folder to an S3 staging bucket.
 
 .DESCRIPTION
-    Uses the AWS CLI to sync the module root to s3://tacedata-s3-bucket-02/staging/TACE.Oracle.Admin/.
+    Uses the AWS CLI to sync the module root to s3://<S3Bucket>/staging/TACE.Oracle.Admin/.
     Only new or changed files are uploaded. Use -Upload to force a full copy regardless of changes.
+
+.PARAMETER S3Bucket
+    Name of the S3 staging bucket (the name only, without s3://). Required. No bucket
+    name is kept in this repository.
 
 .PARAMETER Upload
     Performs a full recursive copy instead of a sync. All files are uploaded unconditionally.
@@ -15,22 +19,27 @@
     Shows what would be transferred without uploading anything.
 
 .EXAMPLE
-    .\Sync-ToS3.ps1
+    .\Sync-ToS3.ps1 -S3Bucket '<staging-bucket>'
 
 .EXAMPLE
-    .\Sync-ToS3.ps1 -DryRun
+    .\Sync-ToS3.ps1 -S3Bucket '<staging-bucket>' -DryRun
 
 .EXAMPLE
-    .\Sync-ToS3.ps1 -Upload
+    .\Sync-ToS3.ps1 -S3Bucket '<staging-bucket>' -Upload
 
 .NOTES
     Copyright © TACE Data Management Inc.
     Module  : TACE.Oracle.Admin
-    Requires: AWS CLI v2 installed and configured with credentials for tacedata-s3-bucket-02
+    Requires: AWS CLI v2 installed and configured with credentials for the staging bucket
+    **Invocation:** Standalone — run from a checkout with AWS credentials available.
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
+    [Parameter(Mandatory)]
+    [ValidatePattern('^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$')]
+    [string] $S3Bucket,
+
     [switch] $Upload,
     [switch] $DryRun
 )
@@ -40,7 +49,7 @@ $ErrorActionPreference = 'Stop'
 
 $moduleRoot = Join-Path -Path $PSScriptRoot -ChildPath '..'
 $moduleRoot = (Resolve-Path -Path $moduleRoot).Path
-$s3Target   = 's3://tacedata-s3-bucket-02/staging/TACE.Oracle.Admin/'
+$s3Target   = "s3://$S3Bucket/staging/TACE.Oracle.Admin/"
 
 # Verify AWS CLI is available
 if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {

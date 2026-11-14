@@ -29,8 +29,10 @@ function Set-OracleEnv {
 
     .OUTPUTS
         PSCustomObject { Success [bool], Data [PSCustomObject], Message [string] }
-        Data on success: { SID [string], OracleHome [string], OracleBase [string] }
+        Data on success: { SID [string], OracleHome [string], OracleBase [string], Applied [bool] }
         OracleHome and OracleBase are $null if they could not be determined from the service.
+        Applied is $false under -WhatIf or a declined -Confirm: nothing was set, and the
+        Message starts with 'WhatIf:'.
 
     .EXAMPLE
         Set-OracleEnv -SID ORCL
@@ -42,10 +44,12 @@ function Set-OracleEnv {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.2.0
+        Version : 0.2.1
         Profile alias: oraset
     #>
     [CmdletBinding(SupportsShouldProcess)]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
+        Justification = 'Interactive: presents an instance menu and confirms the change at the terminal (rule C-31).')]
     param(
         [Parameter(Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -78,8 +82,9 @@ function Set-OracleEnv {
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws.
     #       Test: 'Has Success property', 'Has Data property', 'Has Message property'.
-    #   R2 On success Data has SID, OracleHome and OracleBase.
-    #       Test: 'Data.SID is a non-empty string on success'.
+    #   R2 On success Data has SID, OracleHome, OracleBase and Applied.
+    #       Test: 'Data.SID is a non-empty string on success',
+    #       'Data.Applied is true when the variables are set'.
     #   R3 ORACLE_HOME and ORACLE_BASE are left unset when they cannot be determined, and
     #       a warning is written for each.
     #       Test: 'Does not set $env:ORACLE_HOME when OracleHome is null',
@@ -88,15 +93,19 @@ function Set-OracleEnv {
     #       Test: 'Sets $env:ORACLE_SID despite stopped service'.
     #   R5 On a failure path ORACLE_SID is not changed.
     #       Test: 'Does not set $env:ORACLE_SID'.
-    #   R6 Under -WhatIf no variable is set, but the return still reports Success with
-    #       the message 'ORACLE_SID set to'.
-    #       Limitation: the message is wrong under -WhatIf. Known defect.
+    #   R6 Under -WhatIf, or a declined -Confirm, no variable is set and the return is a
+    #       preview: Success = $true, Data.Applied = $false, and a Message that starts
+    #       with 'WhatIf:' (rule C-27).
+    #       Test: 'R6 WhatIf sets no variable and returns a preview'.
     #
     # EXECUTION INVARIANTS
     #   L1 With no SID and more than one instance it prompts with Read-Host.
     #       Limitation: not suitable for unattended use. Pass -SID in automation.
-    #   L2 User-facing lines are written with Write-Host, by design.
-    #       Limitation: an interactive function. The analyzer rule is excluded for it.
+    #   L2 User-facing lines are written with Write-Host, by design, even when called from
+    #       a script.
+    #       Limitation: an interactive function; the analyzer rule is suppressed on this
+    #       function only (C-31). Moving the host output and menu into Invoke-OraEnv is
+    #       recorded for Stack 3.
     #--------------------------------------------------------------
 
     try {
@@ -179,7 +188,10 @@ function Set-OracleEnv {
 
         # -- Apply ---------------------------------------------------------------
 
-        if ($PSCmdlet.ShouldProcess('ORACLE_SID', "Set to '$SID'")) {
+        # One ShouldProcess call, so -Confirm prompts once. Its answer decides both the
+        # writes below and which result is returned (C-27).
+        $applied = $PSCmdlet.ShouldProcess('ORACLE_SID', "Set to '$SID'")
+        if ($applied) {
             $env:ORACLE_SID = $SID
             Write-Verbose "[Set-OracleEnv] ORACLE_SID set to '$SID' at $(Get-Date -Format u)"
             Write-Host "ORACLE_SID set to '$SID'"
@@ -205,14 +217,18 @@ function Set-OracleEnv {
             if ($oracleBaseWarning) { Write-Warning $oracleBaseWarning }
         }
 
+        $message = if ($applied) { "ORACLE_SID set to '$SID'." }
+                   else          { "WhatIf: would set ORACLE_SID to '$SID'." }
+
         return [PSCustomObject]@{
             Success = $true
             Data    = [PSCustomObject]@{
                 SID        = $SID
                 OracleHome = $resolved[0].OracleHome
                 OracleBase = $resolved[0].OracleBase
+                Applied    = $applied
             }
-            Message = "ORACLE_SID set to '$SID'."
+            Message = $message
         }
     }
     catch {

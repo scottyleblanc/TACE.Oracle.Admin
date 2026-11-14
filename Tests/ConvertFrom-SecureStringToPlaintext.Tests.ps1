@@ -25,7 +25,6 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
         $modulePath  = [System.IO.Path]::GetFullPath($modulePath)
 
         $testConfigPath = Join-Path $TestDrive 'OracleBackup.json'
-        $env:ORACLE_BACKUP_CONFIG_PATH = $testConfigPath
 
         [PSCustomObject]@{
             BackupBasePath       = (Join-Path $TestDrive 'backup')
@@ -41,11 +40,13 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
 
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
         Import-Module $modulePath -Force
+        InModuleScope TACE.Oracle.Admin -Parameters @{ Path = $testConfigPath } {
+            $script:ConfigPathOverride = $Path
+        }
     }
 
     AfterAll {
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
-        $env:ORACLE_BACKUP_CONFIG_PATH = $null
     }
 
     # ── Parameter validation ───────────────────────────────────────────────────

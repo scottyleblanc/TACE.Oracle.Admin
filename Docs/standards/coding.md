@@ -1,5 +1,16 @@
 # Coding Standards
 
+## Repository layout
+
+- **C-28** — Module source lives under `source\`: `source\Public\` for exported functions, `source\Private\` for helpers, and `source\Classes\` once a class exists. A build merges it, classes then private then public, into one `.psm1` under `output\<Module>\<version>\` with a generated manifest. That built module is what is tested and released.
+  Example: `source\Public\Get-RmanBackupStatus.ps1` ships inside `output\TACE.Oracle.Admin\0.2.2\TACE.Oracle.Admin.psm1`; `Tests\`, `Docs\` and `scripts\` never ship. *Test.*
+- **C-29** — The manifest lists exported functions explicitly, and the list equals the file names in `source\Public\`; a function is exported if and only if it lives there.
+  Example: `FunctionsToExport = @('Get-OracleDatabaseList', 'Set-OracleEnv', ...)`, never `'*'`. *Test.*
+- **C-30** — A command alias is declared with an `[Alias()]` attribute on the public function it targets, never with `Set-Alias`, and is listed in the README's Aliases table. The build generates `AliasesToExport` from those attributes.
+  Example: `[Alias('oraset', 'oraenv')]` below `[CmdletBinding()]` in `Invoke-OraEnv`. *Test.*
+- **C-32** — A script in `scripts\` is named Verb-Noun with an approved verb and a singular noun, and its `.NOTES` declares how it is invoked: `**Invocation:**` followed by `Standalone`, `Session-scoped`, `Helper` or `lib helper`, and one line of detail. A dot-sourced helper lives in `scripts\lib\`.
+  Example: `scripts\Invoke-UnitTest.ps1` with `**Invocation:** Standalone — self-contained; safe to run with pwsh -File.`. *Linter.*
+
 ## Language and structure
 
 - **C-01** — Every `.ps1` file starts with `#Requires -Version 7.0`.
@@ -44,6 +55,8 @@
   Example: `"Failed: $($PSItem.Exception.Message)"`. *Linter.*
 - **C-18** — No emojis in code, scripts or output; status uses a `[LABEL]` prefix.
   Example: `Write-Host '[ERROR] SID not found.'`. *Linter.*
+- **C-31** — `PSAvoidUsingWriteHost` stays enabled. A function whose purpose is terminal interaction may use `Write-Host` only with a `SuppressMessageAttribute` on that function stating why; every other function reports through its return object, `Write-Verbose` or `Write-Warning`.
+  Example: `[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive: ...')]` on `Set-OracleEnv`. *Linter.*
 
 ## Output contract and error model
 
@@ -55,6 +68,8 @@
   Example: `throw "RMAN process invocation failed: $safeMessage"`. *Test.*
 - **C-22** — A public function throws only when its parameters are invalid; every other failure is caught, scrubbed and returned as `Success = $false`.
   Example: a missing `rman.exe` returns `Success = $false` with a message; it does not throw to the caller. *Test.*
+- **C-27** — When `ShouldProcess` declines, under `-WhatIf` or a "No" at `-Confirm`, a function changes nothing and returns `Success = $true`, `Data` with `Applied = $false`, and a Message that starts with `WhatIf:` and says what would have happened. A real run returns `Applied = $true`, and a Message that reports a change is built only inside the `ShouldProcess` block.
+  Example: `Set-OracleEnv -SID ORCL -WhatIf` returns `Success = $true`, `Data.Applied = $false` and `WhatIf: would set ORACLE_SID to 'ORCL'.`. *Test.*
 
 ## Help and comments
 

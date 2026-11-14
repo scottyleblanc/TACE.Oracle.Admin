@@ -17,13 +17,6 @@
 .PARAMETER DatabaseName
     The Oracle database name (SID) to remove obsolete backups for.
 
-.PARAMETER CatalogConnection
-    Optional. RMAN catalog connection string (AD-008).
-
-.PARAMETER CatalogCredential
-    Optional. SecureString credential for the catalog connection.
-    Required when CatalogConnection is supplied.
-
 .EXAMPLE
     Remove-RmanObsoleteBackup -DatabaseName 'CDB1' -WhatIf
 
@@ -38,7 +31,8 @@
 
     [SEC] SupportsShouldProcess is mandatory — no silent deletion path.
     [SEC] ORACLE_SID set on child process only — never on current session.
-    [SEC] CatalogCredential plaintext extracted inline at stdin boundary only.
+    [SEC] The RMAN script is fixed text — no caller value is placed in it.
+    Recovery catalog support is not offered until a catalog is in scope.
 #>
 function Remove-RmanObsoleteBackup {
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
@@ -47,13 +41,6 @@ function Remove-RmanObsoleteBackup {
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [string]$DatabaseName,
-
-        [Parameter()]
-        [ValidateNotNullOrEmpty()]
-        [string]$CatalogConnection,
-
-        [Parameter()]
-        [SecureString]$CatalogCredential,
 
         [Parameter()]
         [string]$WalletAlias = '',
@@ -73,8 +60,9 @@ function Remove-RmanObsoleteBackup {
     #       Type: Mandatory and ValidateNotNullOrEmpty.
     #   P2 WalletAlias and Credential are not both supplied.
     #       Guard: the check at the start of the body returns Success = $false.
-    #   P3 It runs on Windows.
-    #       Limitation: there is no platform check. Known finding against rule C-07.
+    #   P3 It runs on Windows. On any other platform it returns Success = $false before
+    #       the ShouldProcess gate, the config read or any process (rule C-07).
+    #       Test: 'P3 returns Success false on a platform other than Windows'.
     #   P4 A crosscheck has been run, so expired pieces are already marked.
     #       Limitation: the operator's duty. Nothing here checks it.
     #
@@ -91,33 +79,42 @@ function Remove-RmanObsoleteBackup {
     #       Test: none yet. No test raises an exception that carries a credential.
     #   [SEC] S5 The RMAN script holds no credential.
     #       Test: 'RMAN script should not contain credential fragments'.
-    #   [SEC] S6 CatalogCredential is accepted and not used. The catalog connect line is
-    #       written without a credential.
-    #       Limitation: unfinished. Open [SEC] TODO in the body.
-    #   [SEC] S7 CatalogConnection is placed in the RMAN script after a non-empty check
-    #       only.
-    #       Limitation: caller text reaches RMAN unvalidated. Finding against rule S-11.
+    #   [SEC] S9 The RMAN script is fixed text. No parameter value is placed in it, and
+    #       there is no catalog parameter. S6 and S7 are retired with those parameters.
+    #       Test: 'S9 RMAN script is fixed text and no catalog parameter exists'.
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws once its
     #       parameters are bound.
     #       Test: 'Should return Success=$false and safe Message when binary integrity check fails'.
     #   R2 On success Data has DatabaseName, StartTime, EndTime, DurationSec, DeletedCount,
-    #       AuthMode and RawLog.
-    #       Test: none yet.
-    #   R3 When ShouldProcess declines, or under -WhatIf, RMAN is not run and Success is
-    #       false.
-    #       Test: 'Should not invoke RMAN on WhatIf'.
+    #       AuthMode, RawLog and Applied = $true.
+    #       Test: 'R2 a real run returns the full Data with Applied true'.
+    #   R3 When ShouldProcess declines, or under -WhatIf, RMAN is not run and the return
+    #       is a preview: Success = $true, Data.Applied = $false, and a Message that
+    #       starts with 'WhatIf:' (rule C-27).
+    #       Test: 'Should not invoke RMAN on WhatIf',
+    #       'R3 WhatIf returns a preview with Applied false'.
     #   R4 DeletedCount is the number of 'deleted backup piece' lines in the RMAN output.
     #       Test: 'Should count deleted pieces from RMAN output'.
     #
     # EXECUTION INVARIANTS
-    #   L1 The environment check runs before the ShouldProcess gate.
-    #       Limitation: under -WhatIf it can still create the config file and run tnsping.
-    #   L2 The OracleHome from the config is passed to Invoke-RmanProcess even when it is
-    #       empty and the environment variable was used to find RMAN.
-    #       Limitation: suspected defect, not yet confirmed by a test.
+    #   L1 Nothing is read, written or started before the ShouldProcess gate approves:
+    #       under -WhatIf the config store and the environment check are not called.
+    #       Test: 'L1 WhatIf reads no config and runs no environment check'.
+    #   L2 Invoke-RmanProcess receives the home that Assert-OracleEnvironment validated,
+    #       including one found through the ORACLE_HOME fallback when the config has none.
+    #       Test: 'L2 passes the validated home to RMAN when the config has none'.
     #--------------------------------------------------------------
+
+    # ── Platform check (C-07) ─────────────────────────────────────────────────
+    if (-not (Test-WindowsPlatform)) {
+        return [PSCustomObject]@{
+            Success = $false
+            Data    = $null
+            Message = 'Remove-RmanObsoleteBackup is Windows only. Linux support is not yet built.'
+        }
+    }
 
     # ── Auth mode resolution ──────────────────────────────────────────────────
     if (-not [string]::IsNullOrWhiteSpace($WalletAlias) -and $null -ne $Credential) {
@@ -133,34 +130,36 @@ function Remove-RmanObsoleteBackup {
                 else { 'OSAuth' }
 
     try {
+        # ── ShouldProcess gate — destructive operation ────────────────────
+        # [SEC] This is the only confirmation gate — NOPROMPT in the RMAN
+        # script suppresses RMAN's own prompt. Never bypass ShouldProcess.
+        # It runs before anything is read, written or started (L1), so -WhatIf
+        # has no side effects: no config file is created and tnsping is not run.
+        if (-not $PSCmdlet.ShouldProcess($DatabaseName, 'Delete obsolete RMAN backup pieces')) {
+            # A successful no-op preview (C-27): nothing deleted, Applied = $false.
+            return [PSCustomObject]@{
+                Success = $true
+                Data    = [PSCustomObject]@{
+                    DatabaseName = $DatabaseName
+                    Applied      = $false
+                }
+                Message = "WhatIf: would delete obsolete RMAN backup pieces for '$DatabaseName'."
+            }
+        }
+
         # ── Environment validation ─────────────────────────────────────────
         $config   = Get-OracleBackupConfigStore
         $rmanPath = Assert-OracleEnvironment -OracleHome $config.OracleHome -WalletAlias $WalletAlias
 
-        # ── Build RMAN delete script ───────────────────────────────────────
-        $catalogPrefix = if ($PSBoundParameters.ContainsKey('CatalogConnection')) {
-            # TODO: [SEC] Inject CatalogCredential via stdin
-            "CONNECT CATALOG $CatalogConnection;`n"
-        } else {
-            ''
-        }
+        # The validated home, which may have come from the ORACLE_HOME fallback (L2).
+        # Assert-OracleEnvironment always resolves the binary as <home>\bin\<binary>.
+        $oracleHome = Split-Path -Path (Split-Path -Path $rmanPath -Parent) -Parent
 
+        # ── Build RMAN delete script ───────────────────────────────────────
+        # [SEC] Fixed text (S9) — no caller value is placed in the script.
         # NOPROMPT required — RMAN prompts interactively by default.
         # ShouldProcess above is the confirmation gate; RMAN must not prompt again.
-        $deleteScript = @"
-${catalogPrefix}DELETE NOPROMPT OBSOLETE;
-"@
-
-        # ── ShouldProcess gate — destructive operation ────────────────────
-        # [SEC] This is the only confirmation gate — NOPROMPT in the RMAN
-        # script suppresses RMAN's own prompt. Never bypass ShouldProcess.
-        if (-not $PSCmdlet.ShouldProcess($DatabaseName, 'Delete obsolete RMAN backup pieces')) {
-            return [PSCustomObject]@{
-                Success = $false
-                Data    = $null
-                Message = 'Delete obsolete skipped — WhatIf or user declined.'
-            }
-        }
+        $deleteScript = 'DELETE NOPROMPT OBSOLETE;'
 
         $startTime = Get-Date
         Write-Verbose "[Remove-RmanObsoleteBackup] Starting DELETE OBSOLETE for '$DatabaseName' (AuthMode: $authMode)"
@@ -168,7 +167,7 @@ ${catalogPrefix}DELETE NOPROMPT OBSOLETE;
         $rmanInvokeParams = @{
             RmanBinaryPath = $rmanPath
             RmanScript     = $deleteScript
-            OracleHome     = $config.OracleHome
+            OracleHome     = $oracleHome
         }
         switch ($authMode) {
             'WalletAuth'      { $rmanInvokeParams['WalletAlias'] = $WalletAlias }
@@ -205,6 +204,7 @@ ${catalogPrefix}DELETE NOPROMPT OBSOLETE;
                 DeletedCount = $deletedCount
                 AuthMode     = $authMode
                 RawLog       = $rmanResult.StdOut
+                Applied      = $true
             }
             Message = "DELETE OBSOLETE completed for '$DatabaseName'. Removed $deletedCount piece(s) in ${durationSec}s."
         }

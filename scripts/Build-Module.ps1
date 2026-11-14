@@ -31,23 +31,40 @@
       - All build file .NOTES versions must match the manifest version
       - Warns if the matching git tag does not exist
 
+.PARAMETER S3Bucket
+    Name of the S3 staging bucket (the name only, without s3://). When given, the
+    package and Test-LinuxBuild.ps1 are uploaded to
+    s3://<S3Bucket>/staging/TACE.Oracle.Admin/<version>/. When omitted, the S3 upload
+    is skipped. No bucket name is kept in this repository.
+
 .PARAMETER AwsProfile
     AWS CLI profile to use for the S3 upload. Defaults to 'tace-aws-admin'.
 
 .EXAMPLE
     .\scripts\Build-Module.ps1
 
+    Builds and packages locally; no S3 upload.
+
 .EXAMPLE
-    .\scripts\Build-Module.ps1 -AwsProfile 'other-profile'
+    .\scripts\Build-Module.ps1 -S3Bucket '<staging-bucket>' -AwsProfile 'other-profile'
+
+    Builds, packages, and uploads to the staging bucket.
 
 .NOTES
     Copyright © TACE Data Management Inc.
     Module  : TACE.Oracle.Admin
-    Requires: Microsoft.PowerShell.PSResourceGet, git, AWS CLI
+    Requires: Microsoft.PowerShell.PSResourceGet, git; AWS CLI for the S3 upload
+    **Invocation:** Standalone — run from a checkout. Writes build\<version>\, registers a
+    temporary local PSResource repository (removed again in a finally block), and, when
+    -S3Bucket is given, uploads the package and smoke-test script to S3.
 #>
 
 [CmdletBinding()]
 param(
+    [Parameter()]
+    [ValidatePattern('^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$')]
+    [string] $S3Bucket,
+
     [Parameter()]
     [ValidateNotNullOrEmpty()]
     [string] $AwsProfile = 'tace-aws-admin'
@@ -206,14 +223,16 @@ Write-Host "[Build-Module] Build artifacts retained at: $versionDir"
 
 # -- Push to S3 staging ------------------------------------------------------
 
-$s3Target = "s3://tacedata-s3-bucket-02/staging/TACE.Oracle.Admin/$version/"
-
 $testScript = Join-Path -Path $PSScriptRoot -ChildPath 'Test-LinuxBuild.ps1'
 
-if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
+if ([string]::IsNullOrEmpty($S3Bucket)) {
+    Write-Host '[Build-Module] [INFO] No -S3Bucket given. Skipping S3 upload.'
+}
+elseif (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
     Write-Warning '[Build-Module] AWS CLI not found. Skipping S3 upload.'
 }
 else {
+    $s3Target = "s3://$S3Bucket/staging/TACE.Oracle.Admin/$version/"
     Write-Host "[Build-Module] Uploading to : $s3Target (profile: $AwsProfile)"
 
     aws s3 cp $nupkg.FullName $s3Target --profile $AwsProfile
