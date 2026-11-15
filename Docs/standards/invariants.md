@@ -6,7 +6,7 @@ hold before it runs, while it runs, and after it returns or throws.
 ## Rules
 
 - **I-01** — Every function carries an `# INVARIANTS` comment block as the first thing in its body, directly after `$ErrorActionPreference = 'Stop'`.
-  Example: the block in `Private\Invoke-RmanProcess.ps1`. *Linter.*
+  Example: the block in `Source\Private\Invoke-RmanProcess.ps1`. *Linter.*
 - **I-02** — A block is written from what the function does today, not from what it is meant to do one day.
   Example: a parameter that is accepted and ignored is recorded as a limitation, not as a guarantee. *Review.*
 - **I-03** — Every entry has an identifier made of a section prefix and a number, unique within its function.
@@ -23,7 +23,7 @@ hold before it runs, while it runs, and after it returns or throws.
   Example: adding an authentication mode adds or amends the entries that mode affects. *Review.*
 
 - **I-09** — A `Test:` line gives each test's exact title in single quotes, and the test is in the test file named for the source file.
-  Example: `Test: 'RMAN script must contain NOPROMPT'.` in `Remove-RmanObsoleteBackup.ps1`, with the test in `Tests\Remove-RmanObsoleteBackup.Tests.ps1`. *Linter.*
+  Example: `Test: 'RMAN script must contain NOPROMPT'.` in `Source\Public\Remove-RmanObsoleteBackup.ps1`, with the test in `Tests\Unit\Public\Remove-RmanObsoleteBackup.Tests.ps1`. *Linter.*
 - **I-10** — A test is cited only when it would fail if the invariant were broken.
   Example: a test that mocks the function under test proves nothing about that function, and is not cited. *Review.*
 

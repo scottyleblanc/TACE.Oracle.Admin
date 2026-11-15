@@ -54,9 +54,9 @@ later stage is measured against.
 
 ### Stack 1 — Intent
 
-**Goal:** every rule the code must follow is written down — the ratified standards, and
+**Goal:** every rule the code must follow is specified — the ratified standards, and
 an invariant block in every function naming what enforces each entry — and every gap
-found while writing them is either fixed or accepted as a stated limitation.
+found while specifying them is either fixed or accepted as a stated limitation.
 
 - [x] List the candidate standards; mark each ratified, rejected or deferred —
       see `Docs\standards\decisions.md`
@@ -79,7 +79,7 @@ found while writing them is either fixed or accepted as a stated limitation.
 - [x] Seeded defect: a function with no block, and a malformed entry, both fail the
       static tier — both exit 1 on the rule-specific check; recorded in
       `Docs\audit\stack-1-seeded-defects.md`
-- [ ] Closing tasks
+- [x] Closing tasks
 
 #### Findings from writing the invariant blocks
 
@@ -133,44 +133,142 @@ reason. Items marked "found while" were discovered while working on the one abov
 
 ### Stack 2 — Deterministic checks
 
-**Goal:** one command, `scripts\Invoke-Gate.ps1`, runs every static check — the
+**Goal:** one command, `Scripts\Invoke-Gate.ps1`, runs every static check — the
 analyzer, the house rules, secret scanning and the `-WhatIf` checks — and fails on a
 planted lint violation and a planted secret.
 
-- [ ] Move to the `source\` layout first (rules C-28, C-29; decision 16), so every
+- [x] Move to the `Source\` layout first (rules C-28, C-29; decision 16), so every
       check below is written once, against the final layout:
-      - `Public\` and `Private\` move under `source\`; `Invoke-OraEnv` moves to
-        `source\Public\`; no `source\Classes\` until a class exists
-      - A build merges `source\` (classes, private, public) into one `.psm1` under
-        `output\TACE.Oracle.Admin\<version>\`, with `FileList`, `FunctionsToExport`
-        and `AliasesToExport` generated (aliases from `[Alias()]` attributes, rule C-30);
-        `output\` is gitignored; `Build-Module.ps1` packages from it
-      - Tests move to `Tests\Unit\Public\` and `Tests\Unit\Private\`, plus
+      - `Public\` and `Private\` moved under `Source\`; `Invoke-OraEnv` moved to
+        `Source\Public\`; no `Source\Classes\` until a class exists
+      - `Scripts\Build-Module.ps1` merges `Source\` (classes, private, public) into one
+        `.psm1` under `Output\TACE.Oracle.Admin\<version>\`, with `FileList`,
+        `FunctionsToExport` and `AliasesToExport` generated (aliases from `[Alias()]`
+        attributes, rule C-30); `Output\` is gitignored; `-Package` packages from it
+      - Tests moved to `Tests\Unit\Public\` and `Tests\Unit\Private\`, plus
         `Tests\Unit\Module\` for the module-level test, and import the built module
-      - Decide where linters live: `scripts\Invoke-InvariantLint.ps1` now, or a
-        `Tests\Lint\` folder beside the static tests that call them
-      - Update with it: both tier scripts and rule T-10, rule T-02, the invariant
-        linter's source folders and its source-to-test lookup (I-09),
-        `Test-LinuxBuild.ps1`, and the README and PREREQUISITES instructions
-- [ ] Extend `PSScriptAnalyzerSettings.psd1` from the ratified standards. Decide whether
-      the analyzer covers `scripts\`, and with which settings: those console tools use
-      `Write-Host` throughout, and C-31 covers module code only
-- [ ] Write custom analyzer rules for house standards that can be machine-checked
-- [ ] [SEC] Add secret scanning. The pattern checks for rule S-16 exist
+        through `Tests\Unit\Get-BuiltModulePath.ps1`; the unit runner builds first
+      - Linters live in `Tests\Lint\`, custom analyzer rules in
+        `Tests\Lint\PSScriptAnalyzerRules\` (decision 22); folders are PascalCase
+        throughout, so `scripts\` became `Scripts\` (decision 21)
+      - The config path moved into the version folder, so S4 holds (decision 23)
+      - Updated with it: both tier scripts and rule T-10, rule T-02, the invariant
+        linter's source folders and its source-to-test lookup (I-09), the publish
+        script, and the README and PREREQUISITES instructions. `Test-LinuxBuild.ps1`
+        installs from the package and needed only its example path changed
+- [x] Extend `Tests\Lint\PSScriptAnalyzerSettings.psd1` from the ratified standards
+      (decision 25):
+      - Settings moved from the repository root to `Tests\Lint\`, and out of the package;
+        a committed `.vscode\settings.json` points the editor at them
+      - PSScriptAnalyzer pinned to 1.25.0. Coverage is `Source\`, `Scripts\` and
+        `Tests\Lint\`, not `*.Tests.ps1`. Every finding fails, Information included
+      - `Scripts\` console tools carry one script-level `Write-Host` suppression each
+      - Built-in rules cover C-04, C-06, C-31, S-01, S-03 and S-13. C-05, C-09, C-10,
+        C-11, C-14, C-15, C-17 and C-18 need custom rules (next item)
+      - Fixed in `Source\`: three positional `Join-Path` calls. `Set-RestrictiveAcl` is
+        suppressed for `ShouldProcess`, pending the inherited `-WhatIf` item below
+      - Minimum PowerShell raised to 7.6 LTS (decision 24); the compatibility rules
+        are not used, because their bundled profiles stop at 7.0
+      - First run: 130 findings under the old settings and coverage; 0 now, over 22 files.
+        The gate's version check comes with `Invoke-Gate.ps1`
+- [x] Write custom analyzer rules for house standards that can be machine-checked, in
+      `Tests\Lint\PSScriptAnalyzerRules\` (decision 26):
+      - [x] Nine rules, one file each: C-05, C-08, C-09, C-10, C-11, C-14, C-15, C-17,
+            C-18. Loaded by the settings file next to the built-in rules
+      - [x] `Tests\Static\PSScriptAnalyzerRules.Tests.ps1`: what each rule must report and
+            what it must not, plus loading and suppression; 44 tests
+      - [x] First run: 46 violations of ratified rules that nothing had checked, now fixed:
+            25 uses of `$_`, 5 functions without `[OutputType()]`, 2 untyped predicate
+            parameters, 1 backtick continuation (splatted now). C-14 was narrowed to path
+            contexts after 7 false positives; the one deliberate `-join '/'` is suppressed
+            with the reason
+      - [x] C-10: three public parameters had no `[Validate*]` attribute.
+            `Get-OracleDatabaseList -Platform` takes `ValidateSet('Windows', 'Linux',
+            'Unsupported')`: an unknown value now throws, and `'Unsupported'` still
+            reaches the C-07 branch. [SEC] `-WalletAlias` on `Get-RmanBackupStatus` and
+            `Remove-RmanObsoleteBackup` takes `ValidatePattern('^[A-Za-z0-9_.-]*\z')`,
+            so it cannot inject into RMAN's stdin (S6, S10)
+      - The static tier takes about 18 s longer: each fixture loads the rule modules
+- [x] Static checks for the build's own rules: a public file that defines a second
+      function, or a source manifest that declares `FunctionsToExport`, fails the build
+      (C-28, C-29). The build enforces both today; nothing proves it does
+      - `Tests\Static\BuildModule.Tests.ps1`, 11 tests. Each copies the real
+        `Build-Module.ps1` into a minimal repository on `TestDrive` and plants one
+        defect: a second function, a misnamed function, no function, no public file,
+        or `FunctionsToExport`, `AliasesToExport` or `FileList` in the source manifest
+      - A clean fixture is built first and checked for the generated exports, aliases
+        (C-30) and file list, and for an empty export list kept as an entry
+      - Proven by mutation: removing each of the three build checks fails exactly the
+        tests aimed at it
+- [x] T-02 check: `Source\Private\ConvertFrom-RmanListBackup.ps1` has no test file of its
+      own. Found during the layout move; the T-02 linter check will report it
+      - `Tests\Static\SourceTestLayout.Tests.ps1`: one function per source file, named
+        for the file (C-03); a test file for each in the mirrored `Tests\Unit\` folder,
+        and no test file without a source file (T-02)
+      - Run against the previous commit, it reports the three known findings, and
+        nothing else
+      - Fixed:
+        - `Invoke-TnspingProcess` moved out of `Assert-OracleEnvironment.ps1`, and
+          `Invoke-CredentialScrub` out of `Invoke-RmanProcess.ps1`, into files of their
+          own. Their tests moved with them. These were the C-03 known findings at
+          ratification
+        - `ConvertFrom-RmanListBackup.Tests.ps1` is new, with 15 tests. R1 to R5 are now
+          proven, so 18 invariants are unproven, down from 23
+- [x] [SEC] Add secret scanning. The pattern checks for rule S-16 exist
       (`Tests\Static\PublicRepoHygiene.Tests.ps1`); add with them:
-      - a general secret scanner for credential formats the patterns do not cover
-      - a local-only script that checks changed files, the diff and commit messages
-        against the private resource list, taking its path as a parameter (CI cannot
-        read the private repository); run before every push
-      - a commit-message check, since the static tier reads files only
-- [ ] Static check: a state-changing call in a function with no `ShouldProcess` gate of
+      - a general secret scanner for credential formats the patterns do not cover.
+        Chosen: gitleaks, pinned to 8.30.1 (PREREQUISITES.md). It runs locally and needs
+        no GitHub access. A first scan of all 20 commits and the working tree found
+        nothing, so no allowlist is needed yet. `PublicRepoHygiene.Tests.ps1` stays: it
+        covers identifiers gitleaks does not treat as secrets
+      - ~~a local-only script that checks changed files, the diff and commit messages
+        against the private resource list~~ **Deferred: accepted limitation (2026-11-15).**
+        Where a private identifier list lives, and its format, affects every public
+        repository, not just this one, so it is decided across repositories first.
+        Until then, a real resource name that matches no S-16 pattern (a bucket name,
+        a host name) is caught only by review. This is how the S3 staging bucket name
+        reached this repository's history before v0.2.1. Recorded as an open item in
+        `SECURITY.md`
+      - a commit-message check, since the static tier reads files only. Built into the
+        gate (decision 28). gitleaks does not read commit messages (tested), so each
+        unpushed message is piped to `gitleaks stdin` and checked against the S-16
+        patterns. Those patterns moved to `Tests\Lint\PublicRepoPatterns.psd1`, shared
+        with `PublicRepoHygiene.Tests.ps1`
+      - `.gitleaks.toml`: the default rules, plus `Output\` and `Tests\TestResults\`
+        skipped, because gitleaks scans a folder without reading `.gitignore`
+- [x] Static check: a state-changing call in a function with no `ShouldProcess` gate of
       its own fails the static tier — under an inherited `-WhatIf` it is skipped or
       runs unguarded
-- [ ] Cleanup of temporary files pins `-WhatIf:$false`, so a preview still removes
+      - Rule C-33 (decision 27), custom analyzer rule `Measure-C33ShouldProcessGate`,
+        `Source\` only. 11 tests in `Tests\Static\PSScriptAnalyzerRules.Tests.ps1`
+      - Found and fixed first: a first run under a caller's `-WhatIf` failed, because the
+        default config and its ACL were skipped. The three writes pin `-WhatIf:$false`
+        (L1 in `Get-OracleBackupConfigStore` and `Set-RestrictiveAcl`). Run against
+        the previous commit, the rule reports exactly those three calls; today it
+        reports nothing
+- [x] Cleanup of temporary files pins `-WhatIf:$false`, so a preview still removes
       them; checked statically
-- [ ] Create `scripts\Invoke-Gate.ps1` as the single entry point
-- [ ] Seeded defects: one lint violation, one planted secret
-- [ ] Closing tasks
+      - Merged into C-33 as one of its cases. `Source\` has no temporary file cleanup
+        today
+- [x] Create `Scripts\Invoke-Gate.ps1` as the single entry point (decision 28)
+      - Six checks, all run even after a failure: tools (pinned versions), analyzer,
+        static tier, gitleaks over the working tree, gitleaks over unpushed commits,
+        unpushed commit messages. Exits 1 on any failure; found values are redacted
+      - `.githooks\pre-push` runs it before every push, once turned on with
+        `git config core.hooksPath .githooks`
+      - [x] Turn the hook on in this clone
+- [x] Seeded defects: one lint violation, one planted secret
+      - `Scripts\Test-SeededDefect.ps1` copies the repository to the temp folder and
+        runs the gate four times: clean, a planted `$_`, a token committed in a file,
+        and a token in a commit message only. Each must fail exactly the expected
+        checks. All four pass
+      - Its first run caught a real finding in itself: a helper named `New-` that
+        changes nothing. It also showed that "the expected checks are among the
+        failures" was too loose a test, so it now requires the exact set
+- [x] Closing tasks
+      - Seeded-defect result in `Docs\audit\stack-2-seeded-defects.md`
+      - `CHANGELOG.md` 0.2.2 and tag `v0.2.2`
+      - Write-up: Stack 2 post and project page row
 
 ### Stack 3 — Tests
 
@@ -187,7 +285,9 @@ a local tier tests the code against a real Oracle database.
       `Invoke-OraEnv`, the interactive wrapper, so `Set-OracleEnv` is silent and needs
       no `Write-Host` suppression. A behaviour change: decide it with its tests
 - [ ] [SEC] Every security invariant has a test in a `Security` context
-- [ ] Measure coverage; set a floor in the gate script
+- [ ] Measure coverage; set a floor in the gate script. The tests import the merged
+      `.psm1`, so coverage is reported against `Output\` lines; map it back to `Source\`
+      files through the `#region Source\...` markers the build writes
 - [ ] Unit tests pass on Windows and Linux
 - [ ] Install the Oracle database chosen in Stack 0; confirm version and edition
 - [ ] Add the local-only integration and soak tier behind a gate-script switch
@@ -297,8 +397,10 @@ Each function comes in through the stack's checks, with its own invariant block.
 - [ ] Config file location: `Get-OracleBackupConfigStore` writes
       `Config\OracleBackup.json` inside the module folder. A module installed for all
       users lives under `Program Files`, which an ordinary user cannot write, so the
-      first call there fails. Choose a per-user or per-machine location before the
-      config writer moves in
+      first call there fails. Since Stack 2 the folder is the version folder, so a
+      rebuild or an upgrade also starts with no config file (decision 23). Choose a
+      per-user or per-machine location that outlives a version before the config writer
+      moves in
 
 ---
 

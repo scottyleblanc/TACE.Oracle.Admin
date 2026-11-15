@@ -20,14 +20,19 @@ Docs/Publish-Steps.md
 Config/
 
 # Script output artifacts
-scripts/pssa_results.txt
+Scripts/pssa_results.txt
 
 # PowerShell module build artifacts
 *.nupkg
 Release/
 build/
 
+# Built module (Scripts\Build-Module.ps1) — generated from Source\, never committed
+Output/
+
 # Editor
-.vscode/
+.vscode/*
+# Shared so the editor's live analysis uses the same settings as the static tier
+!.vscode/settings.json
 *.suo
 .vs/

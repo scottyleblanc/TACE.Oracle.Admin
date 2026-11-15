@@ -48,4 +48,4 @@ This file states the rules.
 ## This repository
 
 - **S-16** — This repo is public: no credentials, account identifiers or infrastructure detail are committed, in files or commit messages.
-  Example: a placeholder such as `<ORACLE_HOME>` in a document, or a `-S3Bucket` parameter, never a real host or bucket name. *Linter and Review.* The linter half is `Tests\Static\PublicRepoHygiene.Tests.ps1`: account IDs, ARNs, access keys, literal S3 targets, email addresses and private keys. A real name that matches no pattern, and commit messages, are left to review until the Stack 2 cross-check against the private resource list.
+  Example: a placeholder such as `<ORACLE_HOME>` in a document, or a `-S3Bucket` parameter, never a real host or bucket name. *Linter and Review.* The linter half is `Tests\Static\PublicRepoHygiene.Tests.ps1`: account IDs, ARNs, access keys, literal S3 targets, email addresses and private keys. A real name that matches no pattern, and commit messages, are left to review. A cross-check against a private identifier list is deferred until its design is decided across all public repositories (`TODO.md`, Stack 2).

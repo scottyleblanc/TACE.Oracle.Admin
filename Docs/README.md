@@ -13,7 +13,7 @@ scripted automation.
 
 See [PREREQUISITES.md](PREREQUISITES.md) for full details.
 
-- PowerShell 7.0 or later
+- PowerShell 7.6 or later
 - Windows or Linux
 - Oracle 19c client or server installation (for `Set-OracleEnv` to be useful)
 - Windows: instance discovery via `Win32_Service` (WMI)
@@ -21,11 +21,15 @@ See [PREREQUISITES.md](PREREQUISITES.md) for full details.
 
 ## Installation
 
-During development, import by path:
+During development, build from `Source\`, then import the built module by path:
 
 ```powershell
-Import-Module <path-to-module>\TACE.Oracle.Admin.psd1 -Force
+.\Scripts\Build-Module.ps1
+Import-Module .\Output\TACE.Oracle.Admin\<version>\TACE.Oracle.Admin.psd1 -Force
 ```
+
+The files under `Source\` are not importable on their own: the build merges them into one
+`.psm1` and generates the manifest's export lists (rules C-28 to C-30).
 
 The profile at `profile.ps1` imports this module automatically on session start.
 
@@ -95,10 +99,10 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.2.1 |
-| Last audit | 2026-11-14 — Stack 1 invariant review of every function |
-| Tests | 317 unit tests and 11 static checks (all passing) |
-| Open SEC items | 5 — see the Open Items in SECURITY.md |
+| Version | 0.2.2 |
+| Last audit | 2026-11-15 — Stack 2 deterministic checks: analyzer with custom rules, secret scanning, gate |
+| Tests | 352 unit tests and 118 static checks (all passing); 0 analyzer findings |
+| Open SEC items | 6 — see the Open Items in SECURITY.md |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.
 

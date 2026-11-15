@@ -4,11 +4,11 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.2.1 |
-| Last audit | 2026-11-14 — Stack 1 invariant review |
-| Findings resolved | 13 of 14 fixed, including 4 of 5 `[SEC]`; 1 `[SEC]` accepted as a limitation |
-| Unit tests | 317 (all passing); 11 static checks, 6 of them for public-repo hygiene |
-| Open SEC items | 5 — see Open Items |
+| Version | 0.2.2 |
+| Last audit | 2026-11-15 — Stack 2 deterministic checks |
+| Findings resolved | Stack 2: wallet alias validation (`[SEC]`) and the config and ACL skipped under `-WhatIf` fixed; the private identifier check deferred as an accepted limitation |
+| Unit tests | 352 (all passing); 118 static checks; 0 analyzer findings; gitleaks clean |
+| Open SEC items | 6 — see Open Items |
 
 The RMAN functions added at Stack 0 (v0.2.0, not on PSGallery) were copied from
 the Oracle backup module. Their security mechanisms are described below as built.
@@ -113,6 +113,18 @@ be injected as `ORACLE_SID`.
 **Contract:** The SID allowlist is always derived at runtime from Windows
 service discovery — never from a hardcoded list or user-supplied config file.
 
+**Wallet alias (Stack 2):** `-WalletAlias` on `Get-RmanBackupStatus` and
+`Remove-RmanObsoleteBackup` accepts only letters, digits, `_`, `.` and `-`
+(`ValidatePattern('^[A-Za-z0-9_.-]*\z')`). The alias is written into the
+`CONNECT` line on RMAN's stdin and passed to tnsping, so a newline, `;`, space or
+quote could otherwise add an RMAN command or an argument. The anchor is `\z`, not
+`$`, because `$` also matches before a trailing newline. The tnsping check proves an
+alias resolves; the pattern is what makes it safe to write. Invariants S6 and S10,
+with tests.
+
+**Every public parameter is validated:** rule C-10 is now checked by the analyzer
+(decision 26), so a public parameter with no `[Validate*]` attribute fails the gate.
+
 ---
 
 ### 7. Output Scrubbing
@@ -163,7 +175,15 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
   binaries are unsigned. See section 4.
 - `Invoke-CredentialScrub` covers one pattern (`user/password@service`). Other
   credential formats would pass through.
-- `Set-RestrictiveAcl` changes file permissions without `ShouldProcess`.
+- `Set-RestrictiveAcl` changes file permissions without `ShouldProcess`. Decided in
+  Stack 2: it only secures a path the module has just created, so it is never skipped
+  by a caller's `-WhatIf` (invariant L1).
+- No check compares this public repository against a list of private identifiers
+  (Stack 2, deferred). The S-16 patterns and gitleaks catch values with a known shape
+  and credentials. A real resource name, such as a bucket or host name, is caught only
+  by review. The design of a private list affects every public repository, so it is
+  decided across repositories first. The S3 staging bucket name is in this
+  repository's history from before v0.2.1.
 - The RMAN functions are Windows only. Off Windows they return `Success = $false`
   before touching the config or RMAN (rule C-07); Linux support is not built.
 - The copied code has had the Stack 1 invariant review, not a STIG assessment. The
@@ -180,6 +200,7 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | 2026-03-17 | 0.1.5 | None | Verbose display change review — `ORACLE_HOME`/`ORACLE_BASE` `Write-Host` lines gated on `$VerbosePreference`. No credential handling; no new child processes; session-only contract unchanged. |
 | 2026-03-13 | 0.1.4 | None | Multi-platform discovery review — Linux path reads `/etc/oratab` and checks `ora_pmon` process. No credential handling; no child processes spawned; session-only contract unchanged. |
 | 2026-11-14 | 0.2.1 | 14 (5 `[SEC]`) | Stack 1 invariant review of all 14 functions. `[SEC]`: catalog parameters let caller text into the RMAN script and accepted an unused credential (removed); `-WhatIf` could write the config file and run `tnsping` (gate moved first); an environment variable chose the config file (replaced by a test-only override); `tnsping.exe` is unsigned like every Oracle binary (accepted, documented in section 4). Nine others fixed, among them a `tnsping` that could hang its caller indefinitely and a timeout kill that left child processes running. Details in `CHANGELOG.md` 0.2.1 and `TODO.md` Stack 1. |
+| 2026-11-15 | 0.2.2 | 3 (1 `[SEC]`) | Stack 2 deterministic checks. `[SEC]`: `-WalletAlias` reached the RMAN `CONNECT` line unvalidated (now `ValidatePattern` ending in `\z`). A caller's `-WhatIf` skipped creating the default config and its ACL, so a first run failed (writes pinned `-WhatIf:$false`; rule C-33 checks every such call). No check compares the repository against private identifiers (deferred, Open Items). gitleaks found nothing in the full history or the working tree. Details in `CHANGELOG.md` 0.2.2 and `Docs\audit\stack-2-seeded-defects.md`. |
 
 ---
 
@@ -188,7 +209,7 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | Context | Execution Policy | Files to Sign |
 |---|---|---|
 | Interactive dev | RemoteSigned | None required for local files |
-| Shared/production | AllSigned | `TACE.Oracle.Admin.psm1`, `TACE.Oracle.Admin.psd1`, all `Public\*.ps1` |
+| Shared/production | AllSigned | The built `TACE.Oracle.Admin.psm1` and `TACE.Oracle.Admin.psd1` in `Output\TACE.Oracle.Admin\<version>\`; the source files under `Source\` do not ship |
 
 Sign with: `Set-AuthenticodeSignature -FilePath <file> -Certificate <cert>`
 
@@ -207,4 +228,4 @@ the credential-handling code during the AI Development Stack work.
 | APSC-DV-003235 | No hardcoded credentials or connection strings | Compliant — none present |
 | WN22-CC-000460 | Safe under script block logging | Compliant — no plaintext in any logged expression |
 | WN22-CC-000470 | No credential-bearing pipeline output | Compliant — no credentials at Stage 1 |
-| WN22-CC-000480 | Requires PS 7.0+ | Compliant — `#Requires -Version 7.0` on all files |
+| WN22-CC-000480 | Requires PS 7.0+ | Compliant — `#Requires -Version 7.6` on all files (stricter than the STIG minimum) |

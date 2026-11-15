@@ -2,8 +2,8 @@
 
 - **T-01** — Tests use Pester 5.
   Example: `Import-Module Pester -MinimumVersion 5.0`. *Linter.*
-- **T-02** — Every function, public or private, has its own test file, named for the function.
-  Example: `Tests\Set-RestrictiveAcl.Tests.ps1` for the private helper `Set-RestrictiveAcl`. *Linter.*
+- **T-02** — Every function, public or private, has its own test file, named for the function, in the folder under `Tests\Unit\` that mirrors its source folder.
+  Example: `Tests\Unit\Private\Set-RestrictiveAcl.Tests.ps1` for the private helper `Source\Private\Set-RestrictiveAcl.ps1`. *Linter.*
 - **T-03** — A test file groups its tests under these contexts: `Parameter Validation`, `Implementation`, `Return object contract`, `Security`, and `WhatIf support` where the function supports `ShouldProcess`.
   Example: `Context 'Security' { It 'Message contains no credential fragment' { ... } }`. *Linter.*
 - **T-04** — A unit test touches the filesystem only under `TestDrive:\`.
@@ -18,5 +18,5 @@
   Example: `$result.Message | Should -Not -Match $testPassword`. *Test.*
 - **T-09** — A test cited on an invariant's `Test:` line starts its title with the ID of each invariant it is cited for, comma-separated, then says what it proves. A test cited for a security invariant also carries the Pester tag `SEC`.
   Example: `It 'S1, L2 kills a tnsping that runs past TimeoutSeconds and throws' -Tag 'SEC' { ... }`. *Linter.*
-- **T-10** — Each test tier has one entry script, `scripts\Invoke-<Tier>Test.ps1`, that holds its own Pester configuration, resolves every path from its own location, writes NUnit XML results to `Tests\TestResults\<tier>.xml`, and exits 1 when any test or any test file fails (`FailedCount` or `FailedContainersCount`) and 0 otherwise. The tiers are `static` (`Invoke-StaticTest.ps1`, `Tests\Static\`), `unit` (`Invoke-UnitTest.ps1`, `Tests\*.Tests.ps1`, not recursive) and, from Stack 3, `integration` (`Invoke-IntegrationTest.ps1`, `Tests\Integration\`).
-  Example: `.\scripts\Invoke-UnitTest.ps1` writes `Tests\TestResults\unit.xml` and exits 1 if a test file fails to parse. *Test.*
+- **T-10** — Each test tier has one entry script, `Scripts\Invoke-<Tier>Test.ps1`, that holds its own Pester configuration, resolves every path from its own location, writes NUnit XML results to `Tests\TestResults\<tier>.xml`, and exits 1 when any test or any test file fails (`FailedCount` or `FailedContainersCount`) and 0 otherwise. The tiers are `static` (`Invoke-StaticTest.ps1`, `Tests\Static\`, with the linters it calls in `Tests\Lint\`), `unit` (`Invoke-UnitTest.ps1`, which builds the module first, then runs `Tests\Unit\` recursively against the built module) and, from Stack 3, `integration` (`Invoke-IntegrationTest.ps1`, `Tests\Integration\`).
+  Example: `.\Scripts\Invoke-UnitTest.ps1` writes `Tests\TestResults\unit.xml` and exits 1 if a test file fails to parse. *Test.*

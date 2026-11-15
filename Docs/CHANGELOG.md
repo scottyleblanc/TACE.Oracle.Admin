@@ -10,6 +10,141 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.2] - 2026-11-15
+
+Stack 2 of the AI Development Stack — deterministic checks. Not published to PSGallery.
+The seeded-defect result is in `Docs/audit/stack-2-seeded-defects.md`.
+
+### Added
+
+- Rule C-33 and its custom analyzer rule `Measure-C33ShouldProcessGate` (decision 27).
+  In `Source/`, a call to a cmdlet that accepts `-WhatIf` must be inside a
+  `ShouldProcess` gate, after an early return, or pass `-WhatIf` explicitly.
+- gitleaks 8.30.1 as the general secret scanner (`PREREQUISITES.md`). A first scan of the
+  full history and the working tree found nothing.
+- `Scripts/Invoke-Gate.ps1`, the single command for every static check (decision 28). It
+  runs pinned tool versions, the analyzer, the static tier, gitleaks over the working
+  tree and over unpushed commits, and an unpushed commit-message check.
+- `.githooks/pre-push` runs the gate before every push, once turned on with
+  `git config core.hooksPath .githooks`.
+- `.gitleaks.toml`: the default gitleaks rules, skipping the generated `Output/` and
+  `Tests/TestResults/` folders.
+- `Scripts/Test-SeededDefect.ps1` plants a lint violation, a committed secret and a secret
+  in a commit message in a temporary copy. It checks that the gate fails on exactly the
+  expected checks for each.
+- `Tests/Lint/PublicRepoPatterns.psd1`: the S-16 patterns, read by both the static tier
+  and the gate's commit-message check.
+- `Scripts/Build-Module.ps1` builds the module: it merges `Source/` (classes, private,
+  public) into one `TACE.Oracle.Admin.psm1` under `Output/TACE.Oracle.Admin/<version>/`
+  and generates the manifest's `FunctionsToExport`, `AliasesToExport` and `FileList`
+  (rules C-28 to C-30). It fails when a public file does not define exactly one function
+  named for the file, or when the source manifest declares a generated list. `-Package`
+  builds and lists a local `.nupkg` from the built module.
+- `Tests/Unit/Get-BuiltModulePath.ps1` — the one place the unit tests find the built
+  module; it fails with an instruction to build when there is none.
+- Decisions 21 to 23 in `Docs/standards/decisions.md`: PascalCase folder names, linters
+  beside the tests that call them, and the config path in the version folder.
+- `.gitattributes` with `* text=auto eol=lf`: every text file is LF in the repository
+  and in every checkout, whatever a machine's `core.autocrlf` is. The index was already
+  LF, so no file's content changed.
+- Decisions 24 and 25: minimum PowerShell 7.6 LTS, and the analyzer settings.
+- `.vscode/settings.json`, committed as the one exception to the ignored `.vscode/`. It
+  points the editor's live analysis at `Tests/Lint/PSScriptAnalyzerSettings.psd1`.
+- PSScriptAnalyzer pinned to 1.25.0 in `PREREQUISITES.md`, with the folders it covers.
+- A `SuppressMessageAttribute` for `PSAvoidUsingWriteHost`, with a reason, on each
+  console tool in `Scripts/`. Also one for `PSUseShouldProcessForStateChangingFunctions`
+  on `Set-RestrictiveAcl`, pending the inherited `-WhatIf` item in `TODO.md`.
+- Custom PSScriptAnalyzer rules in `Tests/Lint/PSScriptAnalyzerRules/` (decision 26),
+  one per house rule the built-in rules do not cover: C-05 output type, C-08 platform
+  detection, C-09 parameter types, C-10 public parameter validation, C-11 backtick
+  continuation, C-14 string-built paths, C-15 file encoding, C-17 `$_`, C-18 emojis.
+  The settings file loads them next to the built-in rules.
+- `Tests/Static/PSScriptAnalyzerRules.Tests.ps1`: what each custom rule must report and
+  what it must not.
+- `Tests/Static/BuildModule.Tests.ps1`: the build refuses a public file that does not
+  define exactly one function named for the file, a source tree with no public
+  function, and a source manifest that declares a generated list (rules C-28 to C-30).
+  Each test builds a copy of `Build-Module.ps1` against a fixture on `TestDrive`.
+- `Tests/Static/SourceTestLayout.Tests.ps1` checks two rules:
+  - C-03: every source file defines one function, named for the file.
+  - T-02: each function has its own test file in the mirrored `Tests/Unit/` folder, and
+    no test file is left without its source file.
+- `Tests/Unit/Private/ConvertFrom-RmanListBackup.Tests.ps1`: the parser's first tests of
+  its own, which prove invariants R1 to R5.
+- `Source/Private/Invoke-TnspingProcess.ps1` and `Source/Private/Invoke-CredentialScrub.ps1`,
+  each with its own test file. The functions and their tests moved there unchanged, out
+  of `Assert-OracleEnvironment` and `Invoke-RmanProcess` (rule C-03). `Invoke-TnspingProcess`
+  gained comment-based help. Its S2 limitation now names the public callers' alias
+  validation.
+
+### Changed
+
+- Layout (decision 16): `Public/` and `Private/` moved under `Source/`, with the source
+  manifest and the head of the root module. `Invoke-OraEnv` moved from `Private/` to
+  `Source/Public/`, since it is exported (C-29). The hand-kept load lists, export lists
+  and file list are gone.
+- Unit tests moved to `Tests/Unit/Public/`, `Tests/Unit/Private/` and
+  `Tests/Unit/Module/`, and import the built module. `Scripts/Invoke-UnitTest.ps1`
+  builds first, then runs `Tests/Unit/` recursively.
+- `scripts/` renamed `Scripts/`. `Invoke-InvariantLint.ps1` moved to `Tests/Lint/`, and
+  now looks up a cited test in the `Tests/Unit/` folder that mirrors the source folder.
+- `Get-OracleBackupConfigStore` resolves `Config/OracleBackup.json` in the folder that
+  holds the module's `.psm1`. For an installed module this is the same version folder as
+  before; for a checkout it is now under `Output/`, not the repository root.
+- `Publish-ToGallery.ps1` publishes from `Output/TACE.Oracle.Admin/<version>/`; the
+  `build/<version>/staging/` folder is no longer used.
+- Rules C-01, C-03, C-28, C-29, C-32, T-02, T-10, I-01 and I-09 examples updated for the
+  new paths. The Stack 1 closing tasks are ticked in `TODO.md`.
+- **Breaking:** the minimum PowerShell version is 7.6 LTS, up from 7.0 (decision 24).
+  `#Requires -Version 7.6` on every script and `PowerShellVersion = '7.6'` in the
+  manifest; the module no longer loads on 7.0 to 7.5. Rule C-01, the README,
+  `PREREQUISITES.md` and the WN22-CC-000480 row in `SECURITY.md` updated.
+- `PSScriptAnalyzerSettings.psd1` moved from the repository root to `Tests/Lint/`
+  (decision 25). The settings now report every severity. The file is no longer copied
+  into the built module or the package.
+- `Assert-OracleEnvironment` and `Get-OracleBackupConfigStore`: three `Join-Path` calls
+  now name their parameters, which clears the analyzer's positional-parameter findings.
+  Behaviour is unchanged.
+- Fixed violations of ratified rules found by the new custom rules. Behaviour is
+  unchanged:
+  - C-17: `$_` written `$PSItem` in `Get-OracleDatabaseList`, `Set-OracleEnv` and
+    `Test-LinuxBuild.ps1`
+  - C-05: `[OutputType()]` added to `Get-OracleDatabaseList`, `Set-OracleEnv`,
+    `Invoke-OraEnv` and the two helpers in `Test-LinuxBuild.ps1`
+  - C-09: the AST predicates in `Build-Module.ps1` and `Invoke-InvariantLint.ps1` type
+    their parameter
+  - C-11: the tnsping call in `Assert-OracleEnvironment` is splatted
+- The settings file now loads the custom rules alongside the built-in rules.
+- **Breaking:** `Get-OracleDatabaseList -Platform` takes `ValidateSet('Windows',
+  'Linux', 'Unsupported')` (rule C-10). An unknown value now throws a parameter error
+  instead of returning `Success = $false` (rule C-22). `'Unsupported'`, the value
+  detection gives on any other OS, still returns `Success = $false` (rule C-07).
+- `Invoke-CredentialScrub` sets `StrictMode` and `$ErrorActionPreference` like every
+  other function. Its help now describes the one pattern it scrubs and names its callers.
+- Version 0.2.2 in the source manifest, the root module and the public functions'
+  `.NOTES`. The manifest description now says PowerShell 7.6+, not 7+.
+- `README.md` and `SECURITY.md` status blocks, the `SECURITY.md` audit record, and the
+  Stack 2 row in `STAGES.md` updated for the close. The Stack 2 closing tasks are
+  ticked in `TODO.md`.
+
+### Fixed
+
+- A first run under a caller's `-WhatIf` failed. A caller's `-WhatIf` reached
+  `Get-OracleBackupConfigStore` and skipped creating the default config folder and file.
+  `Set-RestrictiveAcl` then failed on the missing file. The three writes now pin
+  `-WhatIf:$false`, because creating and securing the default config is part of reading
+  it. Invariants L1 in both functions, with a test each.
+
+### Security
+
+- **Breaking:** `-WalletAlias` on `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup`
+  accepts only letters, digits, `_`, `.` and `-` (rule C-10, invariants S6 and S10). The
+  alias is written into the `CONNECT` line on RMAN's stdin and passed to tnsping, so a
+  newline, `;`, space or quote could add an RMAN command or an argument. The pattern
+  ends in `\z`, so a trailing newline is refused too. The empty default still passes.
+
+---
+
 ## [0.2.1] - 2026-11-14
 
 Stack 1 of the AI Development Stack — intent. Not published to PSGallery.

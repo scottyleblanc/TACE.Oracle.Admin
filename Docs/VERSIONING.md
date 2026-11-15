@@ -62,7 +62,7 @@ both the branch and the tag and will fail. Push the tag explicitly if needed:
 
 ## Version–Commit–Changelog Mapping
 
-1. Update version in `TACE.Oracle.Admin.psd1` (`ModuleVersion`) and `TACE.Oracle.Admin.psm1` (`.NOTES`)
+1. Update version in `Source\TACE.Oracle.Admin.psd1` (`ModuleVersion`) and `Source\TACE.Oracle.Admin.psm1` (`.NOTES`); the built manifest takes its version from the source manifest
 2. Add entry to `CHANGELOG.md`
 3. Commit all three in the same commit: `chore(manifest): bump version to 0.x.0`
 4. `TODO.md` and `CHANGELOG.md` travel in the same commit as the code they describe —

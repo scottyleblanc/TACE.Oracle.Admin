@@ -86,7 +86,7 @@ soak tests run locally against an Oracle database; they do not run in public CI.
 |---|---|---|---|
 | 0 | Setup and scope | — | Complete (v0.2.0) |
 | 1 | Intent | 1 | Complete (v0.2.1) |
-| 2 | Deterministic checks | 3 | Not started |
+| 2 | Deterministic checks | 3 | Complete (v0.2.2) |
 | 3 | Tests | 4 | Not started |
 | 4 | Enforced gate | 6 | Not started |
 | 5 | Agent instructions | 2 | Not started |
@@ -109,7 +109,7 @@ stack stages is confirmed during Stack 0.
 numbers recorded; version scheme for stack stages agreed.
 
 **Done when:** the examples load and their existing tests pass; the baseline
-(unit test count, analyzer findings by rule) is written down; all `[SEC]` items
+(unit test count, analyzer findings by rule) is recorded; all `[SEC]` items
 are checked off.
 
 ---
@@ -131,9 +131,9 @@ is ratified, rejected or deferred; each standard is one sentence plus one exampl
 
 **Goal:** one command runs every machine check.
 
-**Deliverables:** extended `PSScriptAnalyzerSettings.psd1`; custom rules for
+**Deliverables:** extended `Tests\Lint\PSScriptAnalyzerSettings.psd1`; custom rules for
 house standards that can be machine-checked; secret scanning;
-`scripts\Invoke-Gate.ps1` as the single entry point.
+`Scripts\Invoke-Gate.ps1` as the single entry point.
 
 **Done when:** the gate script runs locally with one command; a seeded lint
 violation and a seeded secret both fail it.

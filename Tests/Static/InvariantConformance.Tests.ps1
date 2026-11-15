@@ -1,12 +1,12 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 # Static tier. Reads source text only; it does not import the module or run a function.
-# The linter (scripts\Invoke-InvariantLint.ps1) holds the rules. This file turns its
+# The linter (Tests\Lint\Invoke-InvariantLint.ps1) holds the rules. This file turns its
 # result into pass or fail.
 
 BeforeAll {
     $script:repoRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-    $lintScript      = Join-Path -Path $script:repoRoot -ChildPath 'scripts' -AdditionalChildPath 'Invoke-InvariantLint.ps1'
+    $lintScript      = Join-Path -Path $script:repoRoot -ChildPath 'Tests' -AdditionalChildPath 'Lint', 'Invoke-InvariantLint.ps1'
     $script:lint     = & $lintScript -RepoRoot $script:repoRoot
 }
 
@@ -16,7 +16,7 @@ Describe 'Invariant blocks' -Tag 'Static' {
         $script:lint.Data | Should -Not -BeNullOrEmpty -Because $script:lint.Message
     }
 
-    It 'I-01: every function in Public and Private has an INVARIANTS block' {
+    It 'I-01: every function in Source\Public and Source\Private has an INVARIANTS block' {
         $missing = @($script:lint.Data.MissingBlock)
         ($missing -join ', ') | Should -BeNullOrEmpty -Because 'every function states its invariants'
     }
@@ -30,7 +30,7 @@ Describe 'Invariant blocks' -Tag 'Static' {
 
     It 'the committed index matches the code' {
         # The index is generated. To fix a failure, run:
-        #   .\scripts\Invoke-InvariantLint.ps1 -IndexPath .\Docs\standards\invariants-index.md
+        #   .\Tests\Lint\Invoke-InvariantLint.ps1 -IndexPath .\Docs\standards\invariants-index.md
         $indexPath = Join-Path -Path $script:repoRoot -ChildPath 'Docs' -AdditionalChildPath 'standards', 'invariants-index.md'
         (Test-Path -LiteralPath $indexPath) | Should -BeTrue -Because 'the generated index is committed'
 

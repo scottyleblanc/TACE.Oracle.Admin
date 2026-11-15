@@ -4,10 +4,10 @@
 
 | Requirement | Value |
 |---|---|
-| Minimum | PowerShell 7.0 |
-| Tested against | PowerShell 7.4 LTS |
+| Minimum | PowerShell 7.6 LTS |
+| Tested against | PowerShell 7.6 LTS |
 
-All `.ps1` files carry `#Requires -Version 7.0`. The module will not load on
+All `.ps1` files carry `#Requires -Version 7.6`. The module will not load on
 Windows PowerShell 5.1.
 
 ## External Tools
@@ -31,6 +31,20 @@ not used.
 session from values discovered via the platform's instance discovery mechanism.
 PATH is not modified — that is managed by the profile.
 
+## Build
+
+The module is built from `Source\` into `Output\TACE.Oracle.Admin\<version>\` (rule
+C-28). The build needs PowerShell 7.6 or later and nothing else. Packaging (`-Package`)
+also needs `Microsoft.PowerShell.PSResourceGet` and git.
+
+```powershell
+.\Scripts\Build-Module.ps1            # build into Output\
+.\Scripts\Build-Module.ps1 -Package   # build, then make and list a local .nupkg
+```
+
+`Output\` is not committed. The unit tier builds before it runs, so a separate build
+is only needed to import the module by hand or to run one test file.
+
 ## Test Framework
 
 | Requirement | Value |
@@ -38,24 +52,70 @@ PATH is not modified — that is managed by the profile.
 | Framework | Pester 5.x |
 | Minimum version | 5.0 |
 | Install | `Install-Module Pester -MinimumVersion 5.0 -Force` |
+| Analyzer | PSScriptAnalyzer 1.25.0, exactly (decision 25) |
+| Install | `Install-PSResource PSScriptAnalyzer -Version 1.25.0` |
+| Secret scanner | gitleaks 8.30.1, exactly. Runs locally; needs no account or network |
+| Install | `winget install --id Gitleaks.Gitleaks --version 8.30.1 --exact` (Linux: the release binary) |
+
+The analyzer settings are in `Tests\Lint\PSScriptAnalyzerSettings.psd1`. The analyzer
+covers `Source\`, `Scripts\` and `Tests\Lint\`, but not the `*.Tests.ps1` files.
+The settings load the custom rules in `Tests\Lint\PSScriptAnalyzerRules\` by a path
+relative to the current directory, so run the analyzer from the repository root:
+
+```powershell
+Invoke-ScriptAnalyzer -Path .\Source -Recurse -Settings .\Tests\Lint\PSScriptAnalyzerSettings.psd1
+```
+
+The VS Code PowerShell extension bundles its own analyzer (1.24.0 at the time of
+writing), so live editor results can differ slightly from the pinned version. The
+committed `.vscode\settings.json` points the editor at the same settings file. It takes
+effect only when this repository folder is opened as the workspace.
 
 Each test tier has its own script (rule T-10). Each runs from any working directory,
 writes NUnit XML results to `Tests\TestResults\<tier>.xml`, and exits 1 on any failure.
 
 | Tier | Command | Runs |
 |---|---|---|
-| Static | `.\scripts\Invoke-StaticTest.ps1` | `Tests\Static\` — checks that read source text only |
-| Unit | `.\scripts\Invoke-UnitTest.ps1` | `Tests\*.Tests.ps1` — functions run against mocks |
+| Static | `.\Scripts\Invoke-StaticTest.ps1` | `Tests\Static\` — checks that read source text only; the linters they call are in `Tests\Lint\` |
+| Unit | `.\Scripts\Invoke-UnitTest.ps1` | Builds the module, then `Tests\Unit\` — functions run against mocks, imported from the built module |
 
-Run a single test file:
+Run a single test file, after building once:
 ```powershell
-Invoke-Pester -Path .\Tests\Set-OracleEnv.Tests.ps1
+.\Scripts\Build-Module.ps1
+Invoke-Pester -Path .\Tests\Unit\Public\Set-OracleEnv.Tests.ps1
 ```
 
-Do not run `Invoke-Pester -Path .\Tests\` to run the unit tests: it recurses into
-`Tests\Static\` and mixes the two tiers.
+A unit test file run without a build fails at once with an instruction to build. Do not
+run `Invoke-Pester -Path .\Tests\` to run the unit tests: it recurses into
+`Tests\Static\` and mixes the tiers.
 
 No unit test requires a live Oracle instance. All Oracle service calls are mocked.
+
+## The Gate
+
+`.\Scripts\Invoke-Gate.ps1` runs every static check in one command and exits 1 if any
+fails (decision 28):
+
+| Check | What it runs |
+|---|---|
+| tools | PSScriptAnalyzer 1.25.0, gitleaks 8.30.1, Pester 5 and git are installed |
+| analyzer | PSScriptAnalyzer, built-in and custom rules, over `Source\`, `Scripts\` and `Tests\Lint\` |
+| static | The static tier |
+| secrets | gitleaks over the working tree (`.gitleaks.toml`) |
+| commits | gitleaks over every commit not yet on a remote |
+| messages | Those commits' messages, through gitleaks and the S-16 patterns |
+
+The unit tier is not part of the gate; run it with `Invoke-UnitTest.ps1`.
+
+Turn on the pre-push hook once in each clone, so the gate runs before every push:
+
+```powershell
+git config core.hooksPath .githooks
+```
+
+`.\Scripts\Test-SeededDefect.ps1` proves the gate works: it plants a lint violation and
+a secret in a temporary copy of the repository and checks that the gate fails on each.
+It takes a few minutes.
 
 ## Execution Policy
 
@@ -82,8 +142,9 @@ The RMAN functions are written for Windows and are untested on Linux.
   will not be detected.
 - `Set-OracleEnv` sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current
   session only. Changes do not persist across sessions or affect other processes.
-- The RMAN functions read `ORACLE_HOME` from `Config\OracleBackup.json` in the module
-  folder, falling back to `$env:ORACLE_HOME`. The function that sets that value in the
+- The RMAN functions read `ORACLE_HOME` from `Config\OracleBackup.json` in the module's
+  version folder, falling back to `$env:ORACLE_HOME`. A rebuild or an upgrade to a new
+  version starts with no config file. The function that sets that value in the
   backup module was not brought across, so the file must be edited by hand.
 - The RMAN functions have unit tests only in this repo. They have not been run here
   against a live database.
