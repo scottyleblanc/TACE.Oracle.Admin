@@ -91,6 +91,32 @@ run `Invoke-Pester -Path .\Tests\` to run the unit tests: it recurses into
 
 No unit test requires a live Oracle instance. All Oracle service calls are mocked.
 
+## The Gate
+
+`.\Scripts\Invoke-Gate.ps1` runs every static check in one command and exits 1 if any
+fails (decision 28):
+
+| Check | What it runs |
+|---|---|
+| tools | PSScriptAnalyzer 1.25.0, gitleaks 8.30.1, Pester 5 and git are installed |
+| analyzer | PSScriptAnalyzer, built-in and custom rules, over `Source\`, `Scripts\` and `Tests\Lint\` |
+| static | The static tier |
+| secrets | gitleaks over the working tree (`.gitleaks.toml`) |
+| commits | gitleaks over every commit not yet on a remote |
+| messages | Those commits' messages, through gitleaks and the S-16 patterns |
+
+The unit tier is not part of the gate; run it with `Invoke-UnitTest.ps1`.
+
+Turn on the pre-push hook once in each clone, so the gate runs before every push:
+
+```powershell
+git config core.hooksPath .githooks
+```
+
+`.\Scripts\Test-SeededDefect.ps1` proves the gate works: it plants a lint violation and
+a secret in a temporary copy of the repository and checks that the gate fails on each.
+It takes a few minutes.
+
 ## Execution Policy
 
 | Context | Minimum policy |

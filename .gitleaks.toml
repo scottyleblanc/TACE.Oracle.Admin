@@ -1,0 +1,19 @@
+# gitleaks configuration for TACE.Oracle.Admin (gitleaks 8.30.1, PREREQUISITES.md).
+# Run by Scripts\Invoke-Gate.ps1.
+#
+# The default rules apply unchanged. The only addition is the folders that are
+# generated, never committed and listed in .gitignore. gitleaks scans a directory
+# without reading .gitignore.
+#
+# A false positive in a file that is committed goes in .gitleaksignore by fingerprint,
+# with a comment giving the reason. It never goes in a path entry here.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Build output and test results: generated, never committed"
+paths = [
+    '''(^|[\\/])Output[\\/]''',
+    '''(^|[\\/])Tests[\\/]TestResults[\\/]''',
+]

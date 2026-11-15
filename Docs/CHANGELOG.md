@@ -17,6 +17,18 @@ Stack 2 of the AI Development Stack — deterministic checks. In progress.
   `ShouldProcess` gate, after an early return, or pass `-WhatIf` explicitly.
 - gitleaks 8.30.1 as the general secret scanner (`PREREQUISITES.md`). A first scan of the
   full history and the working tree found nothing.
+- `Scripts/Invoke-Gate.ps1`, the single command for every static check (decision 28). It
+  runs pinned tool versions, the analyzer, the static tier, gitleaks over the working
+  tree and over unpushed commits, and an unpushed commit-message check.
+- `.githooks/pre-push` runs the gate before every push, once turned on with
+  `git config core.hooksPath .githooks`.
+- `.gitleaks.toml`: the default gitleaks rules, skipping the generated `Output/` and
+  `Tests/TestResults/` folders.
+- `Scripts/Test-SeededDefect.ps1` plants a lint violation, a committed secret and a secret
+  in a commit message in a temporary copy. It checks that the gate fails on exactly the
+  expected checks for each.
+- `Tests/Lint/PublicRepoPatterns.psd1`: the S-16 patterns, read by both the static tier
+  and the gate's commit-message check.
 - `Scripts/Build-Module.ps1` builds the module: it merges `Source/` (classes, private,
   public) into one `TACE.Oracle.Admin.psm1` under `Output/TACE.Oracle.Admin/<version>/`
   and generates the manifest's `FunctionsToExport`, `AliasesToExport` and `FileList`

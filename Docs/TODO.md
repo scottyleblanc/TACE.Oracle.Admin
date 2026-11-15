@@ -214,7 +214,7 @@ planted lint violation and a planted secret.
           ratification
         - `ConvertFrom-RmanListBackup.Tests.ps1` is new, with 15 tests. R1 to R5 are now
           proven, so 18 invariants are unproven, down from 23
-- [ ] [SEC] Add secret scanning. The pattern checks for rule S-16 exist
+- [x] [SEC] Add secret scanning. The pattern checks for rule S-16 exist
       (`Tests\Static\PublicRepoHygiene.Tests.ps1`); add with them:
       - a general secret scanner for credential formats the patterns do not cover.
         Chosen: gitleaks, pinned to 8.30.1 (PREREQUISITES.md). It runs locally and needs
@@ -229,7 +229,13 @@ planted lint violation and a planted secret.
         a host name) is caught only by review. This is how the S3 staging bucket name
         reached this repository's history before v0.2.1. Recorded as an open item in
         `SECURITY.md`
-      - a commit-message check, since the static tier reads files only
+      - a commit-message check, since the static tier reads files only. Built into the
+        gate (decision 28). gitleaks does not read commit messages (tested), so each
+        unpushed message is piped to `gitleaks stdin` and checked against the S-16
+        patterns. Those patterns moved to `Tests\Lint\PublicRepoPatterns.psd1`, shared
+        with `PublicRepoHygiene.Tests.ps1`
+      - `.gitleaks.toml`: the default rules, plus `Output\` and `Tests\TestResults\`
+        skipped, because gitleaks scans a folder without reading `.gitignore`
 - [x] Static check: a state-changing call in a function with no `ShouldProcess` gate of
       its own fails the static tier — under an inherited `-WhatIf` it is skipped or
       runs unguarded
@@ -244,8 +250,21 @@ planted lint violation and a planted secret.
       them; checked statically
       - Merged into C-33 as one of its cases. `Source\` has no temporary file cleanup
         today
-- [ ] Create `Scripts\Invoke-Gate.ps1` as the single entry point
-- [ ] Seeded defects: one lint violation, one planted secret
+- [x] Create `Scripts\Invoke-Gate.ps1` as the single entry point (decision 28)
+      - Six checks, all run even after a failure: tools (pinned versions), analyzer,
+        static tier, gitleaks over the working tree, gitleaks over unpushed commits,
+        unpushed commit messages. Exits 1 on any failure; found values are redacted
+      - `.githooks\pre-push` runs it before every push, once turned on with
+        `git config core.hooksPath .githooks`
+      - [x] Turn the hook on in this clone
+- [x] Seeded defects: one lint violation, one planted secret
+      - `Scripts\Test-SeededDefect.ps1` copies the repository to the temp folder and
+        runs the gate four times: clean, a planted `$_`, a token committed in a file,
+        and a token in a commit message only. Each must fail exactly the expected
+        checks. All four pass
+      - Its first run caught a real finding in itself: a helper named `New-` that
+        changes nothing. It also showed that "the expected checks are among the
+        failures" was too loose a test, so it now requires the exact set
 - [ ] Closing tasks
 
 ### Stack 3 — Tests
