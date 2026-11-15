@@ -79,7 +79,7 @@ found while writing them is either fixed or accepted as a stated limitation.
 - [x] Seeded defect: a function with no block, and a malformed entry, both fail the
       static tier — both exit 1 on the rule-specific check; recorded in
       `Docs\audit\stack-1-seeded-defects.md`
-- [ ] Closing tasks
+- [x] Closing tasks
 
 #### Findings from writing the invariant blocks
 
@@ -133,29 +133,39 @@ reason. Items marked "found while" were discovered while working on the one abov
 
 ### Stack 2 — Deterministic checks
 
-**Goal:** one command, `scripts\Invoke-Gate.ps1`, runs every static check — the
+**Goal:** one command, `Scripts\Invoke-Gate.ps1`, runs every static check — the
 analyzer, the house rules, secret scanning and the `-WhatIf` checks — and fails on a
 planted lint violation and a planted secret.
 
-- [ ] Move to the `source\` layout first (rules C-28, C-29; decision 16), so every
+- [x] Move to the `Source\` layout first (rules C-28, C-29; decision 16), so every
       check below is written once, against the final layout:
-      - `Public\` and `Private\` move under `source\`; `Invoke-OraEnv` moves to
-        `source\Public\`; no `source\Classes\` until a class exists
-      - A build merges `source\` (classes, private, public) into one `.psm1` under
-        `output\TACE.Oracle.Admin\<version>\`, with `FileList`, `FunctionsToExport`
-        and `AliasesToExport` generated (aliases from `[Alias()]` attributes, rule C-30);
-        `output\` is gitignored; `Build-Module.ps1` packages from it
-      - Tests move to `Tests\Unit\Public\` and `Tests\Unit\Private\`, plus
+      - `Public\` and `Private\` moved under `Source\`; `Invoke-OraEnv` moved to
+        `Source\Public\`; no `Source\Classes\` until a class exists
+      - `Scripts\Build-Module.ps1` merges `Source\` (classes, private, public) into one
+        `.psm1` under `Output\TACE.Oracle.Admin\<version>\`, with `FileList`,
+        `FunctionsToExport` and `AliasesToExport` generated (aliases from `[Alias()]`
+        attributes, rule C-30); `Output\` is gitignored; `-Package` packages from it
+      - Tests moved to `Tests\Unit\Public\` and `Tests\Unit\Private\`, plus
         `Tests\Unit\Module\` for the module-level test, and import the built module
-      - Decide where linters live: `scripts\Invoke-InvariantLint.ps1` now, or a
-        `Tests\Lint\` folder beside the static tests that call them
-      - Update with it: both tier scripts and rule T-10, rule T-02, the invariant
-        linter's source folders and its source-to-test lookup (I-09),
-        `Test-LinuxBuild.ps1`, and the README and PREREQUISITES instructions
+        through `Tests\Unit\Get-BuiltModulePath.ps1`; the unit runner builds first
+      - Linters live in `Tests\Lint\`, custom analyzer rules in
+        `Tests\Lint\PSScriptAnalyzerRules\` (decision 22); folders are PascalCase
+        throughout, so `scripts\` became `Scripts\` (decision 21)
+      - The config path moved into the version folder, so S4 holds (decision 23)
+      - Updated with it: both tier scripts and rule T-10, rule T-02, the invariant
+        linter's source folders and its source-to-test lookup (I-09), the publish
+        script, and the README and PREREQUISITES instructions. `Test-LinuxBuild.ps1`
+        installs from the package and needed only its example path changed
 - [ ] Extend `PSScriptAnalyzerSettings.psd1` from the ratified standards. Decide whether
-      the analyzer covers `scripts\`, and with which settings: those console tools use
+      the analyzer covers `Scripts\`, and with which settings: those console tools use
       `Write-Host` throughout, and C-31 covers module code only
-- [ ] Write custom analyzer rules for house standards that can be machine-checked
+- [ ] Write custom analyzer rules for house standards that can be machine-checked, in
+      `Tests\Lint\PSScriptAnalyzerRules\`
+- [ ] Static checks for the build's own rules: a public file that defines a second
+      function, or a source manifest that declares `FunctionsToExport`, fails the build
+      (C-28, C-29). The build enforces both today; nothing proves it does
+- [ ] T-02 check: `Source\Private\ConvertFrom-RmanListBackup.ps1` has no test file of its
+      own. Found during the layout move; the T-02 linter check will report it
 - [ ] [SEC] Add secret scanning. The pattern checks for rule S-16 exist
       (`Tests\Static\PublicRepoHygiene.Tests.ps1`); add with them:
       - a general secret scanner for credential formats the patterns do not cover
@@ -168,7 +178,7 @@ planted lint violation and a planted secret.
       runs unguarded
 - [ ] Cleanup of temporary files pins `-WhatIf:$false`, so a preview still removes
       them; checked statically
-- [ ] Create `scripts\Invoke-Gate.ps1` as the single entry point
+- [ ] Create `Scripts\Invoke-Gate.ps1` as the single entry point
 - [ ] Seeded defects: one lint violation, one planted secret
 - [ ] Closing tasks
 
@@ -187,7 +197,9 @@ a local tier tests the code against a real Oracle database.
       `Invoke-OraEnv`, the interactive wrapper, so `Set-OracleEnv` is silent and needs
       no `Write-Host` suppression. A behaviour change: decide it with its tests
 - [ ] [SEC] Every security invariant has a test in a `Security` context
-- [ ] Measure coverage; set a floor in the gate script
+- [ ] Measure coverage; set a floor in the gate script. The tests import the merged
+      `.psm1`, so coverage is reported against `Output\` lines; map it back to `Source\`
+      files through the `#region Source\...` markers the build writes
 - [ ] Unit tests pass on Windows and Linux
 - [ ] Install the Oracle database chosen in Stack 0; confirm version and edition
 - [ ] Add the local-only integration and soak tier behind a gate-script switch
@@ -297,8 +309,10 @@ Each function comes in through the stack's checks, with its own invariant block.
 - [ ] Config file location: `Get-OracleBackupConfigStore` writes
       `Config\OracleBackup.json` inside the module folder. A module installed for all
       users lives under `Program Files`, which an ordinary user cannot write, so the
-      first call there fails. Choose a per-user or per-machine location before the
-      config writer moves in
+      first call there fails. Since Stack 2 the folder is the version folder, so a
+      rebuild or an upgrade also starts with no config file (decision 23). Choose a
+      per-user or per-machine location that outlives a version before the config writer
+      moves in
 
 ---
 

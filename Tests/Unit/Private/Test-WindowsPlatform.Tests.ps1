@@ -9,7 +9,7 @@
 Describe 'Test-WindowsPlatform' {
 
     BeforeAll {
-        $modulePath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..' 'TACE.Oracle.Admin.psd1'))
+        $modulePath = [System.IO.Path]::GetFullPath((& (Join-Path $PSScriptRoot '..' 'Get-BuiltModulePath.ps1')))
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
         Import-Module $modulePath -Force
     }

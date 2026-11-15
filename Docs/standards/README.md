@@ -38,7 +38,7 @@ each function body, not in a separate document. They travel with the function, a
 in the same diff as a change to it, and are read by whoever, or whatever, edits it next.
 
 The block format is defined in [invariants.md](invariants.md). The index is generated
-from the blocks by `scripts\Invoke-InvariantLint.ps1`, and a test in `Tests\Static\`
+from the blocks by `Tests\Lint\Invoke-InvariantLint.ps1`, and a test in `Tests\Static\`
 fails when a function has no block, an entry is malformed, or the committed index is
 out of date.
 

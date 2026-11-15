@@ -188,7 +188,7 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | Context | Execution Policy | Files to Sign |
 |---|---|---|
 | Interactive dev | RemoteSigned | None required for local files |
-| Shared/production | AllSigned | `TACE.Oracle.Admin.psm1`, `TACE.Oracle.Admin.psd1`, all `Public\*.ps1` |
+| Shared/production | AllSigned | The built `TACE.Oracle.Admin.psm1` and `TACE.Oracle.Admin.psd1` in `Output\TACE.Oracle.Admin\<version>\`; the source files under `Source\` do not ship |
 
 Sign with: `Set-AuthenticodeSignature -FilePath <file> -Certificate <cert>`
 

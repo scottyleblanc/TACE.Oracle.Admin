@@ -8,6 +8,43 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+Stack 2 of the AI Development Stack — deterministic checks. In progress.
+
+### Added
+
+- `Scripts/Build-Module.ps1` builds the module: it merges `Source/` (classes, private,
+  public) into one `TACE.Oracle.Admin.psm1` under `Output/TACE.Oracle.Admin/<version>/`
+  and generates the manifest's `FunctionsToExport`, `AliasesToExport` and `FileList`
+  (rules C-28 to C-30). It fails when a public file does not define exactly one function
+  named for the file, or when the source manifest declares a generated list. `-Package`
+  builds and lists a local `.nupkg` from the built module.
+- `Tests/Unit/Get-BuiltModulePath.ps1` — the one place the unit tests find the built
+  module; it fails with an instruction to build when there is none.
+- Decisions 21 to 23 in `Docs/standards/decisions.md`: PascalCase folder names, linters
+  beside the tests that call them, and the config path in the version folder.
+- `.gitattributes` with `* text=auto eol=lf`: every text file is LF in the repository
+  and in every checkout, whatever a machine's `core.autocrlf` is. The index was already
+  LF, so no file's content changed.
+
+### Changed
+
+- Layout (decision 16): `Public/` and `Private/` moved under `Source/`, with the source
+  manifest and the head of the root module. `Invoke-OraEnv` moved from `Private/` to
+  `Source/Public/`, since it is exported (C-29). The hand-kept load lists, export lists
+  and file list are gone.
+- Unit tests moved to `Tests/Unit/Public/`, `Tests/Unit/Private/` and
+  `Tests/Unit/Module/`, and import the built module. `Scripts/Invoke-UnitTest.ps1`
+  builds first, then runs `Tests/Unit/` recursively.
+- `scripts/` renamed `Scripts/`. `Invoke-InvariantLint.ps1` moved to `Tests/Lint/`, and
+  now looks up a cited test in the `Tests/Unit/` folder that mirrors the source folder.
+- `Get-OracleBackupConfigStore` resolves `Config/OracleBackup.json` in the folder that
+  holds the module's `.psm1`. For an installed module this is the same version folder as
+  before; for a checkout it is now under `Output/`, not the repository root.
+- `Publish-ToGallery.ps1` publishes from `Output/TACE.Oracle.Admin/<version>/`; the
+  `build/<version>/staging/` folder is no longer used.
+- Rules C-01, C-03, C-28, C-29, C-32, T-02, T-10, I-01 and I-09 examples updated for the
+  new paths. The Stack 1 closing tasks are ticked in `TODO.md`.
+
 ---
 
 ## [0.2.1] - 2026-11-14

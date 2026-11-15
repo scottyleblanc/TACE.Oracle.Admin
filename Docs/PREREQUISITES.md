@@ -31,6 +31,20 @@ not used.
 session from values discovered via the platform's instance discovery mechanism.
 PATH is not modified — that is managed by the profile.
 
+## Build
+
+The module is built from `Source\` into `Output\TACE.Oracle.Admin\<version>\` (rule
+C-28). The build needs PowerShell 7.0 or later and nothing else. Packaging (`-Package`)
+also needs `Microsoft.PowerShell.PSResourceGet` and git.
+
+```powershell
+.\Scripts\Build-Module.ps1            # build into Output\
+.\Scripts\Build-Module.ps1 -Package   # build, then make and list a local .nupkg
+```
+
+`Output\` is not committed. The unit tier builds before it runs, so a separate build
+is only needed to import the module by hand or to run one test file.
+
 ## Test Framework
 
 | Requirement | Value |
@@ -44,16 +58,18 @@ writes NUnit XML results to `Tests\TestResults\<tier>.xml`, and exits 1 on any f
 
 | Tier | Command | Runs |
 |---|---|---|
-| Static | `.\scripts\Invoke-StaticTest.ps1` | `Tests\Static\` — checks that read source text only |
-| Unit | `.\scripts\Invoke-UnitTest.ps1` | `Tests\*.Tests.ps1` — functions run against mocks |
+| Static | `.\Scripts\Invoke-StaticTest.ps1` | `Tests\Static\` — checks that read source text only; the linters they call are in `Tests\Lint\` |
+| Unit | `.\Scripts\Invoke-UnitTest.ps1` | Builds the module, then `Tests\Unit\` — functions run against mocks, imported from the built module |
 
-Run a single test file:
+Run a single test file, after building once:
 ```powershell
-Invoke-Pester -Path .\Tests\Set-OracleEnv.Tests.ps1
+.\Scripts\Build-Module.ps1
+Invoke-Pester -Path .\Tests\Unit\Public\Set-OracleEnv.Tests.ps1
 ```
 
-Do not run `Invoke-Pester -Path .\Tests\` to run the unit tests: it recurses into
-`Tests\Static\` and mixes the two tiers.
+A unit test file run without a build fails at once with an instruction to build. Do not
+run `Invoke-Pester -Path .\Tests\` to run the unit tests: it recurses into
+`Tests\Static\` and mixes the tiers.
 
 No unit test requires a live Oracle instance. All Oracle service calls are mocked.
 
@@ -82,8 +98,9 @@ The RMAN functions are written for Windows and are untested on Linux.
   will not be detected.
 - `Set-OracleEnv` sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current
   session only. Changes do not persist across sessions or affect other processes.
-- The RMAN functions read `ORACLE_HOME` from `Config\OracleBackup.json` in the module
-  folder, falling back to `$env:ORACLE_HOME`. The function that sets that value in the
+- The RMAN functions read `ORACLE_HOME` from `Config\OracleBackup.json` in the module's
+  version folder, falling back to `$env:ORACLE_HOME`. A rebuild or an upgrade to a new
+  version starts with no config file. The function that sets that value in the
   backup module was not brought across, so the file must be edited by hand.
 - The RMAN functions have unit tests only in this repo. They have not been run here
   against a live database.

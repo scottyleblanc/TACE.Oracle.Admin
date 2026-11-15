@@ -18,41 +18,15 @@
     # Requirements
     PowerShellVersion = '7.0'
 
-    # Exported functions
-    FunctionsToExport = @(
-        'Get-OracleDatabaseList'
-        'Set-OracleEnv'
-        'Invoke-OraEnv'
-        'Get-RmanBackupStatus'
-        'Remove-RmanObsoleteBackup'
-    )
+    # FunctionsToExport, AliasesToExport and FileList are not kept here. The build
+    # (Scripts\Build-Module.ps1) generates them into the built manifest: functions from
+    # the file names in Source\Public\ (rule C-29), aliases from the [Alias()] attributes
+    # on those functions (rule C-30), and the file list from what it writes to Output\.
+    # The build fails if any of the three is added back here.
 
-    # No cmdlets exported from the module itself
+    # No cmdlets or variables exported from the module itself
     CmdletsToExport   = @()
-    AliasesToExport   = @('oraset', 'oraenv')
     VariablesToExport = @()
-
-    # Explicit file list — only these files are included in the published package.
-    # Dev artifacts (.git, .claude, Tests, Docs, scripts) are excluded by omission.
-    FileList          = @(
-        'TACE.Oracle.Admin.psd1'
-        'TACE.Oracle.Admin.psm1'
-        'PSScriptAnalyzerSettings.psd1'
-        'README.md'
-        'LICENSE'
-        'Public\Get-OracleDatabaseList.ps1'
-        'Public\Set-OracleEnv.ps1'
-        'Public\Get-RmanBackupStatus.ps1'
-        'Public\Remove-RmanObsoleteBackup.ps1'
-        'Private\Invoke-OraEnv.ps1'
-        'Private\Test-WindowsPlatform.ps1'
-        'Private\ConvertFrom-SecureStringToPlaintext.ps1'
-        'Private\Set-RestrictiveAcl.ps1'
-        'Private\Assert-OracleEnvironment.ps1'
-        'Private\Get-OracleBackupConfigStore.ps1'
-        'Private\Invoke-RmanProcess.ps1'
-        'Private\ConvertFrom-RmanListBackup.ps1'
-    )
 
     # Private data
     PrivateData       = @{

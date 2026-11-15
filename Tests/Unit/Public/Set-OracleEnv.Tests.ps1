@@ -3,7 +3,7 @@
 
 BeforeAll {
     Remove-Module 'TACE.Oracle.Admin' -Force -ErrorAction SilentlyContinue
-    Import-Module (Join-Path $PSScriptRoot '..' 'TACE.Oracle.Admin.psd1') -Force
+    Import-Module (& (Join-Path $PSScriptRoot '..' 'Get-BuiltModulePath.ps1')) -Force
 
     # Shared test data — accessible in BeforeEach/It blocks via $script: scope
     $script:twoInstances = @(

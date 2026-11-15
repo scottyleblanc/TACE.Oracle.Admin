@@ -5,12 +5,13 @@
     Publishes the current build of TACE.Oracle.Admin to the PowerShell Gallery.
 
 .DESCRIPTION
-    Publishes the staged module from build\<version>\staging\ to PSGallery.
-    Build-Module.ps1 must be run first — this script will not proceed if no
+    Publishes the built module from Output\TACE.Oracle.Admin\<version>\ to PSGallery.
+    Build-Module.ps1 must be run first (with -Package, to inspect the package
+    contents beforehand) — this script will not proceed if no
     build exists for the current module version.
 
     Pre-publish gates:
-      - build\<version>\staging\ must exist (Build-Module.ps1 must have run)
+      - Output\TACE.Oracle.Admin\<version>\ must exist (Build-Module.ps1 must have run)
       - Working tree must be clean (no uncommitted changes)
       - A git tag matching the module version must exist (e.g. v0.1.5)
 
@@ -21,7 +22,7 @@
 .EXAMPLE
     $key = Read-Host -AsSecureString 'PSGallery API Key'
     $plain = [System.Net.NetworkCredential]::new('', $key).Password
-    .\scripts\Publish-ToGallery.ps1 -ApiKey $plain
+    .\Scripts\Publish-ToGallery.ps1 -ApiKey $plain
 
 .NOTES
     Copyright © TACE Data Management Inc.
@@ -45,16 +46,15 @@ $moduleRoot = Resolve-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath '..')
 
 # -- Read version from manifest ----------------------------------------------
 
-$manifestPath = Join-Path -Path $moduleRoot -ChildPath 'TACE.Oracle.Admin.psd1'
-$validated    = Test-ModuleManifest -Path $manifestPath
-$version      = $validated.Version.ToString()
+$manifestPath = Join-Path -Path $moduleRoot -ChildPath 'Source' -AdditionalChildPath 'TACE.Oracle.Admin.psd1'
+$version      = [string](Import-PowerShellDataFile -LiteralPath $manifestPath).ModuleVersion
 $tagName      = "v$version"
 
-Write-Host "[Publish-ToGallery] Module  : $($validated.Name) v$version"
+Write-Host "[Publish-ToGallery] Module  : TACE.Oracle.Admin v$version"
 
 # -- Verify build exists -----------------------------------------------------
 
-$stagingDir     = Join-Path -Path $moduleRoot -ChildPath 'build' -AdditionalChildPath $version, 'staging'
+$stagingDir     = Join-Path -Path $moduleRoot -ChildPath 'Output' -AdditionalChildPath 'TACE.Oracle.Admin', $version
 $stagedManifest = Join-Path -Path $stagingDir -ChildPath 'TACE.Oracle.Admin.psd1'
 
 if (-not (Test-Path -Path $stagingDir)) {

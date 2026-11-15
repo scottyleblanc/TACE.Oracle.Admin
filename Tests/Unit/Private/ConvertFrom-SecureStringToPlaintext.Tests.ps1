@@ -21,7 +21,7 @@
 Describe 'ConvertFrom-SecureStringToPlaintext' {
 
     BeforeAll {
-        $modulePath = Join-Path $PSScriptRoot '..' 'TACE.Oracle.Admin.psd1'
+        $modulePath = & (Join-Path $PSScriptRoot '..' 'Get-BuiltModulePath.ps1')
         $modulePath  = [System.IO.Path]::GetFullPath($modulePath)
 
         $testConfigPath = Join-Path $TestDrive 'OracleBackup.json'

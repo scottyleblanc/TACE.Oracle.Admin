@@ -27,7 +27,7 @@
     in this repository.
 
 .EXAMPLE
-    pwsh ./scripts/Test-LinuxBuild.ps1 -S3Bucket '<staging-bucket>'
+    pwsh ./Scripts/Test-LinuxBuild.ps1 -S3Bucket '<staging-bucket>'
 
 .NOTES
     Copyright © TACE Data Management Inc.

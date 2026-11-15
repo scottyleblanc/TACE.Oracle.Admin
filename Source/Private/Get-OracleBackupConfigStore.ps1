@@ -81,7 +81,8 @@ function Get-OracleBackupConfigStore {
         $script:ConfigPathOverride
     }
     else {
-        $resolved = Join-Path $PSScriptRoot '..' 'Config' 'OracleBackup.json'
+        # In the built module $PSScriptRoot is the version folder, which holds the .psm1.
+        $resolved = Join-Path $PSScriptRoot 'Config' 'OracleBackup.json'
         [System.IO.Path]::GetFullPath($resolved)
     }
 

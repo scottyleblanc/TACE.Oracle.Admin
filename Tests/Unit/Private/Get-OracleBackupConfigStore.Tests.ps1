@@ -15,11 +15,11 @@
 Describe 'Get-OracleBackupConfigStore' {
 
     BeforeAll {
-        $modulePath = Join-Path $PSScriptRoot '..' 'TACE.Oracle.Admin.psd1'
+        $modulePath = & (Join-Path $PSScriptRoot '..' 'Get-BuiltModulePath.ps1')
         $modulePath = [System.IO.Path]::GetFullPath($modulePath)
 
         $script:defaultConfigPath = [System.IO.Path]::GetFullPath(
-            (Join-Path $PSScriptRoot '..' 'Config' 'OracleBackup.json'))
+            (Join-Path (Split-Path -Path $modulePath -Parent) 'Config' 'OracleBackup.json'))
 
         $script:fullConfigJson = [PSCustomObject]@{
             BackupBasePath       = 'C:\app\oracle\backup'

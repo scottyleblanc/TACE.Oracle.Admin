@@ -4,15 +4,19 @@
     Runs the unit tier: Pester tests that run module functions against mocks.
 
 .DESCRIPTION
-    Runs every Tests\*.Tests.ps1 file at the top level of Tests\. The search is not
-    recursive, so the static tier (Tests\Static\) and, from Stack 3, the integration
-    tier (Tests\Integration\) are not run here. Rule T-10.
+    Builds the module first (Scripts\Build-Module.ps1), then runs every *.Tests.ps1 file
+    under Tests\Unit\, searching its subfolders (Public\, Private\, Module\). The tests
+    import the built module from Output\, so they never run against a stale build. The
+    static tier (Tests\Static\) and, from Stack 3, the integration tier
+    (Tests\Integration\) are outside Tests\Unit\ and are not run here. Rule T-10.
+
+    A failed build stops the run before any test starts, and exits 1.
 
     Writes NUnit XML results to Tests\TestResults\unit.xml, replacing the previous run.
     Exits 1 when any test fails or any test file fails to run, and 0 otherwise.
 
 .EXAMPLE
-    .\scripts\Invoke-UnitTest.ps1
+    .\Scripts\Invoke-UnitTest.ps1
 
 .NOTES
     Copyright © TACE Data Management Inc.
@@ -29,13 +33,24 @@ Import-Module Pester -MinimumVersion 5.0
 
 $repoRoot    = Split-Path -Path $PSScriptRoot -Parent
 $testsRoot   = Join-Path -Path $repoRoot -ChildPath 'Tests'
+$unitRoot    = Join-Path -Path $testsRoot -ChildPath 'Unit'
 $resultsDir  = Join-Path -Path $testsRoot -ChildPath 'TestResults'
 $resultsFile = Join-Path -Path $resultsDir -ChildPath 'unit.xml'
 
-$testFiles = @(Get-ChildItem -Path $testsRoot -Filter '*.Tests.ps1' -File |
+# Build first: the tests import Output\TACE.Oracle.Admin\<version>\.
+$buildScript = Join-Path -Path $PSScriptRoot -ChildPath 'Build-Module.ps1'
+try {
+    & $buildScript
+}
+catch {
+    Write-Output "[FAIL] unit: build failed, no tests run. $($PSItem.Exception.Message)"
+    exit 1
+}
+
+$testFiles = @(Get-ChildItem -Path $unitRoot -Filter '*.Tests.ps1' -File -Recurse |
     Select-Object -ExpandProperty FullName)
 if ($testFiles.Count -eq 0) {
-    throw "[unit] No test files found under $testsRoot"
+    throw "[unit] No test files found under $unitRoot"
 }
 
 $null = New-Item -Path $resultsDir -ItemType Directory -Force

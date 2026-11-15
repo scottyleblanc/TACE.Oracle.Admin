@@ -11,7 +11,7 @@
     Exits 1 when any check fails or any test file fails to run, and 0 otherwise.
 
 .EXAMPLE
-    .\scripts\Invoke-StaticTest.ps1
+    .\Scripts\Invoke-StaticTest.ps1
 
 .NOTES
     Copyright © TACE Data Management Inc.

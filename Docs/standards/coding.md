@@ -2,23 +2,23 @@
 
 ## Repository layout
 
-- **C-28** — Module source lives under `source\`: `source\Public\` for exported functions, `source\Private\` for helpers, and `source\Classes\` once a class exists. A build merges it, classes then private then public, into one `.psm1` under `output\<Module>\<version>\` with a generated manifest. That built module is what is tested and released.
-  Example: `source\Public\Get-RmanBackupStatus.ps1` ships inside `output\TACE.Oracle.Admin\0.2.2\TACE.Oracle.Admin.psm1`; `Tests\`, `Docs\` and `scripts\` never ship. *Test.*
-- **C-29** — The manifest lists exported functions explicitly, and the list equals the file names in `source\Public\`; a function is exported if and only if it lives there.
+- **C-28** — Module source lives under `Source\`: `Source\Public\` for exported functions, `Source\Private\` for helpers, and `Source\Classes\` once a class exists. A build merges it, classes then private then public, into one `.psm1` under `Output\<Module>\<version>\` with a generated manifest. That built module is what is tested and released.
+  Example: `Source\Public\Get-RmanBackupStatus.ps1` ships inside `Output\TACE.Oracle.Admin\0.2.2\TACE.Oracle.Admin.psm1`; `Tests\`, `Docs\` and `Scripts\` never ship. *Test.*
+- **C-29** — The manifest lists exported functions explicitly, and the list equals the file names in `Source\Public\`; a function is exported if and only if it lives there.
   Example: `FunctionsToExport = @('Get-OracleDatabaseList', 'Set-OracleEnv', ...)`, never `'*'`. *Test.*
 - **C-30** — A command alias is declared with an `[Alias()]` attribute on the public function it targets, never with `Set-Alias`, and is listed in the README's Aliases table. The build generates `AliasesToExport` from those attributes.
   Example: `[Alias('oraset', 'oraenv')]` below `[CmdletBinding()]` in `Invoke-OraEnv`. *Test.*
-- **C-32** — A script in `scripts\` is named Verb-Noun with an approved verb and a singular noun, and its `.NOTES` declares how it is invoked: `**Invocation:**` followed by `Standalone`, `Session-scoped`, `Helper` or `lib helper`, and one line of detail. A dot-sourced helper lives in `scripts\lib\`.
-  Example: `scripts\Invoke-UnitTest.ps1` with `**Invocation:** Standalone — self-contained; safe to run with pwsh -File.`. *Linter.*
+- **C-32** — A script in `Scripts\` is named Verb-Noun with an approved verb and a singular noun, and its `.NOTES` declares how it is invoked: `**Invocation:**` followed by `Standalone`, `Session-scoped`, `Helper` or `lib helper`, and one line of detail. A dot-sourced helper lives in `Scripts\Lib\`.
+  Example: `Scripts\Invoke-UnitTest.ps1` with `**Invocation:** Standalone — self-contained; safe to run with pwsh -File.`. *Linter.*
 
 ## Language and structure
 
 - **C-01** — Every `.ps1` file starts with `#Requires -Version 7.0`.
-  Example: line 1 of `Public\Set-OracleEnv.ps1`. *Linter.*
+  Example: line 1 of `Source\Public\Set-OracleEnv.ps1`. *Linter.*
 - **C-02** — Every function sets strict mode and stop-on-error as its first statements.
   Example: `Set-StrictMode -Version Latest` then `$ErrorActionPreference = 'Stop'`. *Linter.*
 - **C-03** — One function per file, and the file is named for the function.
-  Example: `Private\Set-RestrictiveAcl.ps1` defines only `Set-RestrictiveAcl`. *Linter.*
+  Example: `Source\Private\Set-RestrictiveAcl.ps1` defines only `Set-RestrictiveAcl`. *Linter.*
 - **C-04** — Function names use approved PowerShell verbs.
   Example: `Get-RmanBackupStatus`, not `Fetch-RmanBackupStatus`. *Linter.*
 - **C-05** — Every function declares its output type.

@@ -133,7 +133,7 @@ is ratified, rejected or deferred; each standard is one sentence plus one exampl
 
 **Deliverables:** extended `PSScriptAnalyzerSettings.psd1`; custom rules for
 house standards that can be machine-checked; secret scanning;
-`scripts\Invoke-Gate.ps1` as the single entry point.
+`Scripts\Invoke-Gate.ps1` as the single entry point.
 
 **Done when:** the gate script runs locally with one command; a seeded lint
 violation and a seeded secret both fail it.

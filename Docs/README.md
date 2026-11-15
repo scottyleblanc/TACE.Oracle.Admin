@@ -21,11 +21,15 @@ See [PREREQUISITES.md](PREREQUISITES.md) for full details.
 
 ## Installation
 
-During development, import by path:
+During development, build from `Source\`, then import the built module by path:
 
 ```powershell
-Import-Module <path-to-module>\TACE.Oracle.Admin.psd1 -Force
+.\Scripts\Build-Module.ps1
+Import-Module .\Output\TACE.Oracle.Admin\<version>\TACE.Oracle.Admin.psd1 -Force
 ```
+
+The files under `Source\` are not importable on their own: the build merges them into one
+`.psm1` and generates the manifest's export lists (rules C-28 to C-30).
 
 The profile at `profile.ps1` imports this module automatically on session start.
 
