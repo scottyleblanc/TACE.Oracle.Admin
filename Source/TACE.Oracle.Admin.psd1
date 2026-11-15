@@ -8,12 +8,12 @@
 @{
     # Module identity
     RootModule        = 'TACE.Oracle.Admin.psm1'
-    ModuleVersion     = '0.2.1'
+    ModuleVersion     = '0.2.2'
     GUID              = '50e4f865-a551-4f83-beb1-329987147747'
     Author            = 'TACE Data Management Inc.'
     CompanyName       = 'TACE Data Management Inc.'
     Copyright         = 'Copyright © TACE Data Management Inc.'
-    Description       = 'PowerShell Core 7+ module for Oracle DBA environment management. Discovers Oracle instances on Windows (via WMI) and Linux (via /etc/oratab), sets ORACLE_SID, ORACLE_HOME, and ORACLE_BASE for the current session, and provides interactive and scripted DBA tooling.'
+    Description       = 'PowerShell 7.6+ module for Oracle DBA environment management. Discovers Oracle instances on Windows (via WMI) and Linux (via /etc/oratab), sets ORACLE_SID, ORACLE_HOME, and ORACLE_BASE for the current session, and provides interactive and scripted DBA tooling.'
 
     # Requirements
     PowerShellVersion = '7.6'
@@ -34,7 +34,7 @@
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell', 'oraset', 'oraenv')
             ProjectUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin'
             LicenseUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE'
-            ReleaseNotes = 'v0.2.1 — AI Development Stack, Stack 1 (intent): ratified standards, invariant blocks in every function, and fixes for the defects they exposed. Breaking: Remove-RmanObsoleteBackup drops -CatalogConnection and -CatalogCredential, and returns Success = $true with Data.Applied = $false under -WhatIf. Not published to PSGallery.'
+            ReleaseNotes = 'v0.2.2 — AI Development Stack, Stack 2 (deterministic checks): Source layout with a build step, custom analyzer rules for the house standards, secret scanning, and one gate command for every static check. Breaking: PowerShell 7.6 minimum; Get-OracleDatabaseList -Platform and -WalletAlias on the RMAN functions now validate their values. Not published to PSGallery.'
         }
     }
 }

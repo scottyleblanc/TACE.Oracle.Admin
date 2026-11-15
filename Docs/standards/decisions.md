@@ -1,7 +1,7 @@
 # Decisions
 
 Rules that were contested when the standards were ratified on 2026-11-14: a rule the
-code contradicted, a rule that was never defined, or a practice nobody had written down.
+code contradicted, a rule that was never defined, or a practice nobody had documented.
 
 ## Decided
 

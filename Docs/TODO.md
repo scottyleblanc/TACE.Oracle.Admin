@@ -265,7 +265,10 @@ planted lint violation and a planted secret.
       - Its first run caught a real finding in itself: a helper named `New-` that
         changes nothing. It also showed that "the expected checks are among the
         failures" was too loose a test, so it now requires the exact set
-- [ ] Closing tasks
+- [x] Closing tasks
+      - Seeded-defect result in `Docs\audit\stack-2-seeded-defects.md`
+      - `CHANGELOG.md` 0.2.2 and tag `v0.2.2`
+      - Write-up: Stack 2 post and project page row
 
 ### Stack 3 — Tests
 

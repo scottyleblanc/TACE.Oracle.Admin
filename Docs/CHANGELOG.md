@@ -8,7 +8,12 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-Stack 2 of the AI Development Stack — deterministic checks. In progress.
+---
+
+## [0.2.2] - 2026-11-15
+
+Stack 2 of the AI Development Stack — deterministic checks. Not published to PSGallery.
+The seeded-defect result is in `Docs/audit/stack-2-seeded-defects.md`.
 
 ### Added
 
@@ -116,6 +121,11 @@ Stack 2 of the AI Development Stack — deterministic checks. In progress.
   detection gives on any other OS, still returns `Success = $false` (rule C-07).
 - `Invoke-CredentialScrub` sets `StrictMode` and `$ErrorActionPreference` like every
   other function. Its help now describes the one pattern it scrubs and names its callers.
+- Version 0.2.2 in the source manifest, the root module and the public functions'
+  `.NOTES`. The manifest description now says PowerShell 7.6+, not 7+.
+- `README.md` and `SECURITY.md` status blocks, the `SECURITY.md` audit record, and the
+  Stack 2 row in `STAGES.md` updated for the close. The Stack 2 closing tasks are
+  ticked in `TODO.md`.
 
 ### Fixed
 

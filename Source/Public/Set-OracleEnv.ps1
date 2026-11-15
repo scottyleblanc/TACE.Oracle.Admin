@@ -44,7 +44,7 @@ function Set-OracleEnv {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.2.1
+        Version : 0.2.2
         Profile alias: oraset
     #>
     [CmdletBinding(SupportsShouldProcess)]

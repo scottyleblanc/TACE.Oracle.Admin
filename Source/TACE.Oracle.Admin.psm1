@@ -14,7 +14,7 @@
     Copyright © TACE Data Management Inc.
     Published name : TACE.Oracle.Admin
     Internal name  : OracleAdmin
-    Version        : 0.2.1
+    Version        : 0.2.2
     Stage          : 1 — Foundation
 
     This file is the head of the built module. Build-Module.ps1 copies it to the top of
