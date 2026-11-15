@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 function Invoke-OraEnv {
     <#
@@ -22,6 +22,7 @@ function Invoke-OraEnv {
         Aliases : oraset, oraenv (declared by the [Alias()] attribute below; rule C-30)
     #>
     [CmdletBinding()]
+    [OutputType([void])]
     [Alias('oraset', 'oraenv')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
         Justification = 'Interactive terminal wrapper: shows the failure message to the user (rule C-31).')]

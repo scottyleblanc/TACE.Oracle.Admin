@@ -4,7 +4,7 @@
     Touches: Nothing. Reads the $IsWindows automatic variable only.
 #>
 
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 Describe 'Test-WindowsPlatform' {
 

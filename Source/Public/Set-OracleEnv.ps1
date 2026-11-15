@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 function Set-OracleEnv {
     <#
@@ -48,6 +48,7 @@ function Set-OracleEnv {
         Profile alias: oraset
     #>
     [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([PSCustomObject])]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
         Justification = 'Interactive: presents an instance menu and confirms the change at the terminal (rule C-31).')]
     param(
@@ -162,10 +163,10 @@ function Set-OracleEnv {
         }
         else {
             # Validate the supplied SID against discovered instances
-            $match = @($databases | Where-Object { $_.SID -eq $SID })
+            $match = @($databases | Where-Object { $PSItem.SID -eq $SID })
 
             if ($match.Count -eq 0) {
-                $validList = ($databases | ForEach-Object { $_.SID }) -join ', '
+                $validList = ($databases | ForEach-Object { $PSItem.SID }) -join ', '
                 return [PSCustomObject]@{
                     Success = $false
                     Data    = $null
@@ -175,7 +176,7 @@ function Set-OracleEnv {
         }
 
         # Check service status, ORACLE_HOME, and ORACLE_BASE for the resolved SID
-        $resolved = @($databases | Where-Object { $_.SID -eq $SID })
+        $resolved = @($databases | Where-Object { $PSItem.SID -eq $SID })
         if ($resolved.Count -gt 0 -and $resolved[0].Status -ne 'Running') {
             $serviceWarning = "[Set-OracleEnv] OracleService$SID is $($resolved[0].Status)."
         }
@@ -235,7 +236,7 @@ function Set-OracleEnv {
         return [PSCustomObject]@{
             Success = $false
             Data    = $null
-            Message = "Set-OracleEnv failed: $($_.Exception.Message)"
+            Message = "Set-OracleEnv failed: $($PSItem.Exception.Message)"
         }
     }
 }

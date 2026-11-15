@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Reads the OracleBackup JSON configuration file and returns the config object.
@@ -82,7 +82,7 @@ function Get-OracleBackupConfigStore {
     }
     else {
         # In the built module $PSScriptRoot is the version folder, which holds the .psm1.
-        $resolved = Join-Path $PSScriptRoot 'Config' 'OracleBackup.json'
+        $resolved = Join-Path -Path $PSScriptRoot -ChildPath 'Config' -AdditionalChildPath 'OracleBackup.json'
         [System.IO.Path]::GetFullPath($resolved)
     }
 

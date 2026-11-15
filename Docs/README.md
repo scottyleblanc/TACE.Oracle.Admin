@@ -13,7 +13,7 @@ scripted automation.
 
 See [PREREQUISITES.md](PREREQUISITES.md) for full details.
 
-- PowerShell 7.0 or later
+- PowerShell 7.6 or later
 - Windows or Linux
 - Oracle 19c client or server installation (for `Set-OracleEnv` to be useful)
 - Windows: instance discovery via `Win32_Service` (WMI)

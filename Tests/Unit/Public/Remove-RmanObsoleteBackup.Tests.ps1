@@ -14,7 +14,7 @@
     - Message property contains no credential fragments
 #>
 
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 Describe 'Remove-RmanObsoleteBackup' {
 
@@ -80,6 +80,26 @@ Describe 'Remove-RmanObsoleteBackup' {
         It 'Supports Confirm' {
             $cmd = Get-Command Remove-RmanObsoleteBackup
             $cmd.Parameters.ContainsKey('Confirm') | Should -Be $true
+        }
+
+        It 'S10 WalletAlias pattern accepts <Alias>' -Tag 'SEC' -ForEach @(
+            @{ Alias = '' }, @{ Alias = 'PROD_DB' }, @{ Alias = 'prod-db.example.com' }
+        ) {
+            $param = (Get-Command Remove-RmanObsoleteBackup).Parameters['WalletAlias']
+            $pattern = $param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidatePatternAttribute] }
+            $pattern | Should -Not -BeNullOrEmpty
+            $Alias | Should -Match $pattern.RegexPattern
+        }
+
+        It 'S10 WalletAlias refuses <Case> at the call' -Tag 'SEC' -ForEach @(
+            @{ Case = 'a newline';   Alias = "PROD`nHOST 'calc'" }
+            @{ Case = 'a trailing newline'; Alias = "PROD`n" }
+            @{ Case = 'a semicolon'; Alias = 'PROD;DELETE' }
+            @{ Case = 'a space';     Alias = 'PROD DB' }
+            @{ Case = 'a quote';     Alias = "PROD'" }
+        ) {
+            { Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -WalletAlias $Alias -WhatIf } |
+                Should -Throw -ErrorId 'ParameterArgumentValidationError,Remove-RmanObsoleteBackup'
         }
     }
 

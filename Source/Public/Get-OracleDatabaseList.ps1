@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 function Get-OracleDatabaseList {
     <#
@@ -39,9 +39,13 @@ function Get-OracleDatabaseList {
         Version : 0.2.1
     #>
     [CmdletBinding()]
+    [OutputType([PSCustomObject])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Measure-C14PathWithJoinPath', '',
+        Justification = 'ORACLE_BASE is derived from a Linux ORACLE_HOME with -join ''/'' so the separator stays / on every platform; Join-Path would use \ on Windows, where the Linux branch is unit-tested (rule C-14).')]
     param(
         [Parameter()]
-        [string] $Platform = $(if ($IsWindows) { 'Windows' } elseif ($IsLinux) { 'Linux' } else { 'Unsupported' })
+        [ValidateSet('Windows', 'Linux', 'Unsupported')]
+        [string] $Platform =$(if ($IsWindows) { 'Windows' } elseif ($IsLinux) { 'Linux' } else { 'Unsupported' })
     )
 
     Set-StrictMode -Version Latest
@@ -51,8 +55,10 @@ function Get-OracleDatabaseList {
     # INVARIANTS
     #
     # PRE-CONDITIONS
-    #   P1 Platform is 'Windows' or 'Linux'. Any other value is refused.
-    #       Guard: the final else branch returns Success = $false.
+    #   P1 Platform is 'Windows', 'Linux' or 'Unsupported', the value detection gives on
+    #       any other OS. Any other value is refused at the call; 'Unsupported' reaches
+    #       the final else branch, which returns Success = $false (rule C-07).
+    #       Type: ValidateSet('Windows', 'Linux', 'Unsupported').
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 No Oracle connection is made and no credential is read.
@@ -99,10 +105,10 @@ function Get-OracleDatabaseList {
 
             $databases = @($services | ForEach-Object {
                 # PathName may be quoted ("C:\...\bin\ORACLE.EXE" args) or unquoted
-                $exePath = if ($_.PathName -match '^"([^"]+)"') {
+                $exePath = if ($PSItem.PathName -match '^"([^"]+)"') {
                     $Matches[1]
-                } elseif (-not [string]::IsNullOrWhiteSpace($_.PathName)) {
-                    ($_.PathName -split '\s+')[0]
+                } elseif (-not [string]::IsNullOrWhiteSpace($PSItem.PathName)) {
+                    ($PSItem.PathName -split '\s+')[0]
                 } else {
                     $null
                 }
@@ -125,9 +131,9 @@ function Get-OracleDatabaseList {
                 }
 
                 [PSCustomObject]@{
-                    SID         = $_.Name -replace '^OracleService', ''
-                    Status      = $_.State
-                    ServiceName = $_.Name
+                    SID         = $PSItem.Name -replace '^OracleService', ''
+                    Status      = $PSItem.State
+                    ServiceName = $PSItem.Name
                     OracleHome  = $oracleHome
                     OracleBase  = $oracleBase
                 }
@@ -150,9 +156,9 @@ function Get-OracleDatabaseList {
 
             $databases = @($lines | ForEach-Object {
                 # Skip blank lines and comments
-                if ([string]::IsNullOrWhiteSpace($_) -or $_ -match '^\s*#') { return }
+                if ([string]::IsNullOrWhiteSpace($PSItem) -or $PSItem -match '^\s*#') { return }
 
-                $parts = $_ -split ':'
+                $parts = $PSItem -split ':'
                 if ($parts.Count -lt 2) { return }
 
                 $sid        = $parts[0].Trim()
@@ -214,7 +220,7 @@ function Get-OracleDatabaseList {
         return [PSCustomObject]@{
             Success = $false
             Data    = $null
-            Message = "Failed to query Oracle database services: $($_.Exception.Message)"
+            Message = "Failed to query Oracle database services: $($PSItem.Exception.Message)"
         }
     }
 }

@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 <#
 .SYNOPSIS
@@ -17,7 +17,7 @@
       - Return object shape is correct: Success, Data, Message
 
     Requirements:
-      - PowerShell 7.0+
+      - PowerShell 7.6+
       - AWS CLI configured with credentials for the staging bucket
       - Run on Linux
 
@@ -37,6 +37,8 @@
 #>
 
 [CmdletBinding()]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
+    Justification = 'Console test tool: reports each check at the terminal. Scripts\ are not module code (decision 25).')]
 param(
     [Parameter(Mandatory)]
     [ValidatePattern('^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$')]
@@ -58,13 +60,17 @@ $passed    = 0
 $failed    = 0
 $results   = @()
 
-function Write-Pass ([string] $Test) {
+function Write-Pass {
+    [OutputType([void])]
+    param([string] $Test)
     $script:passed++
     $script:results += [PSCustomObject]@{ Result = 'PASS'; Test = $Test }
     Write-Host "[PASS] $Test"
 }
 
-function Write-Fail ([string] $Test, [string] $Detail) {
+function Write-Fail {
+    [OutputType([void])]
+    param([string] $Test, [string] $Detail)
     $script:failed++
     $script:results += [PSCustomObject]@{ Result = 'FAIL'; Test = $Test; Detail = $Detail }
     Write-Host "[FAIL] $Test"
@@ -89,9 +95,9 @@ try {
     }
 
     $versions = @($s3List |
-        Where-Object { $_ -match 'PRE\s+([\d.]+)/' } |
+        Where-Object { $PSItem -match 'PRE\s+([\d.]+)/' } |
         ForEach-Object { $Matches[1] } |
-        Sort-Object { [System.Version]$_ })
+        Sort-Object { [System.Version]$PSItem })
 
     if ($versions.Count -eq 0) {
         Write-Error "[Test-LinuxBuild] No versioned builds found at $s3Prefix"
@@ -106,7 +112,7 @@ try {
 
     $s3NupkgList = aws s3 ls $s3NupkgPrefix 2>&1
     $nupkgKey = @($s3NupkgList |
-        Where-Object { $_ -match '(TACE\.Oracle\.Admin\.\S+\.nupkg)' } |
+        Where-Object { $PSItem -match '(TACE\.Oracle\.Admin\.\S+\.nupkg)' } |
         ForEach-Object { $Matches[1] })
 
     if ($nupkgKey.Count -eq 0) {
@@ -142,7 +148,7 @@ try {
         Write-Pass 'Module imports without error'
     }
     catch {
-        Write-Fail 'Module imports without error' $_.Exception.Message
+        Write-Fail 'Module imports without error' $PSItem.Exception.Message
     }
 
     # -- Smoke tests ---------------------------------------------------------
@@ -183,14 +189,14 @@ try {
 
         if ($result.Success) {
             Write-Pass 'Get-OracleDatabaseList returns Success=$true'
-            Write-Host "       Found $(@($result.Data).Count) instance(s): $(($result.Data | ForEach-Object { $_.SID }) -join ', ')"
+            Write-Host "       Found $(@($result.Data).Count) instance(s): $(($result.Data | ForEach-Object { $PSItem.SID }) -join ', ')"
         }
         else {
             Write-Fail 'Get-OracleDatabaseList returns Success=$true' $result.Message
         }
     }
     catch {
-        Write-Fail 'Get-OracleDatabaseList runs without exception' $_.Exception.Message
+        Write-Fail 'Get-OracleDatabaseList runs without exception' $PSItem.Exception.Message
     }
 
     # Message is safe to log (no credential fragments)
@@ -204,7 +210,7 @@ try {
         }
     }
     catch {
-        Write-Fail 'Get-OracleDatabaseList Message contains no credential fragments' $_.Exception.Message
+        Write-Fail 'Get-OracleDatabaseList Message contains no credential fragments' $PSItem.Exception.Message
     }
 }
 finally {
@@ -230,9 +236,9 @@ finally {
     if ($failed -gt 0) {
         Write-Host ''
         Write-Host '[Test-LinuxBuild] Failures:'
-        $results | Where-Object { $_.Result -eq 'FAIL' } | ForEach-Object {
-            Write-Host "  [FAIL] $($_.Test)"
-            if ($_.Detail) { Write-Host "         $($_.Detail)" }
+        $results | Where-Object { $PSItem.Result -eq 'FAIL' } | ForEach-Object {
+            Write-Host "  [FAIL] $($PSItem.Test)"
+            if ($PSItem.Detail) { Write-Host "         $($PSItem.Detail)" }
         }
         exit 1
     }

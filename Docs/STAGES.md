@@ -131,7 +131,7 @@ is ratified, rejected or deferred; each standard is one sentence plus one exampl
 
 **Goal:** one command runs every machine check.
 
-**Deliverables:** extended `PSScriptAnalyzerSettings.psd1`; custom rules for
+**Deliverables:** extended `Tests\Lint\PSScriptAnalyzerSettings.psd1`; custom rules for
 house standards that can be machine-checked; secret scanning;
 `Scripts\Invoke-Gate.ps1` as the single entry point.
 

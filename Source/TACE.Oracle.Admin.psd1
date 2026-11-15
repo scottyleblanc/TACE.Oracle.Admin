@@ -16,7 +16,7 @@
     Description       = 'PowerShell Core 7+ module for Oracle DBA environment management. Discovers Oracle instances on Windows (via WMI) and Linux (via /etc/oratab), sets ORACLE_SID, ORACLE_HOME, and ORACLE_BASE for the current session, and provides interactive and scripted DBA tooling.'
 
     # Requirements
-    PowerShellVersion = '7.0'
+    PowerShellVersion = '7.6'
 
     # FunctionsToExport, AliasesToExport and FileList are not kept here. The build
     # (Scripts\Build-Module.ps1) generates them into the built manifest: functions from

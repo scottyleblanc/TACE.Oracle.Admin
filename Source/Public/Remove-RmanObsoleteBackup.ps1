@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Removes RMAN backup pieces marked obsolete per the configured retention policy.
@@ -43,6 +43,7 @@ function Remove-RmanObsoleteBackup {
         [string]$DatabaseName,
 
         [Parameter()]
+        [ValidatePattern('^[A-Za-z0-9_.-]*\z')]
         [string]$WalletAlias = '',
 
         [Parameter()]
@@ -82,6 +83,10 @@ function Remove-RmanObsoleteBackup {
     #   [SEC] S9 The RMAN script is fixed text. No parameter value is placed in it, and
     #       there is no catalog parameter. S6 and S7 are retired with those parameters.
     #       Test: 'S9 RMAN script is fixed text and no catalog parameter exists'.
+    #   [SEC] S10 WalletAlias holds only letters, digits, _, . and -, so it cannot add a
+    #       line or a command to the CONNECT text written to RMAN's stdin, or an
+    #       argument to tnsping.
+    #       Type: ValidatePattern('^[A-Za-z0-9_.-]*\z'); the empty default passes.
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws once its

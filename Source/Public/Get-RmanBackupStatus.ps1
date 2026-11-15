@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Returns the status of the most recently completed RMAN backup.
@@ -51,6 +51,7 @@ function Get-RmanBackupStatus {
         [string]$DatabaseName,
 
         [Parameter()]
+        [ValidatePattern('^[A-Za-z0-9_.-]*\z')]
         [string]$WalletAlias = '',
 
         [Parameter()]
@@ -85,6 +86,10 @@ function Get-RmanBackupStatus {
     #       Static: none yet.
     #   [SEC] S4 Data.RawLog holds RMAN output as scrubbed by Invoke-RmanProcess.
     #       Limitation: it is only as clean as that scrub. See Invoke-CredentialScrub S2.
+    #   [SEC] S6 WalletAlias holds only letters, digits, _, . and -, so it cannot add a
+    #       line or a command to the CONNECT text written to RMAN's stdin, or an
+    #       argument to tnsping.
+    #       Type: ValidatePattern('^[A-Za-z0-9_.-]*\z'); the empty default passes.
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws once its

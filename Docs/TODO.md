@@ -54,9 +54,9 @@ later stage is measured against.
 
 ### Stack 1 — Intent
 
-**Goal:** every rule the code must follow is written down — the ratified standards, and
+**Goal:** every rule the code must follow is specified — the ratified standards, and
 an invariant block in every function naming what enforces each entry — and every gap
-found while writing them is either fixed or accepted as a stated limitation.
+found while specifying them is either fixed or accepted as a stated limitation.
 
 - [x] List the candidate standards; mark each ratified, rejected or deferred —
       see `Docs\standards\decisions.md`
@@ -156,11 +156,39 @@ planted lint violation and a planted secret.
         linter's source folders and its source-to-test lookup (I-09), the publish
         script, and the README and PREREQUISITES instructions. `Test-LinuxBuild.ps1`
         installs from the package and needed only its example path changed
-- [ ] Extend `PSScriptAnalyzerSettings.psd1` from the ratified standards. Decide whether
-      the analyzer covers `Scripts\`, and with which settings: those console tools use
-      `Write-Host` throughout, and C-31 covers module code only
-- [ ] Write custom analyzer rules for house standards that can be machine-checked, in
-      `Tests\Lint\PSScriptAnalyzerRules\`
+- [x] Extend `Tests\Lint\PSScriptAnalyzerSettings.psd1` from the ratified standards
+      (decision 25):
+      - Settings moved from the repository root to `Tests\Lint\`, and out of the package;
+        a committed `.vscode\settings.json` points the editor at them
+      - PSScriptAnalyzer pinned to 1.25.0. Coverage is `Source\`, `Scripts\` and
+        `Tests\Lint\`, not `*.Tests.ps1`. Every finding fails, Information included
+      - `Scripts\` console tools carry one script-level `Write-Host` suppression each
+      - Built-in rules cover C-04, C-06, C-31, S-01, S-03 and S-13. C-05, C-09, C-10,
+        C-11, C-14, C-15, C-17 and C-18 need custom rules (next item)
+      - Fixed in `Source\`: three positional `Join-Path` calls. `Set-RestrictiveAcl` is
+        suppressed for `ShouldProcess`, pending the inherited `-WhatIf` item below
+      - Minimum PowerShell raised to 7.6 LTS (decision 24); the compatibility rules
+        are not used, because their bundled profiles stop at 7.0
+      - First run: 130 findings under the old settings and coverage; 0 now, over 22 files.
+        The gate's version check comes with `Invoke-Gate.ps1`
+- [x] Write custom analyzer rules for house standards that can be machine-checked, in
+      `Tests\Lint\PSScriptAnalyzerRules\` (decision 26):
+      - [x] Nine rules, one file each: C-05, C-08, C-09, C-10, C-11, C-14, C-15, C-17,
+            C-18. Loaded by the settings file next to the built-in rules
+      - [x] `Tests\Static\PSScriptAnalyzerRules.Tests.ps1`: what each rule must report and
+            what it must not, plus loading and suppression; 44 tests
+      - [x] First run: 46 violations of ratified rules that nothing had checked, now fixed:
+            25 uses of `$_`, 5 functions without `[OutputType()]`, 2 untyped predicate
+            parameters, 1 backtick continuation (splatted now). C-14 was narrowed to path
+            contexts after 7 false positives; the one deliberate `-join '/'` is suppressed
+            with the reason
+      - [x] C-10: three public parameters had no `[Validate*]` attribute.
+            `Get-OracleDatabaseList -Platform` takes `ValidateSet('Windows', 'Linux',
+            'Unsupported')`: an unknown value now throws, and `'Unsupported'` still
+            reaches the C-07 branch. [SEC] `-WalletAlias` on `Get-RmanBackupStatus` and
+            `Remove-RmanObsoleteBackup` takes `ValidatePattern('^[A-Za-z0-9_.-]*\z')`,
+            so it cannot inject into RMAN's stdin (S6, S10)
+      - The static tier takes about 18 s longer: each fixture loads the rule modules
 - [ ] Static checks for the build's own rules: a public file that defines a second
       function, or a source manifest that declares `FunctionsToExport`, fails the build
       (C-28, C-29). The build enforces both today; nothing proves it does

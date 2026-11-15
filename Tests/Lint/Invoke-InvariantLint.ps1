@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Checks the INVARIANTS block of every function and builds the invariant index.
@@ -96,7 +96,7 @@ try {
         $parseErrors = $null
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$parseErrors)
         $functions = @($ast.FindAll(
-                { param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] },
+                { param([System.Management.Automation.Language.Ast]$node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] },
                 $false))
 
         foreach ($function in $functions) {

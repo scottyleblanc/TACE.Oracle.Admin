@@ -28,7 +28,7 @@ Install-Module 'TACE.Oracle.Admin' -Scope AllUsers
 
 ### Requirements
 
-- PowerShell 7.0 or later
+- PowerShell 7.6 or later
 - Windows or Linux
 - Windows: Oracle Database or Client installation (provides `OracleService*` Windows services)
 - Linux: `/etc/oratab` populated by the Oracle installer

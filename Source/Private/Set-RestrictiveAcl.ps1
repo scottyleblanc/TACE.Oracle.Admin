@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Applies restrictive ACLs to a file or directory at creation time.
@@ -40,6 +40,8 @@
 #>
 function Set-RestrictiveAcl {
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
+        Justification = 'Private helper called inside the caller''s ShouldProcess gate. Whether it needs a gate of its own is decided by the inherited -WhatIf item in TODO.md (Stack 2).')]
     [OutputType([void])]
     param(
         [Parameter(Mandatory)]

@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Parses raw RMAN LIST BACKUP SUMMARY output into structured backup records.

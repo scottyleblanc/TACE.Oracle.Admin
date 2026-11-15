@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 # Static tier. Reads source text only; it does not import the module or run a function.
 # The linter (Tests\Lint\Invoke-InvariantLint.ps1) holds the rules. This file turns its

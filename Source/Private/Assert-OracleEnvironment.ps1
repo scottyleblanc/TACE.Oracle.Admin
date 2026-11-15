@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 <#
 .SYNOPSIS
     Validates the Oracle environment before any RMAN operation is attempted.
@@ -269,7 +269,7 @@ function Assert-OracleEnvironment {
         }
 
         # Resolve binary path explicitly from OracleHome\bin — never from PATH
-        $binaryPath = Join-Path $resolvedHome 'bin' $Binary
+        $binaryPath = Join-Path -Path $resolvedHome -ChildPath 'bin' -AdditionalChildPath $Binary
 
         if (-not (Test-Path -Path $binaryPath -PathType Leaf)) {
             throw "Oracle binary '$Binary' not found at expected path: '$binaryPath'"
@@ -295,15 +295,17 @@ function Assert-OracleEnvironment {
         if (-not [string]::IsNullOrWhiteSpace($WalletAlias)) {
             Write-Verbose "[Assert-OracleEnvironment] Validating wallet alias '$WalletAlias' via tnsping"
 
-            $tnspingPath = Join-Path $resolvedHome 'bin' 'tnsping.exe'
+            $tnspingPath = Join-Path -Path $resolvedHome -ChildPath 'bin' -AdditionalChildPath 'tnsping.exe'
             if (-not (Test-Path -Path $tnspingPath -PathType Leaf)) {
                 throw "tnsping.exe not found at expected path: '$tnspingPath'. Cannot validate wallet alias '$WalletAlias'."
             }
 
-            $tnsResult = Invoke-TnspingProcess `
-                -TnspingPath $tnspingPath `
-                -WalletAlias $WalletAlias `
-                -OracleHome  $resolvedHome
+            $tnspingParams = @{
+                TnspingPath = $tnspingPath
+                WalletAlias = $WalletAlias
+                OracleHome  = $resolvedHome
+            }
+            $tnsResult = Invoke-TnspingProcess @tnspingParams
 
             # [SEC] Scrub tnsping output before inclusion in any error message
             $tnsOutScrubbed = Invoke-CredentialScrub -Content $tnsResult.StdOut

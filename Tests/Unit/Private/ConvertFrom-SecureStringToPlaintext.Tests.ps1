@@ -16,7 +16,7 @@
     - Throw message does not contain the input plaintext value
 #>
 
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 Describe 'ConvertFrom-SecureStringToPlaintext' {
 

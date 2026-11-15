@@ -20,7 +20,7 @@
     - Returned binary path is always rooted under the validated OracleHome
 #>
 
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 Describe 'Assert-OracleEnvironment' {
 

@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 <#
 .SYNOPSIS
@@ -35,6 +35,8 @@
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
+    Justification = 'Console sync tool: reports each upload at the terminal. Scripts\ are not module code (decision 25).')]
 param(
     [Parameter(Mandatory)]
     [ValidatePattern('^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$')]

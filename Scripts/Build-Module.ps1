@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 <#
 .SYNOPSIS
@@ -16,7 +16,7 @@
             TACE.Oracle.Admin.psm1        Source\TACE.Oracle.Admin.psm1, then every file
                                           in Source\Classes\, Source\Private\ and
                                           Source\Public\, in that order
-            README.md, LICENSE, PSScriptAnalyzerSettings.psd1
+            README.md, LICENSE
         Package\
           <version>\                      local NuGet repository (.nupkg), -Package only
 
@@ -66,7 +66,7 @@
 .NOTES
     Copyright © TACE Data Management Inc.
     Module  : TACE.Oracle.Admin
-    Requires: PowerShell 7.0+; with -Package, Microsoft.PowerShell.PSResourceGet and git;
+    Requires: PowerShell 7.6+; with -Package, Microsoft.PowerShell.PSResourceGet and git;
               with -S3Bucket, the AWS CLI
     **Invocation:** Standalone — run from a checkout; every path is resolved from this
     script's location. Replaces Output\TACE.Oracle.Admin\<version>\. With -Package it
@@ -75,6 +75,8 @@
 #>
 
 [CmdletBinding()]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
+    Justification = 'Console build tool: reports progress and the package contents at the terminal. Scripts\ are not module code (decision 25).')]
 param(
     [Parameter()]
     [switch] $Package,
@@ -103,7 +105,6 @@ $sourceRoot = Join-Path -Path $repoRoot -ChildPath 'Source'
 $rootFiles = @(
     'README.md'
     'LICENSE'
-    'PSScriptAnalyzerSettings.psd1'
 )
 
 # Merge order (C-28): classes, then private, then public.
@@ -179,7 +180,7 @@ foreach ($entry in @($sourceFiles | Where-Object { $PSItem.Folder -eq 'Public' }
 
     $expected  = $entry.File.BaseName
     $functions = @($ast.FindAll(
-            { param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] },
+            { param([System.Management.Automation.Language.Ast]$node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] },
             $false))
     if ($functions.Count -ne 1 -or $functions[0].Name -ne $expected) {
         $found = ($functions | ForEach-Object { $PSItem.Name }) -join ', '

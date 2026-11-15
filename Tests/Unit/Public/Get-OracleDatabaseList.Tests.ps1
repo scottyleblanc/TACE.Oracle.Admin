@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0' }
 
 BeforeAll {
@@ -14,10 +14,16 @@ Describe 'Get-OracleDatabaseList' {
             { Get-OracleDatabaseList } | Should -Not -Throw
         }
 
-        It 'Returns a structured error for an unknown platform value' {
-            $result = Get-OracleDatabaseList -Platform 'BOGUS'
-            $result.Success | Should -BeFalse
-            $result.PSObject.Properties.Name | Should -Contain 'Message'
+        It 'P1 Platform accepts only Windows, Linux and Unsupported' {
+            $param = (Get-Command Get-OracleDatabaseList).Parameters['Platform']
+            $set = $param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidateSetAttribute] }
+            $set | Should -Not -BeNullOrEmpty
+            @($set.ValidValues | Sort-Object) | Should -Be @('Linux', 'Unsupported', 'Windows')
+        }
+
+        It 'P1 throws a parameter error for an unknown platform value' {
+            { Get-OracleDatabaseList -Platform 'BOGUS' } |
+                Should -Throw -ErrorId 'ParameterArgumentValidationError,Get-OracleDatabaseList'
         }
     }
 

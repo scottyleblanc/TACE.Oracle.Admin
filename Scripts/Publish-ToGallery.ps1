@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 <#
 .SYNOPSIS
@@ -33,6 +33,8 @@
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
+    Justification = 'Console publish tool: reports each step at the terminal. Scripts\ are not module code (decision 25).')]
 param(
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]

@@ -20,7 +20,7 @@
     - TimeoutSeconds ValidateRange rejects values outside 1..86400
 #>
 
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 Describe 'Invoke-RmanProcess' {
 

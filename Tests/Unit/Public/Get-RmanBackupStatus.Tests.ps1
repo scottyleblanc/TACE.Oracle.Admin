@@ -12,7 +12,7 @@
     - Assert-OracleEnvironment binary integrity check failure returns safe result
 #>
 
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 Describe 'Get-RmanBackupStatus' {
 
@@ -98,6 +98,26 @@ Recovery Manager complete.
             $hasAttr = $param.Attributes |
                 Where-Object { $_ -is [System.Management.Automation.ValidateNotNullOrEmptyAttribute] }
             $hasAttr | Should -Not -BeNullOrEmpty
+        }
+
+        It 'S6 WalletAlias pattern accepts <Alias>' -Tag 'SEC' -ForEach @(
+            @{ Alias = '' }, @{ Alias = 'PROD_DB' }, @{ Alias = 'prod-db.example.com' }
+        ) {
+            $param = (Get-Command Get-RmanBackupStatus).Parameters['WalletAlias']
+            $pattern = $param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidatePatternAttribute] }
+            $pattern | Should -Not -BeNullOrEmpty
+            $Alias | Should -Match $pattern.RegexPattern
+        }
+
+        It 'S6 WalletAlias refuses <Case> at the call' -Tag 'SEC' -ForEach @(
+            @{ Case = 'a newline';   Alias = "PROD`nHOST 'calc'" }
+            @{ Case = 'a trailing newline'; Alias = "PROD`n" }
+            @{ Case = 'a semicolon'; Alias = 'PROD;DELETE' }
+            @{ Case = 'a space';     Alias = 'PROD DB' }
+            @{ Case = 'a quote';     Alias = "PROD'" }
+        ) {
+            { Get-RmanBackupStatus -DatabaseName 'ORCL' -WalletAlias $Alias } |
+                Should -Throw -ErrorId 'ParameterArgumentValidationError,Get-RmanBackupStatus'
         }
     }
 

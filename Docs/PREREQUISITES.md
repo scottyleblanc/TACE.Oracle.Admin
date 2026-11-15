@@ -4,10 +4,10 @@
 
 | Requirement | Value |
 |---|---|
-| Minimum | PowerShell 7.0 |
-| Tested against | PowerShell 7.4 LTS |
+| Minimum | PowerShell 7.6 LTS |
+| Tested against | PowerShell 7.6 LTS |
 
-All `.ps1` files carry `#Requires -Version 7.0`. The module will not load on
+All `.ps1` files carry `#Requires -Version 7.6`. The module will not load on
 Windows PowerShell 5.1.
 
 ## External Tools
@@ -34,7 +34,7 @@ PATH is not modified — that is managed by the profile.
 ## Build
 
 The module is built from `Source\` into `Output\TACE.Oracle.Admin\<version>\` (rule
-C-28). The build needs PowerShell 7.0 or later and nothing else. Packaging (`-Package`)
+C-28). The build needs PowerShell 7.6 or later and nothing else. Packaging (`-Package`)
 also needs `Microsoft.PowerShell.PSResourceGet` and git.
 
 ```powershell
@@ -52,6 +52,22 @@ is only needed to import the module by hand or to run one test file.
 | Framework | Pester 5.x |
 | Minimum version | 5.0 |
 | Install | `Install-Module Pester -MinimumVersion 5.0 -Force` |
+| Analyzer | PSScriptAnalyzer 1.25.0, exactly (decision 25) |
+| Install | `Install-PSResource PSScriptAnalyzer -Version 1.25.0` |
+
+The analyzer settings are in `Tests\Lint\PSScriptAnalyzerSettings.psd1`. The analyzer
+covers `Source\`, `Scripts\` and `Tests\Lint\`, but not the `*.Tests.ps1` files.
+The settings load the custom rules in `Tests\Lint\PSScriptAnalyzerRules\` by a path
+relative to the current directory, so run the analyzer from the repository root:
+
+```powershell
+Invoke-ScriptAnalyzer -Path .\Source -Recurse -Settings .\Tests\Lint\PSScriptAnalyzerSettings.psd1
+```
+
+The VS Code PowerShell extension bundles its own analyzer (1.24.0 at the time of
+writing), so live editor results can differ slightly from the pinned version. The
+committed `.vscode\settings.json` points the editor at the same settings file. It takes
+effect only when this repository folder is opened as the workspace.
 
 Each test tier has its own script (rule T-10). Each runs from any working directory,
 writes NUnit XML results to `Tests\TestResults\<tier>.xml`, and exits 1 on any failure.

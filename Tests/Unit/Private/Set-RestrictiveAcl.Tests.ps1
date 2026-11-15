@@ -18,7 +18,7 @@
     - Non-Windows platforms: function is a no-op
 #>
 
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 Describe 'Set-RestrictiveAcl' {
 

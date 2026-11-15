@@ -25,6 +25,20 @@ Stack 2 of the AI Development Stack — deterministic checks. In progress.
 - `.gitattributes` with `* text=auto eol=lf`: every text file is LF in the repository
   and in every checkout, whatever a machine's `core.autocrlf` is. The index was already
   LF, so no file's content changed.
+- Decisions 24 and 25: minimum PowerShell 7.6 LTS, and the analyzer settings.
+- `.vscode/settings.json`, committed as the one exception to the ignored `.vscode/`. It
+  points the editor's live analysis at `Tests/Lint/PSScriptAnalyzerSettings.psd1`.
+- PSScriptAnalyzer pinned to 1.25.0 in `PREREQUISITES.md`, with the folders it covers.
+- A `SuppressMessageAttribute` for `PSAvoidUsingWriteHost`, with a reason, on each
+  console tool in `Scripts/`. Also one for `PSUseShouldProcessForStateChangingFunctions`
+  on `Set-RestrictiveAcl`, pending the inherited `-WhatIf` item in `TODO.md`.
+- Custom PSScriptAnalyzer rules in `Tests/Lint/PSScriptAnalyzerRules/` (decision 26),
+  one per house rule the built-in rules do not cover: C-05 output type, C-08 platform
+  detection, C-09 parameter types, C-10 public parameter validation, C-11 backtick
+  continuation, C-14 string-built paths, C-15 file encoding, C-17 `$_`, C-18 emojis.
+  The settings file loads them next to the built-in rules.
+- `Tests/Static/PSScriptAnalyzerRules.Tests.ps1`: what each custom rule must report and
+  what it must not.
 
 ### Changed
 
@@ -44,6 +58,38 @@ Stack 2 of the AI Development Stack — deterministic checks. In progress.
   `build/<version>/staging/` folder is no longer used.
 - Rules C-01, C-03, C-28, C-29, C-32, T-02, T-10, I-01 and I-09 examples updated for the
   new paths. The Stack 1 closing tasks are ticked in `TODO.md`.
+- **Breaking:** the minimum PowerShell version is 7.6 LTS, up from 7.0 (decision 24).
+  `#Requires -Version 7.6` on every script and `PowerShellVersion = '7.6'` in the
+  manifest; the module no longer loads on 7.0 to 7.5. Rule C-01, the README,
+  `PREREQUISITES.md` and the WN22-CC-000480 row in `SECURITY.md` updated.
+- `PSScriptAnalyzerSettings.psd1` moved from the repository root to `Tests/Lint/`
+  (decision 25). The settings now report every severity. The file is no longer copied
+  into the built module or the package.
+- `Assert-OracleEnvironment` and `Get-OracleBackupConfigStore`: three `Join-Path` calls
+  now name their parameters, which clears the analyzer's positional-parameter findings.
+  Behaviour is unchanged.
+- Fixed violations of ratified rules found by the new custom rules. Behaviour is
+  unchanged:
+  - C-17: `$_` written `$PSItem` in `Get-OracleDatabaseList`, `Set-OracleEnv` and
+    `Test-LinuxBuild.ps1`
+  - C-05: `[OutputType()]` added to `Get-OracleDatabaseList`, `Set-OracleEnv`,
+    `Invoke-OraEnv` and the two helpers in `Test-LinuxBuild.ps1`
+  - C-09: the AST predicates in `Build-Module.ps1` and `Invoke-InvariantLint.ps1` type
+    their parameter
+  - C-11: the tnsping call in `Assert-OracleEnvironment` is splatted
+- The settings file now loads the custom rules alongside the built-in rules.
+- **Breaking:** `Get-OracleDatabaseList -Platform` takes `ValidateSet('Windows',
+  'Linux', 'Unsupported')` (rule C-10). An unknown value now throws a parameter error
+  instead of returning `Success = $false` (rule C-22). `'Unsupported'`, the value
+  detection gives on any other OS, still returns `Success = $false` (rule C-07).
+
+### Security
+
+- **Breaking:** `-WalletAlias` on `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup`
+  accepts only letters, digits, `_`, `.` and `-` (rule C-10, invariants S6 and S10). The
+  alias is written into the `CONNECT` line on RMAN's stdin and passed to tnsping, so a
+  newline, `;`, space or quote could add an RMAN command or an argument. The pattern
+  ends in `\z`, so a trailing newline is refused too. The empty default still passes.
 
 ---
 

@@ -10,7 +10,7 @@
     - ORACLE_BACKUP_CONFIG_PATH does not change the config path (S4)
 #>
 
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 Describe 'Get-OracleBackupConfigStore' {
 

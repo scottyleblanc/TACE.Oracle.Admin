@@ -13,7 +13,7 @@
 
 ## Language and structure
 
-- **C-01** — Every `.ps1` file starts with `#Requires -Version 7.0`.
+- **C-01** — Every `.ps1` file starts with `#Requires -Version 7.6`.
   Example: line 1 of `Source\Public\Set-OracleEnv.ps1`. *Linter.*
 - **C-02** — Every function sets strict mode and stop-on-error as its first statements.
   Example: `Set-StrictMode -Version Latest` then `$ErrorActionPreference = 'Stop'`. *Linter.*

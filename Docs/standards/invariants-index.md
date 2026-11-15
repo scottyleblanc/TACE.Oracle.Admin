@@ -7,9 +7,9 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 | Measure | Count |
 |---|--:|
 | Functions | 14 |
-| Invariants | 153 |
-| Security invariants | 53 |
-| Enforced (type, guard, test or static check in place) | 106 |
+| Invariants | 155 |
+| Security invariants | 55 |
+| Enforced (type, guard, test or static check in place) | 108 |
 | Unproven (test or static check not written yet) | 23 |
 | Unproven security invariants | 13 |
 | Accepted limitations | 24 |
@@ -150,7 +150,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 
 ### Get-OracleDatabaseList
 
-- **P1** Platform is 'Windows' or 'Linux'. Any other value is refused. *(Guard)*
+- **P1** Platform is 'Windows', 'Linux' or 'Unsupported', the value detection gives on any other OS. Any other value is refused at the call; 'Unsupported' reaches the final else branch, which returns Success = $false (rule C-07). *(Type)*
 - **S1** `[SEC]` No Oracle connection is made and no credential is read. *(Static, none yet)*
 - **S2** `[SEC]` The catch block places the raw exception message in Message. *(Limitation)*
 - **R1** Returns Success, Data and Message on every path, and never throws. *(Test)*
@@ -173,6 +173,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S5** `[SEC]` Exception text is scrubbed before it is placed in Message. *(Test, none yet)*
 - **S3** `[SEC]` Credential is handed to Invoke-RmanProcess and to nothing else. It is never logged or returned. *(Static, none yet)*
 - **S4** `[SEC]` Data.RawLog holds RMAN output as scrubbed by Invoke-RmanProcess. *(Limitation)*
+- **S6** `[SEC]` WalletAlias holds only letters, digits, _, . and -, so it cannot add a line or a command to the CONNECT text written to RMAN's stdin, or an argument to tnsping. *(Type)*
 - **R1** Returns Success, Data and Message on every path, and never throws once its parameters are bound. *(Test)*
 - **R2** On success Data is one record, not an array. *(Test)*
 - **R3** The record chosen has the latest CompletionTime. A record with no CompletionTime is chosen only when none has one, by highest Key. *(Test)*
@@ -208,6 +209,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S8** `[SEC]` Exception text is scrubbed before it is placed in Message. *(Test, none yet)*
 - **S5** `[SEC]` The RMAN script holds no credential. *(Test)*
 - **S9** `[SEC]` The RMAN script is fixed text. No parameter value is placed in it, and there is no catalog parameter. S6 and S7 are retired with those parameters. *(Test)*
+- **S10** `[SEC]` WalletAlias holds only letters, digits, _, . and -, so it cannot add a line or a command to the CONNECT text written to RMAN's stdin, or an argument to tnsping. *(Type)*
 - **R1** Returns Success, Data and Message on every path, and never throws once its parameters are bound. *(Test)*
 - **R2** On success Data has DatabaseName, StartTime, EndTime, DurationSec, DeletedCount, AuthMode, RawLog and Applied = $true. *(Test)*
 - **R3** When ShouldProcess declines, or under -WhatIf, RMAN is not run and the return is a preview: Success = $true, Data.Applied = $false, and a Message that starts with 'WhatIf:' (rule C-27). *(Test)*

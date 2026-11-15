@@ -113,6 +113,18 @@ be injected as `ORACLE_SID`.
 **Contract:** The SID allowlist is always derived at runtime from Windows
 service discovery — never from a hardcoded list or user-supplied config file.
 
+**Wallet alias (Stack 2):** `-WalletAlias` on `Get-RmanBackupStatus` and
+`Remove-RmanObsoleteBackup` accepts only letters, digits, `_`, `.` and `-`
+(`ValidatePattern('^[A-Za-z0-9_.-]*\z')`). The alias is written into the
+`CONNECT` line on RMAN's stdin and passed to tnsping, so a newline, `;`, space or
+quote could otherwise add an RMAN command or an argument. The anchor is `\z`, not
+`$`, because `$` also matches before a trailing newline. The tnsping check proves an
+alias resolves; the pattern is what makes it safe to write. Invariants S6 and S10,
+with tests.
+
+**Every public parameter is validated:** rule C-10 is now checked by the analyzer
+(decision 26), so a public parameter with no `[Validate*]` attribute fails the gate.
+
 ---
 
 ### 7. Output Scrubbing
@@ -207,4 +219,4 @@ the credential-handling code during the AI Development Stack work.
 | APSC-DV-003235 | No hardcoded credentials or connection strings | Compliant — none present |
 | WN22-CC-000460 | Safe under script block logging | Compliant — no plaintext in any logged expression |
 | WN22-CC-000470 | No credential-bearing pipeline output | Compliant — no credentials at Stage 1 |
-| WN22-CC-000480 | Requires PS 7.0+ | Compliant — `#Requires -Version 7.0` on all files |
+| WN22-CC-000480 | Requires PS 7.0+ | Compliant — `#Requires -Version 7.6` on all files (stricter than the STIG minimum) |

@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.6
 
 # Static tier. Reads source text only; it does not import the module or run a function.
 #
