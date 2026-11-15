@@ -242,6 +242,18 @@ Describe 'Set-RestrictiveAcl' {
             $exported | Should -Not -Contain 'Set-RestrictiveAcl'
         }
 
+        It 'L1 applies the ACL even when the caller runs under -WhatIf' -Tag 'SEC' -Skip:(-not $IsWindows) {
+            $path = Join-Path $TestDrive 'l1_whatif.txt'
+            $null = New-Item -Path $path -ItemType File -Force
+            InModuleScope TACE.Oracle.Admin -Parameters @{ P = $path } {
+                param($P)
+                # A caller's -WhatIf reaches this function as $WhatIfPreference.
+                $WhatIfPreference = $true
+                Set-RestrictiveAcl -Path $P
+            }
+            (Get-Acl -Path $path).AreAccessRulesProtected | Should -BeTrue
+        }
+
         # [SEC-07] Core regression: child file created inside a secured directory
         # must inherit the restrictive ACEs. This proves ContainerInherit|ObjectInherit
         # is working — with InheritanceFlags::None the child file would have no inherited

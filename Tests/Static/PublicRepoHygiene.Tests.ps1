@@ -8,8 +8,9 @@
 # email addresses and private keys, in every file git tracks or would add.
 #
 # It cannot catch a real resource name that matches no pattern, and it does not read
-# commit messages. Both are covered by the review half of S-16 and by the Stack 2
-# cross-check against the private resource list.
+# commit messages. Both are left to the review half of S-16. A cross-check against a
+# private identifier list is deferred until its design is decided across all public
+# repositories (TODO.md, Stack 2).
 #
 # A failure message shows only the first characters of a match: test output can be
 # published, so it must not repeat the value it found.

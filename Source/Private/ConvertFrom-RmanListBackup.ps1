@@ -72,16 +72,19 @@ function ConvertFrom-RmanListBackup {
     # POST-CONDITIONS
     #   R1 Returns an array of zero or more records, and does not throw on text it cannot
     #       parse.
-    #       Test: none yet.
+    #       Test: 'R1 does not throw on text it cannot parse',
+    #       'R1, P2 gives a null CompletionTime for a completion time in another format, without throwing'.
     #   R2 Empty input, no separator line, or fewer than ten columns gives an empty array.
-    #       Test: none yet.
+    #       Test: 'R2 returns no records for <Case>'.
     #   R3 Each record has Key, Level, Status, DeviceType, CompletionTime, BackupTime,
     #       PieceCount, CopyCount, Compressed and Tag.
-    #       Test: none yet.
+    #       Test: 'R3 returns one record per backup set row with every documented property',
+    #       'R3 maps the level and status codes'.
     #   R4 A level or status code it does not know becomes 'Unknown'.
-    #       Test: none yet.
+    #       Test: 'R4 maps a level or status code it does not know to Unknown'.
     #   R5 BackupTime is null unless the tag has the form TAGyyyyMMddTHHmmss.
-    #       Test: none yet.
+    #       Test: 'R5 reads BackupTime from a tag of the form TAGyyyyMMddTHHmmss',
+    #       'R5 gives a null BackupTime for <Case>'.
     #
     # EXECUTION INVARIANTS
     #   L1 Column positions are taken from the separator line, not hard-coded.

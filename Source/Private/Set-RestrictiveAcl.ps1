@@ -41,7 +41,7 @@
 function Set-RestrictiveAcl {
     [CmdletBinding()]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
-        Justification = 'Private helper called inside the caller''s ShouldProcess gate. Whether it needs a gate of its own is decided by the inherited -WhatIf item in TODO.md (Stack 2).')]
+        Justification = 'Private helper that secures a path the module has just created. It is never previewed: Set-Acl pins -WhatIf:$false (invariant L1).')]
     [OutputType([void])]
     param(
         [Parameter(Mandatory)]
@@ -86,8 +86,11 @@ function Set-RestrictiveAcl {
     #       Test: none yet.
     #
     # EXECUTION INVARIANTS
-    #   L1 Permissions are changed without a ShouldProcess check of its own.
-    #       Limitation: a private helper. The calling function decides.
+    #   L1 Permissions are changed without a ShouldProcess check of its own, and a
+    #       caller's -WhatIf does not skip them: Set-Acl pins -WhatIf:$false. It only
+    #       secures a path the module has just created, so skipping it would leave that
+    #       path open or make the caller fail.
+    #       Test: 'L1 applies the ACL even when the caller runs under -WhatIf'.
     #--------------------------------------------------------------
 
     try {
@@ -141,8 +144,9 @@ function Set-RestrictiveAcl {
         )
         $acl.AddAccessRule($adminRule)
 
-        # Apply the ACL
-        Set-Acl -Path $Path -AclObject $acl
+        # Apply the ACL. -WhatIf:$false: securing a path the module has just created is
+        # never skipped by a caller's -WhatIf (L1).
+        Set-Acl -Path $Path -AclObject $acl -WhatIf:$false
 
         Write-Verbose "[Set-RestrictiveAcl] Restrictive ACL applied to: $Path"
     }

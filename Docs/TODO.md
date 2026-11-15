@@ -189,23 +189,61 @@ planted lint violation and a planted secret.
             `Remove-RmanObsoleteBackup` takes `ValidatePattern('^[A-Za-z0-9_.-]*\z')`,
             so it cannot inject into RMAN's stdin (S6, S10)
       - The static tier takes about 18 s longer: each fixture loads the rule modules
-- [ ] Static checks for the build's own rules: a public file that defines a second
+- [x] Static checks for the build's own rules: a public file that defines a second
       function, or a source manifest that declares `FunctionsToExport`, fails the build
       (C-28, C-29). The build enforces both today; nothing proves it does
-- [ ] T-02 check: `Source\Private\ConvertFrom-RmanListBackup.ps1` has no test file of its
+      - `Tests\Static\BuildModule.Tests.ps1`, 11 tests. Each copies the real
+        `Build-Module.ps1` into a minimal repository on `TestDrive` and plants one
+        defect: a second function, a misnamed function, no function, no public file,
+        or `FunctionsToExport`, `AliasesToExport` or `FileList` in the source manifest
+      - A clean fixture is built first and checked for the generated exports, aliases
+        (C-30) and file list, and for an empty export list kept as an entry
+      - Proven by mutation: removing each of the three build checks fails exactly the
+        tests aimed at it
+- [x] T-02 check: `Source\Private\ConvertFrom-RmanListBackup.ps1` has no test file of its
       own. Found during the layout move; the T-02 linter check will report it
+      - `Tests\Static\SourceTestLayout.Tests.ps1`: one function per source file, named
+        for the file (C-03); a test file for each in the mirrored `Tests\Unit\` folder,
+        and no test file without a source file (T-02)
+      - Run against the previous commit, it reports the three known findings, and
+        nothing else
+      - Fixed:
+        - `Invoke-TnspingProcess` moved out of `Assert-OracleEnvironment.ps1`, and
+          `Invoke-CredentialScrub` out of `Invoke-RmanProcess.ps1`, into files of their
+          own. Their tests moved with them. These were the C-03 known findings at
+          ratification
+        - `ConvertFrom-RmanListBackup.Tests.ps1` is new, with 15 tests. R1 to R5 are now
+          proven, so 18 invariants are unproven, down from 23
 - [ ] [SEC] Add secret scanning. The pattern checks for rule S-16 exist
       (`Tests\Static\PublicRepoHygiene.Tests.ps1`); add with them:
-      - a general secret scanner for credential formats the patterns do not cover
-      - a local-only script that checks changed files, the diff and commit messages
-        against the private resource list, taking its path as a parameter (CI cannot
-        read the private repository); run before every push
+      - a general secret scanner for credential formats the patterns do not cover.
+        Chosen: gitleaks, pinned to 8.30.1 (PREREQUISITES.md). It runs locally and needs
+        no GitHub access. A first scan of all 20 commits and the working tree found
+        nothing, so no allowlist is needed yet. `PublicRepoHygiene.Tests.ps1` stays: it
+        covers identifiers gitleaks does not treat as secrets
+      - ~~a local-only script that checks changed files, the diff and commit messages
+        against the private resource list~~ **Deferred: accepted limitation (2026-11-15).**
+        Where a private identifier list lives, and its format, affects every public
+        repository, not just this one, so it is decided across repositories first.
+        Until then, a real resource name that matches no S-16 pattern (a bucket name,
+        a host name) is caught only by review. This is how the S3 staging bucket name
+        reached this repository's history before v0.2.1. Recorded as an open item in
+        `SECURITY.md`
       - a commit-message check, since the static tier reads files only
-- [ ] Static check: a state-changing call in a function with no `ShouldProcess` gate of
+- [x] Static check: a state-changing call in a function with no `ShouldProcess` gate of
       its own fails the static tier — under an inherited `-WhatIf` it is skipped or
       runs unguarded
-- [ ] Cleanup of temporary files pins `-WhatIf:$false`, so a preview still removes
+      - Rule C-33 (decision 27), custom analyzer rule `Measure-C33ShouldProcessGate`,
+        `Source\` only. 11 tests in `Tests\Static\PSScriptAnalyzerRules.Tests.ps1`
+      - Found and fixed first: a first run under a caller's `-WhatIf` failed, because the
+        default config and its ACL were skipped. The three writes pin `-WhatIf:$false`
+        (L1 in `Get-OracleBackupConfigStore` and `Set-RestrictiveAcl`). Run against
+        the previous commit, the rule reports exactly those three calls; today it
+        reports nothing
+- [x] Cleanup of temporary files pins `-WhatIf:$false`, so a preview still removes
       them; checked statically
+      - Merged into C-33 as one of its cases. `Source\` has no temporary file cleanup
+        today
 - [ ] Create `Scripts\Invoke-Gate.ps1` as the single entry point
 - [ ] Seeded defects: one lint violation, one planted secret
 - [ ] Closing tasks

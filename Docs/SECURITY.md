@@ -175,7 +175,15 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
   binaries are unsigned. See section 4.
 - `Invoke-CredentialScrub` covers one pattern (`user/password@service`). Other
   credential formats would pass through.
-- `Set-RestrictiveAcl` changes file permissions without `ShouldProcess`.
+- `Set-RestrictiveAcl` changes file permissions without `ShouldProcess`. Decided in
+  Stack 2: it only secures a path the module has just created, so it is never skipped
+  by a caller's `-WhatIf` (invariant L1).
+- No check compares this public repository against a list of private identifiers
+  (Stack 2, deferred). The S-16 patterns and gitleaks catch values with a known shape
+  and credentials. A real resource name, such as a bucket or host name, is caught only
+  by review. The design of a private list affects every public repository, so it is
+  decided across repositories first. The S3 staging bucket name is in this
+  repository's history from before v0.2.1.
 - The RMAN functions are Windows only. Off Windows they return `Success = $false`
   before touching the config or RMAN (rule C-07); Linux support is not built.
 - The copied code has had the Stack 1 invariant review, not a STIG assessment. The

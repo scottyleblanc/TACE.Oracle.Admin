@@ -91,6 +91,28 @@ Describe 'Get-OracleBackupConfigStore' {
                 InModuleScope TACE.Oracle.Admin { $script:ConfigPathOverride = $null }
             }
         }
+
+        It 'L1 creates the folder, file and ACL even when the caller runs under -WhatIf' {
+            $target = Join-Path $TestDrive 'l1' 'Config' 'OracleBackup.json'
+            InModuleScope TACE.Oracle.Admin -Parameters @{ Path = $target } {
+                $script:ConfigPathOverride = $Path
+            }
+            try {
+                # A caller's -WhatIf reaches this function as $WhatIfPreference.
+                $result = InModuleScope TACE.Oracle.Admin {
+                    $WhatIfPreference = $true
+                    Get-OracleBackupConfigStore
+                }
+                Test-Path -Path $target -PathType Leaf | Should -BeTrue
+                $result.DefaultAuthMode | Should -Be 'OSAuth'
+                if ($IsWindows) {
+                    (Get-Acl -Path $target).AreAccessRulesProtected | Should -BeTrue
+                }
+            }
+            finally {
+                InModuleScope TACE.Oracle.Admin { $script:ConfigPathOverride = $null }
+            }
+        }
     }
 
     # ── Security ──────────────────────────────────────────────────────────────

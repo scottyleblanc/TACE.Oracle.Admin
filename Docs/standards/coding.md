@@ -25,6 +25,8 @@
   Example: `[OutputType([PSCustomObject])]` directly below `[CmdletBinding()]`. *Linter.*
 - **C-06** — A state-changing public function supports `ShouldProcess`.
   Example: `[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]` on `Remove-RmanObsoleteBackup`. *Linter and Test.*
+- **C-33** — In `Source\`, every call to a cmdlet that accepts `-WhatIf` decides what a preview does with it. Either it sits inside `if ($PSCmdlet.ShouldProcess(...))`, or it comes after an early return when `ShouldProcess` declines, or it passes `-WhatIf` explicitly. `-WhatIf:$false` marks work that must happen even during a preview, such as creating a default config or removing temporary files. Without one of these, a caller's `-WhatIf` reaches the call and silently skips it.
+  Example: `New-Item -Path $configDir -ItemType Directory -Force -WhatIf:$false` in `Get-OracleBackupConfigStore`, which creates the default config as part of reading it. *Linter.*
 - **C-07** — A platform-specific function checks the platform first and returns `Success = $false` anywhere it does not support.
   Example: `if (-not $IsWindows) { return [PSCustomObject]@{ Success = $false; Data = $null; Message = 'Windows only.' } }`. *Test.*
 - **C-08** — Platform is detected with `$IsWindows`, `$IsLinux` or `$IsMacOS`, never from environment variables.

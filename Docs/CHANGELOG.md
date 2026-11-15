@@ -12,6 +12,11 @@ Stack 2 of the AI Development Stack — deterministic checks. In progress.
 
 ### Added
 
+- Rule C-33 and its custom analyzer rule `Measure-C33ShouldProcessGate` (decision 27).
+  In `Source/`, a call to a cmdlet that accepts `-WhatIf` must be inside a
+  `ShouldProcess` gate, after an early return, or pass `-WhatIf` explicitly.
+- gitleaks 8.30.1 as the general secret scanner (`PREREQUISITES.md`). A first scan of the
+  full history and the working tree found nothing.
 - `Scripts/Build-Module.ps1` builds the module: it merges `Source/` (classes, private,
   public) into one `TACE.Oracle.Admin.psm1` under `Output/TACE.Oracle.Admin/<version>/`
   and generates the manifest's `FunctionsToExport`, `AliasesToExport` and `FileList`
@@ -39,6 +44,21 @@ Stack 2 of the AI Development Stack — deterministic checks. In progress.
   The settings file loads them next to the built-in rules.
 - `Tests/Static/PSScriptAnalyzerRules.Tests.ps1`: what each custom rule must report and
   what it must not.
+- `Tests/Static/BuildModule.Tests.ps1`: the build refuses a public file that does not
+  define exactly one function named for the file, a source tree with no public
+  function, and a source manifest that declares a generated list (rules C-28 to C-30).
+  Each test builds a copy of `Build-Module.ps1` against a fixture on `TestDrive`.
+- `Tests/Static/SourceTestLayout.Tests.ps1` checks two rules:
+  - C-03: every source file defines one function, named for the file.
+  - T-02: each function has its own test file in the mirrored `Tests/Unit/` folder, and
+    no test file is left without its source file.
+- `Tests/Unit/Private/ConvertFrom-RmanListBackup.Tests.ps1`: the parser's first tests of
+  its own, which prove invariants R1 to R5.
+- `Source/Private/Invoke-TnspingProcess.ps1` and `Source/Private/Invoke-CredentialScrub.ps1`,
+  each with its own test file. The functions and their tests moved there unchanged, out
+  of `Assert-OracleEnvironment` and `Invoke-RmanProcess` (rule C-03). `Invoke-TnspingProcess`
+  gained comment-based help. Its S2 limitation now names the public callers' alias
+  validation.
 
 ### Changed
 
@@ -82,6 +102,16 @@ Stack 2 of the AI Development Stack — deterministic checks. In progress.
   'Linux', 'Unsupported')` (rule C-10). An unknown value now throws a parameter error
   instead of returning `Success = $false` (rule C-22). `'Unsupported'`, the value
   detection gives on any other OS, still returns `Success = $false` (rule C-07).
+- `Invoke-CredentialScrub` sets `StrictMode` and `$ErrorActionPreference` like every
+  other function. Its help now describes the one pattern it scrubs and names its callers.
+
+### Fixed
+
+- A first run under a caller's `-WhatIf` failed. A caller's `-WhatIf` reached
+  `Get-OracleBackupConfigStore` and skipped creating the default config folder and file.
+  `Set-RestrictiveAcl` then failed on the missing file. The three writes now pin
+  `-WhatIf:$false`, because creating and securing the default config is part of reading
+  it. Invariants L1 in both functions, with a test each.
 
 ### Security
 

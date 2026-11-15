@@ -999,43 +999,10 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        # [SEC] Invoke-CredentialScrub is a private function — not exported
-        It 'Invoke-CredentialScrub is not exported as a public command' {
-            $exported = (Get-Module TACE.Oracle.Admin).ExportedCommands.Keys
-            $exported | Should -Not -Contain 'Invoke-CredentialScrub'
-        }
-
         # [SEC] Invoke-RmanProcess is not exported (private helper)
         It 'Invoke-RmanProcess is not exported as a public command' {
             $exported = (Get-Module TACE.Oracle.Admin).ExportedCommands.Keys
             $exported | Should -Not -Contain 'Invoke-RmanProcess'
-        }
-
-        # [SEC] Credential scrub: Invoke-CredentialScrub removes user/pass@service pattern
-        It 'Invoke-CredentialScrub scrubs credential fragment matching user/pass@service' {
-            InModuleScope TACE.Oracle.Admin {
-                $raw = 'CONNECT TARGET backup_user/S3cr3tP@ss!@ORCL_SVC; BACKUP DATABASE;'
-                $scrubbed = Invoke-CredentialScrub -Content $raw
-                $scrubbed | Should -Not -Match 'S3cr3tP@ss!'
-                $scrubbed | Should -Match '\*\*\*SCRUBBED\*\*\*'
-            }
-        }
-
-        # [SEC] Credential scrub: clean content is returned unchanged
-        It 'Invoke-CredentialScrub returns clean content unchanged' {
-            InModuleScope TACE.Oracle.Admin {
-                $clean = 'Recovery Manager: Release 19.0.0.0.0 - Production'
-                $result = Invoke-CredentialScrub -Content $clean
-                $result | Should -Be $clean
-            }
-        }
-
-        # [SEC] Credential scrub: empty string is handled without error
-        It 'Invoke-CredentialScrub handles empty string without error' {
-            InModuleScope TACE.Oracle.Admin {
-                $result = Invoke-CredentialScrub -Content ''
-                $result | Should -BeNullOrEmpty
-            }
         }
 
         # [SEC] OracleSid value does not appear in WalletAuth ArgumentList

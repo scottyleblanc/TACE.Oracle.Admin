@@ -9,25 +9,12 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 | Functions | 14 |
 | Invariants | 155 |
 | Security invariants | 55 |
-| Enforced (type, guard, test or static check in place) | 108 |
-| Unproven (test or static check not written yet) | 23 |
+| Enforced (type, guard, test or static check in place) | 116 |
+| Unproven (test or static check not written yet) | 17 |
 | Unproven security invariants | 13 |
-| Accepted limitations | 24 |
+| Accepted limitations | 22 |
 
 ## Source/Private/Assert-OracleEnvironment.ps1
-
-### Invoke-TnspingProcess
-
-- **P1** TnspingPath, WalletAlias and OracleHome are non-empty strings. *(Type)*
-- **P2** TimeoutSeconds is between 1 and 300. It defaults to 30. *(Type)*
-- **S1** `[SEC]` ORACLE_HOME and PATH are set on the child process only. The current session environment is not changed, including after a timeout kill. *(Test)*
-- **S2** `[SEC]` WalletAlias is passed as the process argument. It is a connection name, not a credential. *(Limitation)*
-- **S3** `[SEC]` Output is returned as captured, not scrubbed. *(Limitation)*
-- **R1** Returns an object with exactly ExitCode, StdOut and StdErr. *(Test)*
-- **L1** Both output streams are read asynchronously before the wait, so a full stderr pipe cannot stall the process. *(Test)*
-- **L2** The wait is bounded by TimeoutSeconds. A tnsping still running then has its whole process tree killed, and the function throws 'timed out after N seconds and the process was killed'. A failed kill does not replace that error. *(Test)*
-- **L3** The process object is disposed on every path. *(Guard)*
-- **L4** The child PATH starts with OracleHome\bin, built with Join-Path and joined to the inherited PATH with [System.IO.Path]::PathSeparator. *(Test)*
 
 ### Assert-OracleEnvironment
 
@@ -55,11 +42,11 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **P1** RawLog is a string, and may be empty. *(Type)*
 - **P2** Completion times in RawLog are in the form yyyy-MM-dd HH:mm:ss. *(Limitation)*
 - **S1** `[SEC]` It reads RawLog and nothing else: no file, no process, no credential. *(Static, none yet)*
-- **R1** Returns an array of zero or more records, and does not throw on text it cannot parse. *(Test, none yet)*
-- **R2** Empty input, no separator line, or fewer than ten columns gives an empty array. *(Test, none yet)*
-- **R3** Each record has Key, Level, Status, DeviceType, CompletionTime, BackupTime, PieceCount, CopyCount, Compressed and Tag. *(Test, none yet)*
-- **R4** A level or status code it does not know becomes 'Unknown'. *(Test, none yet)*
-- **R5** BackupTime is null unless the tag has the form TAGyyyyMMddTHHmmss. *(Test, none yet)*
+- **R1** Returns an array of zero or more records, and does not throw on text it cannot parse. *(Test)*
+- **R2** Empty input, no separator line, or fewer than ten columns gives an empty array. *(Test)*
+- **R3** Each record has Key, Level, Status, DeviceType, CompletionTime, BackupTime, PieceCount, CopyCount, Compressed and Tag. *(Test)*
+- **R4** A level or status code it does not know becomes 'Unknown'. *(Test)*
+- **R5** BackupTime is null unless the tag has the form TAGyyyyMMddTHHmmss. *(Test)*
 - **L1** Column positions are taken from the separator line, not hard-coded. *(Guard)*
 - **L2** A row whose Key is not a positive integer is skipped. *(Guard)*
 
@@ -86,9 +73,19 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S3** `[SEC]` OracleHome read from the config is untrusted until checked. *(Limitation)*
 - **S4** `[SEC]` No environment variable or caller input decides where the config is read from or created. Only the module-scoped test override can change the path. *(Test)*
 - **R1** Returns an object with all eight settings. A setting missing from the file takes its default. *(Test)*
-- **R2** When the file does not exist it is written with the defaults, and the defaults are returned. *(Test, none yet)*
+- **R2** When the file does not exist it is written with the defaults, and the defaults are returned. *(Test)*
 - **T1** Every throw starts with 'Failed to load OracleBackup configuration from' and names the path. *(Test, none yet)*
-- **L1** The first call can create a folder and a file. It is not under ShouldProcess. *(Limitation)*
+- **L1** The first call creates the folder, the file and its ACL even when the caller runs under -WhatIf: creating the default is part of reading the config, not a change being previewed. The writes pin -WhatIf:$false. *(Test)*
+
+## Source/Private/Invoke-CredentialScrub.ps1
+
+### Invoke-CredentialScrub
+
+- **P1** Content is a string, and may be empty. *(Type)*
+- **S1** `[SEC]` The password in every user/password@service pattern is replaced with ***SCRUBBED***. The user name and the service name are kept. *(Test)*
+- **S2** `[SEC]` A credential in any other format passes through unchanged. *(Limitation)*
+- **R1** Empty content is returned unchanged. *(Test)*
+- **R2** Content with no matching pattern is returned unchanged. *(Test)*
 
 ## Source/Private/Invoke-RmanProcess.ps1
 
@@ -117,13 +114,20 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **L4** The child PATH starts with OracleHome\bin, built with Join-Path and joined to the inherited PATH with [System.IO.Path]::PathSeparator. *(Test)*
 - **L5** A timeout kills the whole process tree. A failed kill does not replace the timeout error, and the killed process is given 5 seconds to exit. *(Guard)*
 
-### Invoke-CredentialScrub
+## Source/Private/Invoke-TnspingProcess.ps1
 
-- **P1** Content is a string, and may be empty. *(Type)*
-- **S1** `[SEC]` The password in every user/password@service pattern is replaced with ***SCRUBBED***. The user name and the service name are kept. *(Test)*
-- **S2** `[SEC]` A credential in any other format passes through unchanged. *(Limitation)*
-- **R1** Empty content is returned unchanged. *(Test)*
-- **R2** Content with no matching pattern is returned unchanged. *(Test)*
+### Invoke-TnspingProcess
+
+- **P1** TnspingPath, WalletAlias and OracleHome are non-empty strings. *(Type)*
+- **P2** TimeoutSeconds is between 1 and 300. It defaults to 30. *(Type)*
+- **S1** `[SEC]` ORACLE_HOME and PATH are set on the child process only. The current session environment is not changed, including after a timeout kill. *(Test)*
+- **S2** `[SEC]` WalletAlias is passed as the process argument. It is a connection name, not a credential. *(Limitation)*
+- **S3** `[SEC]` Output is returned as captured, not scrubbed. *(Limitation)*
+- **R1** Returns an object with exactly ExitCode, StdOut and StdErr. *(Test)*
+- **L1** Both output streams are read asynchronously before the wait, so a full stderr pipe cannot stall the process. *(Test)*
+- **L2** The wait is bounded by TimeoutSeconds. A tnsping still running then has its whole process tree killed, and the function throws 'timed out after N seconds and the process was killed'. A failed kill does not replace that error. *(Test)*
+- **L3** The process object is disposed on every path. *(Guard)*
+- **L4** The child PATH starts with OracleHome\bin, built with Join-Path and joined to the inherited PATH with [System.IO.Path]::PathSeparator. *(Test)*
 
 ## Source/Private/Set-RestrictiveAcl.ps1
 
@@ -138,7 +142,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S4** `[SEC]` On a platform other than Windows nothing is changed. *(Limitation)*
 - **R1** Returns nothing. *(Type)*
 - **T1** Every throw starts with 'Failed to apply restrictive ACL to' and names the path. *(Test, none yet)*
-- **L1** Permissions are changed without a ShouldProcess check of its own. *(Limitation)*
+- **L1** Permissions are changed without a ShouldProcess check of its own, and a caller's -WhatIf does not skip them: Set-Acl pins -WhatIf:$false. It only secures a path the module has just created, so skipping it would leave that path open or make the caller fail. *(Test)*
 
 ## Source/Private/Test-WindowsPlatform.ps1
 

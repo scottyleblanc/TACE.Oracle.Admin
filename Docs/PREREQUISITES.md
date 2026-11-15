@@ -54,6 +54,8 @@ is only needed to import the module by hand or to run one test file.
 | Install | `Install-Module Pester -MinimumVersion 5.0 -Force` |
 | Analyzer | PSScriptAnalyzer 1.25.0, exactly (decision 25) |
 | Install | `Install-PSResource PSScriptAnalyzer -Version 1.25.0` |
+| Secret scanner | gitleaks 8.30.1, exactly. Runs locally; needs no account or network |
+| Install | `winget install --id Gitleaks.Gitleaks --version 8.30.1 --exact` (Linux: the release binary) |
 
 The analyzer settings are in `Tests\Lint\PSScriptAnalyzerSettings.psd1`. The analyzer
 covers `Source\`, `Scripts\` and `Tests\Lint\`, but not the `*.Tests.ps1` files.

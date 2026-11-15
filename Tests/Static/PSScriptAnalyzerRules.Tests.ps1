@@ -38,7 +38,7 @@ Describe 'Custom rule set' {
     It 'loads every rule file, and each reports under its own file name' {
         $files = @(Get-ChildItem -Path $script:ruleDir -Filter '*.psm1' -File)
         $rules = @(Get-ScriptAnalyzerRule -CustomRulePath $script:rulePath | Where-Object { $PSItem.SourceType -ne 'Builtin' })
-        $files.Count | Should -Be 9
+        $files.Count | Should -Be 10
         @($rules.RuleName | Sort-Object) | Should -Be @($files.BaseName | Sort-Object)
     }
 
@@ -174,6 +174,41 @@ Describe 'C-17 Measure-C17UsePSItem' {
     }
     It 'does not report $PSItem, or $_ inside a single-quoted string' {
         Invoke-Rule -Rule 'Measure-C17UsePSItem' -Code '1..2 | ForEach-Object { $PSItem; ''$_'' }' | Should -HaveCount 0
+    }
+}
+
+Describe 'C-33 Measure-C33ShouldProcessGate' {
+    BeforeAll {
+        $script:sourcePath = Join-Path -Path 'Source' -ChildPath 'Private' -AdditionalChildPath 'Set-A.ps1'
+        # Wraps a body in a function that supports ShouldProcess.
+        function New-Gated {
+            param([string] $Body)
+            "function Set-A {`n    [CmdletBinding(SupportsShouldProcess)]`n    param([string] `$Path)`n$Body`n}"
+        }
+    }
+
+    It 'reports <Case>' -ForEach @(
+        @{ Case = 'a write with no ShouldProcess decision'; Body = '    Set-Content -Path $Path -Value 1 -Encoding UTF8' }
+        @{ Case = 'a write in the else branch of the gate'; Body = "    if (`$PSCmdlet.ShouldProcess(`$Path, 'Set')) { 1 } else { Remove-Item -Path `$Path }" }
+        @{ Case = 'a write before the early return';        Body = "    New-Item -Path `$Path`n    if (-not `$PSCmdlet.ShouldProcess(`$Path, 'Set')) { return }" }
+    ) {
+        Invoke-Rule -Rule 'Measure-C33ShouldProcessGate' -Code (New-Gated -Body $Body) -RelativePath $script:sourcePath | Should -HaveCount 1
+    }
+
+    It 'does not report <Case>' -ForEach @(
+        @{ Case = 'a write inside the gate';            Body = "    if (`$PSCmdlet.ShouldProcess(`$Path, 'Set')) { Set-Content -Path `$Path -Value 1 -Encoding UTF8 }" }
+        @{ Case = 'a write after the early return';     Body = "    if (-not `$PSCmdlet.ShouldProcess(`$Path, 'Set')) { return }`n    Remove-Item -Path `$Path" }
+        @{ Case = 'a write gated by a saved decision';  Body = "    `$applied = `$PSCmdlet.ShouldProcess(`$Path, 'Set')`n    if (`$applied) { New-Item -Path `$Path }" }
+        @{ Case = 'a write that pins -WhatIf:$false';   Body = '    New-Item -Path $Path -ItemType Directory -Force -WhatIf:$false' }
+        @{ Case = 'ForEach-Object';                     Body = '    1..2 | ForEach-Object { $PSItem }' }
+    ) {
+        Invoke-Rule -Rule 'Measure-C33ShouldProcessGate' -Code (New-Gated -Body $Body) -RelativePath $script:sourcePath | Should -HaveCount 0
+    }
+
+    It 'does not check a file outside Source' {
+        $code = New-Gated -Body '    Set-Content -Path $Path -Value 1 -Encoding UTF8'
+        $scriptsPath = Join-Path -Path 'Scripts' -ChildPath 'Set-A.ps1'
+        Invoke-Rule -Rule 'Measure-C33ShouldProcessGate' -Code $code -RelativePath $scriptsPath | Should -HaveCount 0
     }
 }
 

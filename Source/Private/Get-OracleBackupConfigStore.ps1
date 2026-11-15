@@ -65,14 +65,16 @@ function Get-OracleBackupConfigStore {
     #       Test: 'R1 a setting missing from the file takes its default'.
     #   R2 When the file does not exist it is written with the defaults, and the defaults
     #       are returned.
-    #       Test: none yet.
+    #       Test: 'R2 writes the defaults to the override path when the file is absent'.
     #   T1 Every throw starts with 'Failed to load OracleBackup configuration from' and
     #       names the path.
     #       Test: none yet.
     #
     # EXECUTION INVARIANTS
-    #   L1 The first call can create a folder and a file. It is not under ShouldProcess.
-    #       Limitation: a caller's -WhatIf does not reliably prevent the write.
+    #   L1 The first call creates the folder, the file and its ACL even when the caller
+    #       runs under -WhatIf: creating the default is part of reading the config, not a
+    #       change being previewed. The writes pin -WhatIf:$false.
+    #       Test: 'L1 creates the folder, file and ACL even when the caller runs under -WhatIf'.
     #--------------------------------------------------------------
 
     # [SEC] S4 — fixed path under the module folder. Only the module-scoped test
@@ -101,14 +103,16 @@ function Get-OracleBackupConfigStore {
         if (-not (Test-Path $configPath)) {
             Write-Verbose "[Get-OracleBackupConfigStore] Config file not found — creating default at $configPath"
 
+            # Creating the default config is part of reading it, not a change a caller
+            # previews: -WhatIf:$false keeps a caller's -WhatIf from skipping it (L1).
             $configDir = Split-Path $configPath -Parent
             if (-not (Test-Path $configDir)) {
-                $null = New-Item -Path $configDir -ItemType Directory -Force
+                $null = New-Item -Path $configDir -ItemType Directory -Force -WhatIf:$false
             }
 
             $defaultConfig |
                 ConvertTo-Json -Depth 5 |
-                Set-Content -Path $configPath -Encoding UTF8
+                Set-Content -Path $configPath -Encoding UTF8 -WhatIf:$false
 
             # [SEC] Apply restrictive ACLs immediately after creation —
             # disable inheritance; grant current user and BUILTIN\Administrators only.
