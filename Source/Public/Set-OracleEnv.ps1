@@ -11,8 +11,10 @@ function Set-OracleEnv {
         ORACLE_HOME and ORACLE_BASE are derived from the service executable path.
 
         If no SID is supplied and only one instance exists, it is selected
-        automatically. If multiple instances exist, an interactive numbered
-        menu is presented.
+        automatically. If several instances exist, it returns Success = $false with
+        a Message that lists them; pass -SID to choose one. It never prompts and never
+        writes to the host, so it is safe in scripts and automation. Invoke-OraEnv is
+        the interactive wrapper: it shows a menu and reports the result at the terminal.
 
         If a SID is supplied, it is validated against discovered instances.
         If the matching service is not running, a warning is issued but the
@@ -25,7 +27,7 @@ function Set-OracleEnv {
 
     .PARAMETER SID
         The Oracle SID to activate. Must match a SID discovered via OracleService*
-        Windows services on this host. If omitted, the function prompts interactively.
+        Windows services on this host. Required when more than one instance exists.
 
     .OUTPUTS
         PSCustomObject { Success [bool], Data [PSCustomObject], Message [string] }
@@ -39,18 +41,17 @@ function Set-OracleEnv {
 
     .EXAMPLE
         Set-OracleEnv
-        # Presents a menu when multiple instances are found.
+        # Uses the only instance on this host. With several, returns Success = $false
+        # and lists them.
 
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.2.2
-        Profile alias: oraset
+        Version : 0.2.3
+        For the interactive menu use Invoke-OraEnv (aliases oraset, oraenv).
     #>
     [CmdletBinding(SupportsShouldProcess)]
     [OutputType([PSCustomObject])]
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
-        Justification = 'Interactive: presents an instance menu and confirms the change at the terminal (rule C-31).')]
     param(
         [Parameter(Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -66,47 +67,52 @@ function Set-OracleEnv {
     # PRE-CONDITIONS
     #   P1 SID, when supplied, is a non-empty string.
     #       Type: ValidateNotNullOrEmpty.
+    #       Test: 'P1 SID rejects an empty string'.
     #   P2 A supplied SID matches an instance discovered on this host.
     #       Guard: the match check returns Success = $false when there is none.
+    #       Test: 'P2 Message lists valid SIDs'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 The list of valid SIDs always comes from live discovery, never from a
     #       stored list.
     #       Guard: the Get-OracleDatabaseList call at the start of every run.
+    #       Test: 'S1 every call discovers the instances afresh; nothing is remembered'.
     #   [SEC] S2 Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are
     #       changed. Nothing is written to disk, the registry or another process.
-    #       Static: none yet.
+    #       Static: 'Set-OracleEnv S2 changes only ORACLE_SID, ORACLE_HOME and ORACLE_BASE, and writes nothing to disk, the registry or another process'.
     #   [SEC] S3 The catch block places the raw exception message in Message.
     #       Limitation: not scrubbed. Accepted because nothing in this function
     #       handles a credential.
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws.
-    #       Test: 'Has Success property', 'Has Data property', 'Has Message property'.
+    #       Test: 'R1 returns exactly Success, Data and Message, without throwing, when <Path>'.
     #   R2 On success Data has SID, OracleHome, OracleBase and Applied.
-    #       Test: 'Data.SID is a non-empty string on success',
-    #       'Data.Applied is true when the variables are set'.
+    #       Test: 'R2 Data.SID is a non-empty string on success',
+    #       'R2 Data.Applied is true when the variables are set'.
     #   R3 ORACLE_HOME and ORACLE_BASE are left unset when they cannot be determined, and
     #       a warning is written for each.
-    #       Test: 'Does not set $env:ORACLE_HOME when OracleHome is null',
-    #       'Does not set $env:ORACLE_BASE when OracleBase is null'.
+    #       Test: 'R3 does not set $env:ORACLE_HOME when OracleHome is null',
+    #       'R3 does not set $env:ORACLE_BASE when OracleBase is null',
+    #       'R3 emits warnings when OracleHome and OracleBase are null'.
     #   R4 A stopped service does not prevent the SID being set. A warning is written.
-    #       Test: 'Sets $env:ORACLE_SID despite stopped service'.
+    #       Test: 'R4 sets $env:ORACLE_SID despite stopped service',
+    #       'R4 emits a warning for a stopped service'.
     #   R5 On a failure path ORACLE_SID is not changed.
-    #       Test: 'Does not set $env:ORACLE_SID'.
+    #       Test: 'R5 does not set $env:ORACLE_SID'.
     #   R6 Under -WhatIf, or a declined -Confirm, no variable is set and the return is a
     #       preview: Success = $true, Data.Applied = $false, and a Message that starts
     #       with 'WhatIf:' (rule C-27).
     #       Test: 'R6 WhatIf sets no variable and returns a preview'.
+    #   R7 With no SID and more than one instance it sets nothing and returns
+    #       Success = $false, with a Message that names every SID found and asks for -SID.
+    #       Test: 'R7 several instances and no SID set nothing and list every SID'.
     #
     # EXECUTION INVARIANTS
-    #   L1 With no SID and more than one instance it prompts with Read-Host.
-    #       Limitation: not suitable for unattended use. Pass -SID in automation.
-    #   L2 User-facing lines are written with Write-Host, by design, even when called from
-    #       a script.
-    #       Limitation: an interactive function; the analyzer rule is suppressed on this
-    #       function only (C-31). Moving the host output and menu into Invoke-OraEnv is
-    #       recorded for Stack 3.
+    #   L3 It never prompts and never writes to the host: no Read-Host, no Write-Host.
+    #       L1 (the Read-Host menu) and L2 (host output) are retired; both moved to
+    #       Invoke-OraEnv.
+    #       Static: 'Set-OracleEnv L3 calls neither Read-Host nor Write-Host'.
     #--------------------------------------------------------------
 
     try {
@@ -140,25 +146,16 @@ function Set-OracleEnv {
 
             if ($databases.Count -eq 1) {
                 $SID = $databases[0].SID
-                Write-Host "[Set-OracleEnv] One instance found. Using SID: $SID"
+                Write-Verbose "[Set-OracleEnv] One instance found. Using SID '$SID'."
             }
             else {
-                Write-Host '[Set-OracleEnv] Available Oracle instances:'
-                for ($i = 0; $i -lt $databases.Count; $i++) {
-                    Write-Host "  [$($i + 1)] $($databases[$i].SID)"
+                # R7: no prompt. Invoke-OraEnv shows the menu and calls back with -SID.
+                $validList = ($databases | ForEach-Object { $PSItem.SID }) -join ', '
+                return [PSCustomObject]@{
+                    Success = $false
+                    Data    = $null
+                    Message = "$($databases.Count) Oracle instances found on this host: $validList. Pass -SID to choose one."
                 }
-
-                $raw = Read-Host "Enter selection (1-$($databases.Count))"
-                $index = 0
-                if (-not [int]::TryParse($raw, [ref]$index) -or $index -lt 1 -or $index -gt $databases.Count) {
-                    return [PSCustomObject]@{
-                        Success = $false
-                        Data    = $null
-                        Message = "Invalid selection '$raw'. Enter a number between 1 and $($databases.Count)."
-                    }
-                }
-
-                $SID = $databases[$index - 1].SID
             }
         }
         else {
@@ -195,22 +192,15 @@ function Set-OracleEnv {
         if ($applied) {
             $env:ORACLE_SID = $SID
             Write-Verbose "[Set-OracleEnv] ORACLE_SID set to '$SID' at $(Get-Date -Format u)"
-            Write-Host "ORACLE_SID set to '$SID'"
 
             if ($null -ne $resolved[0].OracleHome) {
                 $env:ORACLE_HOME = $resolved[0].OracleHome
                 Write-Verbose "[Set-OracleEnv] ORACLE_HOME set to '$($resolved[0].OracleHome)' at $(Get-Date -Format u)"
-                if ($VerbosePreference -eq 'Continue') {
-                    Write-Host "ORACLE_HOME set to '$($resolved[0].OracleHome)'"
-                }
             }
 
             if ($null -ne $resolved[0].OracleBase) {
                 $env:ORACLE_BASE = $resolved[0].OracleBase
                 Write-Verbose "[Set-OracleEnv] ORACLE_BASE set to '$($resolved[0].OracleBase)' at $(Get-Date -Format u)"
-                if ($VerbosePreference -eq 'Continue') {
-                    Write-Host "ORACLE_BASE set to '$($resolved[0].OracleBase)'"
-                }
             }
 
             if ($serviceWarning)    { Write-Warning $serviceWarning }

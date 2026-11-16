@@ -58,32 +58,37 @@ function Set-RestrictiveAcl {
     # PRE-CONDITIONS
     #   P1 Path is a non-empty string.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #       Test: 'P1 Path parameter is mandatory',
+    #       'P1 Path parameter has ValidateNotNullOrEmpty'.
     #   P2 Path exists on disk.
     #       Guard: the Test-Path check throws when it does not.
+    #       Test: 'P2 throws when Path does not exist on disk'.
     #   P3 Path was created by this module immediately before the call.
     #       Limitation: the caller's duty. Nothing here checks who created the path.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 On Windows, inheritance is disabled and inherited rules are removed.
-    #       Test: 'Inheritance is disabled on the directory after the call',
-    #       'Inheritance is disabled on the file after the call'.
+    #       Test: 'S1 inheritance is disabled on the directory after the call',
+    #       'S1 inheritance is disabled on the file after the call'.
     #   [SEC] S2 On Windows, the current user and BUILTIN\Administrators are granted
     #       access, and Everyone and BUILTIN\Users are not.
-    #       Test: 'Current user rule is present on directory',
-    #       'BUILTIN\Administrators rule is present on directory',
-    #       'No broad identity (Everyone / BUILTIN\Users) rules are present on directory'.
+    #       Test: 'S2 current user rule is present on directory',
+    #       'S2 BUILTIN\Administrators rule is present on directory',
+    #       'S2 no broad identity (Everyone / BUILTIN\Users) rules are present on directory'.
     #   [SEC] S3 Rules on a directory are inherited by what is created inside it. Rules on
     #       a file are not inheritable.
-    #       Test: 'SEC-07: child file created inside a secured directory inherits the restrictive ACEs',
-    #       'File ACEs use InheritanceFlags::None (files have no child objects)'.
+    #       Test: 'S3 directory ACEs use ContainerInherit | ObjectInherit (SEC-07)',
+    #       'S3 child file created inside a secured directory inherits the restrictive ACEs (SEC-07)',
+    #       'S3 file ACEs use InheritanceFlags::None (files have no child objects)'.
     #   [SEC] S4 On a platform other than Windows nothing is changed.
     #       Limitation: permissions are left to the operating system.
     #
     # POST-CONDITIONS
     #   R1 Returns nothing.
     #       Type: OutputType void.
+    #       Test: 'R1 returns nothing'.
     #   T1 Every throw starts with 'Failed to apply restrictive ACL to' and names the path.
-    #       Test: none yet.
+    #       Test: 'T1 a failure throws with the prefix and the path'.
     #
     # EXECUTION INVARIANTS
     #   L1 Permissions are changed without a ShouldProcess check of its own, and a

@@ -9,7 +9,7 @@
                     or current session environment variables.
 
     Security assertions in this file:
-    - NotSigned status does NOT cause failure (Oracle signs archives, not individual executables — NotSigned is always expected)
+    - NotSigned status does NOT cause failure (Oracle binaries are not signed)
     - HashMismatch status causes hard terminating failure (binary altered after signing)
     - TrustFailure status causes hard terminating failure (cert chain untrustworthy)
     - Non-Oracle signer subject causes hard terminating failure (binary substitution indicator)
@@ -62,7 +62,7 @@ Describe 'Assert-OracleEnvironment' {
 
     Context 'Parameter validation' {
 
-        It 'OracleHome is mandatory' {
+        It 'P1 OracleHome is mandatory' {
             InModuleScope TACE.Oracle.Admin {
                 $param = (Get-Command Assert-OracleEnvironment).Parameters['OracleHome']
                 $isMandatory = @($param.Attributes |
@@ -71,7 +71,7 @@ Describe 'Assert-OracleEnvironment' {
             }
         }
 
-        It 'Binary must not be null or empty' {
+        It 'P2 Binary must not be null or empty' {
             InModuleScope TACE.Oracle.Admin {
                 $param = (Get-Command Assert-OracleEnvironment).Parameters['Binary']
                 $notNullOrEmpty = @($param.Attributes |
@@ -80,14 +80,11 @@ Describe 'Assert-OracleEnvironment' {
             }
         }
 
-        It 'Binary defaults to rman.exe — Get-AuthenticodeSignature called with rman.exe path when Binary is omitted' {
+        It 'P2 Binary defaults to rman.exe — Get-AuthenticodeSignature called with rman.exe path when Binary is omitted' {
             $script:capturedPath = $null
             Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
                 $script:capturedPath = $FilePath
-                [PSCustomObject]@{
-                    Status            = 'Valid'
-                    SignerCertificate = [PSCustomObject]@{ Subject = 'CN=Oracle America Inc' }
-                }
+                [PSCustomObject]@{ Status = 'NotSigned'; SignerCertificate = $null }
             }
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeHome = $script:fakeOracleHome } {
                 param($FakeHome)
@@ -96,7 +93,7 @@ Describe 'Assert-OracleEnvironment' {
             $script:capturedPath | Should -Match 'rman\.exe$'
         }
 
-        It 'Throws with a clear message when OracleHome is empty and env var is not set' {
+        It 'P1 throws with a clear message when OracleHome is empty and env var is not set' {
             InModuleScope TACE.Oracle.Admin {
                 $saved = $env:ORACLE_HOME
                 $env:ORACLE_HOME = ''
@@ -133,19 +130,14 @@ Describe 'Assert-OracleEnvironment' {
     Context 'Implementation' {
 
         BeforeEach {
-            # Default mock: valid Oracle signature — all checks pass
+            # Default mock: NotSigned, as every Oracle binary is — all checks pass
             Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
-                [PSCustomObject]@{
-                    Status            = 'Valid'
-                    SignerCertificate = [PSCustomObject]@{
-                        Subject = 'CN=Oracle America Inc, O=Oracle America Inc, L=Austin, S=Texas, C=US'
-                    }
-                }
+                [PSCustomObject]@{ Status = 'NotSigned'; SignerCertificate = $null }
             }
         }
 
-        # Case 1a: valid Oracle signature → returns binary path
-        It 'Returns the binary path when all checks pass (valid Oracle signature, SYSTEM owner)' {
+        # Case 1a: unsigned binary → returns binary path
+        It 'R1 returns the binary path when all checks pass' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
                 FakeHome = $script:fakeOracleHome
                 RmanPath = $script:fakeRmanPath
@@ -156,12 +148,13 @@ Describe 'Assert-OracleEnvironment' {
             }
         }
 
-        # Case 1b: NotSigned → passes; Oracle 19c does not consistently sign Windows executables
-        It 'Returns the binary path when Authenticode status is NotSigned' {
+        # Case 1b: the other side of the signer check in S3 — a valid signature whose
+        # subject contains 'Oracle' is not refused
+        It 'Returns the binary path for a valid signature whose signer contains Oracle' {
             Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
                 [PSCustomObject]@{
-                    Status            = 'NotSigned'
-                    SignerCertificate = $null
+                    Status            = 'Valid'
+                    SignerCertificate = [PSCustomObject]@{ Subject = 'CN=Oracle America Inc' }
                 }
             }
             InModuleScope TACE.Oracle.Admin -Parameters @{
@@ -175,7 +168,7 @@ Describe 'Assert-OracleEnvironment' {
         }
 
         # Case 2: Status = 'TrustFailure' → throws hard fail (cert chain untrustworthy)
-        It 'Throws when Authenticode status is TrustFailure' {
+        It 'S3 throws when Authenticode status is TrustFailure' -Tag 'SEC' {
             Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
                 [PSCustomObject]@{
                     Status            = 'TrustFailure'
@@ -190,7 +183,7 @@ Describe 'Assert-OracleEnvironment' {
         }
 
         # Case 3: Status = 'HashMismatch' → throws hard fail
-        It 'Throws when Authenticode status is HashMismatch' {
+        It 'S3 throws when Authenticode status is HashMismatch' -Tag 'SEC' {
             Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
                 [PSCustomObject]@{
                     Status            = 'HashMismatch'
@@ -205,7 +198,7 @@ Describe 'Assert-OracleEnvironment' {
         }
 
         # Case 4: Valid signature but non-Oracle Subject → throws hard fail
-        It 'Throws when Authenticode signer subject does not contain Oracle' {
+        It 'S3 throws when Authenticode signer subject does not contain Oracle' -Tag 'SEC' {
             Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
                 [PSCustomObject]@{
                     Status            = 'Valid'
@@ -219,7 +212,7 @@ Describe 'Assert-OracleEnvironment' {
             }
         }
 
-        # Case 5: Valid Oracle signature, user-owned file → passes; owner check removed
+        # Case 5: user-owned file → passes; the owner is not checked
         # Oracle on domain-joined Windows is normally owned by the installing user account
         It 'Returns the binary path when file owner is a named user account (owner check removed)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
@@ -243,7 +236,7 @@ Describe 'Assert-OracleEnvironment' {
             }
         }
 
-        It 'Throws when OracleHome does not exist on disk' {
+        It 'S1 throws when OracleHome does not exist on disk' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin {
                 { Assert-OracleEnvironment -OracleHome 'C:\Does\Not\Exist\12345' } |
                     Should -Throw -ExpectedMessage '*does not exist*'
@@ -261,20 +254,84 @@ Describe 'Assert-OracleEnvironment' {
 
     # ── Security ──────────────────────────────────────────────────────────────
 
+    Context 'Throw prefix and ORACLE_HOME fallback' {
+
+        BeforeAll {
+            # A home with both binaries, for the tnsping failure path.
+            $script:fullHome = Join-Path $TestDrive 'fullhome'
+            $null = New-Item -Path (Join-Path $script:fullHome 'bin') -ItemType Directory -Force
+            $null = New-Item -Path (Join-Path $script:fullHome 'bin' 'rman.exe') -ItemType File -Force
+            $null = New-Item -Path (Join-Path $script:fullHome 'bin' 'tnsping.exe') -ItemType File -Force
+        }
+
+        BeforeEach {
+            Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
+                [PSCustomObject]@{ Status = 'NotSigned'; SignerCertificate = $null }
+            }
+            Mock -CommandName Invoke-TnspingProcess -ModuleName TACE.Oracle.Admin -MockWith {
+                [PSCustomObject]@{ ExitCode = 1; StdOut = 'TNS-03505: Failed to resolve name'; StdErr = '' }
+            }
+        }
+
+        It 'T1 every throw starts with the validation prefix (<Case>)' -ForEach @(
+            @{ Case = 'no home configured' }
+            @{ Case = 'home does not exist' }
+            @{ Case = 'binary missing' }
+            @{ Case = 'signature HashMismatch' }
+            @{ Case = 'tnsping fails' }
+        ) {
+            if ($Case -eq 'signature HashMismatch') {
+                Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
+                    [PSCustomObject]@{ Status = 'HashMismatch'; SignerCertificate = [PSCustomObject]@{ Subject = 'CN=Oracle America Inc' } }
+                }
+            }
+            $call = switch ($Case) {
+                'no home configured'     { @{ OracleHome = '' } }
+                'home does not exist'    { @{ OracleHome = (Join-Path $TestDrive 'missing-home') } }
+                'binary missing'         { @{ OracleHome = $script:fakeOracleHome; Binary = 'absent.exe' } }
+                'signature HashMismatch' { @{ OracleHome = $script:fakeOracleHome } }
+                'tnsping fails'          { @{ OracleHome = $script:fullHome; WalletAlias = 'MY_ALIAS' } }
+            }
+            $saved = $env:ORACLE_HOME
+            $env:ORACLE_HOME = ''
+            try {
+                $message = $null
+                try {
+                    InModuleScope TACE.Oracle.Admin -Parameters @{ Call = $call } {
+                        param($Call)
+                        Assert-OracleEnvironment @Call
+                    }
+                }
+                catch { $message = $PSItem.Exception.Message }
+            }
+            finally {
+                $env:ORACLE_HOME = $saved
+            }
+            $message | Should -BeLike 'Oracle environment validation failed: *'
+        }
+
+        It 'L1 an empty OracleHome falls back to ORACLE_HOME and returns the binary under its bin folder' {
+            $saved = $env:ORACLE_HOME
+            $env:ORACLE_HOME = $script:fakeOracleHome
+            try {
+                $result = InModuleScope TACE.Oracle.Admin { Assert-OracleEnvironment -OracleHome '' }
+            }
+            finally {
+                $env:ORACLE_HOME = $saved
+            }
+            $result | Should -Be (Join-Path $script:fakeOracleHome 'bin' 'rman.exe')
+        }
+    }
+
     Context 'Security' {
 
         BeforeEach {
             Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
-                [PSCustomObject]@{
-                    Status            = 'Valid'
-                    SignerCertificate = [PSCustomObject]@{
-                        Subject = 'CN=Oracle America Inc, O=Oracle America Inc'
-                    }
-                }
+                [PSCustomObject]@{ Status = 'NotSigned'; SignerCertificate = $null }
             }
         }
 
-        It 'Returned binary path is rooted under the validated OracleHome — never from PATH' {
+        It 'S2 returned binary path is rooted under the validated OracleHome — never from PATH' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
                 FakeHome = $script:fakeOracleHome
                 RmanPath = $script:fakeRmanPath
@@ -306,7 +363,7 @@ Describe 'Assert-OracleEnvironment' {
             }
         }
 
-        It 'No bypass parameter exists — SkipSignatureCheck, Force, and SkipOwnerCheck are absent' {
+        It 'S5 no bypass parameter exists — SkipSignatureCheck, Force, and SkipOwnerCheck are absent' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin {
                 $keys = (Get-Command Assert-OracleEnvironment).Parameters.Keys
                 $keys | Should -Not -Contain 'SkipSignatureCheck'
@@ -315,15 +372,20 @@ Describe 'Assert-OracleEnvironment' {
             }
         }
 
-        It 'Current session environment is not modified when all checks pass' {
-            $before = [System.Environment]::GetEnvironmentVariables()
-            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeHome = $script:fakeOracleHome } {
-                param($FakeHome)
-                Assert-OracleEnvironment -OracleHome $FakeHome | Out-Null
+        It 'S8 the session environment is unchanged when all checks pass' -Tag 'SEC' {
+            # Sentinels first: a before-and-after read proves nothing when an earlier test
+            # has already left the value the call would set.
+            $sentinel = & (Join-Path $PSScriptRoot '..' 'Set-EnvironmentSentinel.ps1')
+            try {
+                InModuleScope TACE.Oracle.Admin -Parameters @{ FakeHome = $script:fakeOracleHome } {
+                    param($FakeHome)
+                    Assert-OracleEnvironment -OracleHome $FakeHome | Out-Null
+                }
             }
-            $after   = [System.Environment]::GetEnvironmentVariables()
-            $newKeys = @($after.Keys | Where-Object { $before.Keys -notcontains $_ })
-            $newKeys.Count | Should -Be 0
+            finally {
+                $changed = & (Join-Path $PSScriptRoot '..' 'Compare-EnvironmentSentinel.ps1') -Snapshot $sentinel
+            }
+            ($changed -join ', ') | Should -BeNullOrEmpty
         }
     }
 
@@ -335,14 +397,9 @@ Describe 'Assert-OracleEnvironment' {
     Context 'WalletAlias tnsping validation' {
 
         BeforeAll {
-            # Mock Get-AuthenticodeSignature — valid Oracle signature; integrity checks pass
+            # Mock Get-AuthenticodeSignature — NotSigned, as every Oracle binary is; integrity checks pass
             Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
-                [PSCustomObject]@{
-                    Status            = 'Valid'
-                    SignerCertificate = [PSCustomObject]@{
-                        Subject = 'CN=Oracle America Inc, O=Oracle America Inc'
-                    }
-                }
+                [PSCustomObject]@{ Status = 'NotSigned'; SignerCertificate = $null }
             }
 
             # Default tnsping mock — succeeds; overridden per-test where needed
@@ -385,7 +442,7 @@ Describe 'Assert-OracleEnvironment' {
         }
 
         # Test 2: WalletAlias = '' → Invoke-TnspingProcess is never called
-        It 'Returns binary path when WalletAlias is empty — tnsping not invoked' {
+        It 'P3 returns binary path when WalletAlias is empty — tnsping not invoked' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
                 FakeHome = $script:fakeOracleHome
                 RmanPath = $script:fakeRmanPath
@@ -398,7 +455,7 @@ Describe 'Assert-OracleEnvironment' {
         }
 
         # Test 3: WalletAlias = '   ' (whitespace only) → treated as empty; tnsping not invoked
-        It 'Treats whitespace-only WalletAlias as empty — tnsping not invoked' {
+        It 'P3 treats whitespace-only WalletAlias as empty — tnsping not invoked' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
                 FakeHome = $script:fakeOracleHome
                 RmanPath = $script:fakeRmanPath
@@ -447,7 +504,7 @@ Describe 'Assert-OracleEnvironment' {
         }
 
         # Test 7: Invoke-TnspingProcess returns ExitCode=1 → throws
-        It 'Throws when tnsping exits with a non-zero exit code' {
+        It 'S6 throws when tnsping exits with a non-zero exit code' -Tag 'SEC' {
             Mock -CommandName Invoke-TnspingProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 [PSCustomObject]@{ ExitCode = 1; StdOut = 'tnsping: error starting session'; StdErr = '' }
             }
@@ -459,7 +516,7 @@ Describe 'Assert-OracleEnvironment' {
         }
 
         # Test 8: Invoke-TnspingProcess returns TNS-NNNNN in StdOut → throws
-        It 'Throws when tnsping stdout contains a TNS-NNNNN error code' {
+        It 'S6 throws when tnsping stdout contains a TNS-NNNNN error code' -Tag 'SEC' {
             Mock -CommandName Invoke-TnspingProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 [PSCustomObject]@{ ExitCode = 1; StdOut = 'TNS-12154: TNS:could not resolve the connect identifier specified'; StdErr = '' }
             }
@@ -486,6 +543,27 @@ Describe 'Assert-OracleEnvironment' {
         }
 
         # Test 10 (Security): Error message is scrubbed — no credential fragments
+        It 'S7 a credential in tnsping stdout or stderr is scrubbed from the error message (<Stream>)' -Tag 'SEC' -ForEach @(
+            @{ Stream = 'StdOut'; Out = 'TNS-12154: user/pass@service could not resolve'; Err = '' }
+            @{ Stream = 'StdErr'; Out = ''; Err = 'TNS-12154: user/pass@service could not resolve' }
+        ) {
+            # The output must carry a TNS- code: only then is it placed in the message.
+            $script:tnsOut = $Out
+            $script:tnsErr = $Err
+            Mock -CommandName Invoke-TnspingProcess -ModuleName TACE.Oracle.Admin -MockWith {
+                [PSCustomObject]@{ ExitCode = 1; StdOut = $script:tnsOut; StdErr = $script:tnsErr }
+            }
+            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeHome = $script:homeWithTnsping } {
+                param($FakeHome)
+                $msg = ''
+                try { Assert-OracleEnvironment -OracleHome $FakeHome -WalletAlias 'MY_DB_ALIAS' }
+                catch { $msg = $PSItem.Exception.Message }
+                $msg | Should -Match 'TNS-12154'
+                $msg | Should -Match 'SCRUBBED'
+                $msg | Should -Not -Match 'user/pass@'
+            }
+        }
+
         It 'Error message on tnsping failure contains no credential fragments' {
             Mock -CommandName Invoke-TnspingProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 [PSCustomObject]@{ ExitCode = 1; StdOut = 'user/pass@service: error'; StdErr = '' }

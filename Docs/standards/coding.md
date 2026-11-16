@@ -58,7 +58,7 @@
 - **C-18** — No emojis in code, scripts or output; status uses a `[LABEL]` prefix.
   Example: `Write-Host '[ERROR] SID not found.'`. *Linter.*
 - **C-31** — `PSAvoidUsingWriteHost` stays enabled. A function whose purpose is terminal interaction may use `Write-Host` only with a `SuppressMessageAttribute` on that function stating why; every other function reports through its return object, `Write-Verbose` or `Write-Warning`.
-  Example: `[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive: ...')]` on `Set-OracleEnv`. *Linter.*
+  Example: `[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive terminal wrapper: ...')]` on `Invoke-OraEnv`. *Linter.*
 
 ## Output contract and error model
 

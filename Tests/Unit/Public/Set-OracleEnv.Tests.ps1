@@ -33,6 +33,12 @@ Describe 'Set-OracleEnv' {
             $params.ParameterType | Should -Be ([string])
         }
 
+        It 'P1 SID rejects an empty string' {
+            $param = (Get-Command Set-OracleEnv).Parameters['SID']
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidateNotNullOrEmptyAttribute] }) |
+                Should -Not -BeNullOrEmpty
+        }
+
         It 'Supports -WhatIf' {
             (Get-Command Set-OracleEnv).Parameters.ContainsKey('WhatIf') | Should -BeTrue
         }
@@ -127,7 +133,7 @@ Describe 'Set-OracleEnv' {
             $result.Success | Should -BeTrue
         }
 
-        It 'Sets $env:ORACLE_SID despite stopped service' {
+        It 'R4 sets $env:ORACLE_SID despite stopped service' {
             Set-OracleEnv -SID 'CDB1' -WarningAction SilentlyContinue | Out-Null
             $env:ORACLE_SID | Should -Be 'CDB1'
         }
@@ -142,7 +148,7 @@ Describe 'Set-OracleEnv' {
             $env:ORACLE_BASE | Should -Be 'C:\app\oracle'
         }
 
-        It 'Emits a warning for a stopped service' {
+        It 'R4 emits a warning for a stopped service' {
             Set-OracleEnv -SID 'CDB1' -WarningVariable w 3>&1 | Out-Null
             $w | Should -Not -BeNullOrEmpty
         }
@@ -181,17 +187,17 @@ Describe 'Set-OracleEnv' {
             $env:ORACLE_SID | Should -Be 'ORCL'
         }
 
-        It 'Does not set $env:ORACLE_HOME when OracleHome is null' {
+        It 'R3 does not set $env:ORACLE_HOME when OracleHome is null' {
             Set-OracleEnv -SID 'ORCL' -WarningAction SilentlyContinue | Out-Null
             $env:ORACLE_HOME | Should -BeNullOrEmpty
         }
 
-        It 'Does not set $env:ORACLE_BASE when OracleBase is null' {
+        It 'R3 does not set $env:ORACLE_BASE when OracleBase is null' {
             Set-OracleEnv -SID 'ORCL' -WarningAction SilentlyContinue | Out-Null
             $env:ORACLE_BASE | Should -BeNullOrEmpty
         }
 
-        It 'Emits warnings when OracleHome and OracleBase are null' {
+        It 'R3 emits warnings when OracleHome and OracleBase are null' {
             Set-OracleEnv -SID 'ORCL' -WarningVariable w 3>&1 | Out-Null
             @($w).Count | Should -Be 2
         }
@@ -227,16 +233,29 @@ Describe 'Set-OracleEnv' {
             $result.Success | Should -BeFalse
         }
 
-        It 'Does not set $env:ORACLE_SID' {
+        It 'R5 does not set $env:ORACLE_SID' {
             $env:ORACLE_SID = $null
             Set-OracleEnv -SID 'BOGUS' | Out-Null
             $env:ORACLE_SID | Should -BeNullOrEmpty
         }
 
-        It 'Message lists valid SIDs' {
+        It 'P2 Message lists valid SIDs' {
             $result = Set-OracleEnv -SID 'BOGUS'
             $result.Message | Should -Match 'ORCL'
             $result.Message | Should -Match 'CDB1'
+        }
+    }
+
+    Context 'Implementation - unexpected error' {
+
+        It 'returns Success = $false with the error in the Message instead of throwing' {
+            Mock Get-OracleDatabaseList { throw 'discovery broke' } -ModuleName 'TACE.Oracle.Admin'
+            $env:ORACLE_SID = $null
+            $result = Set-OracleEnv -SID 'ORCL'
+            $result.Success | Should -BeFalse
+            $result.Data    | Should -BeNullOrEmpty
+            $result.Message | Should -BeExactly 'Set-OracleEnv failed: discovery broke'
+            $env:ORACLE_SID | Should -BeNullOrEmpty
         }
     }
 
@@ -284,7 +303,7 @@ Describe 'Set-OracleEnv' {
         }
     }
 
-    Context 'Implementation - no SID supplied, multiple instances, valid selection' {
+    Context 'Implementation - no SID supplied, multiple instances' {
 
         BeforeEach {
             Mock Get-OracleDatabaseList {
@@ -297,64 +316,24 @@ Describe 'Set-OracleEnv' {
                     Message = 'Found 2 Oracle database instance(s).'
                 }
             } -ModuleName 'TACE.Oracle.Admin'
-            Mock Read-Host { '1' } -ModuleName 'TACE.Oracle.Admin'
-            $env:ORACLE_SID  = $null
-            $env:ORACLE_HOME = $null
-            $env:ORACLE_BASE = $null
+            Mock Read-Host { throw 'Set-OracleEnv must not prompt' } -ModuleName 'TACE.Oracle.Admin'
+            Mock Write-Host { } -ModuleName 'TACE.Oracle.Admin'
+            $env:ORACLE_SID = $null
         }
 
         AfterEach {
-            $env:ORACLE_SID  = $null
-            $env:ORACLE_HOME = $null
-            $env:ORACLE_BASE = $null
+            $env:ORACLE_SID = $null
         }
 
-        It 'Returns Success = $true' {
-            $result = Set-OracleEnv
-            $result.Success | Should -BeTrue
-        }
-
-        It 'Sets $env:ORACLE_SID to the selected instance' {
-            Set-OracleEnv | Out-Null
-            $env:ORACLE_SID | Should -Be 'ORCL'
-        }
-
-        It 'Sets $env:ORACLE_HOME to the selected instance' {
-            Set-OracleEnv | Out-Null
-            $env:ORACLE_HOME | Should -Be 'C:\app\oracle\product\19.3\dbhome_1'
-        }
-
-        It 'Sets $env:ORACLE_BASE to the selected instance' {
-            Set-OracleEnv | Out-Null
-            $env:ORACLE_BASE | Should -Be 'C:\app\oracle'
-        }
-    }
-
-    Context 'Implementation - no SID supplied, multiple instances, invalid selection' {
-
-        BeforeEach {
-            Mock Get-OracleDatabaseList {
-                [PSCustomObject]@{
-                    Success = $true
-                    Data    = @(
-                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
-                        [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' }
-                    )
-                    Message = 'Found 2 Oracle database instance(s).'
-                }
-            } -ModuleName 'TACE.Oracle.Admin'
-            Mock Read-Host { 'x' } -ModuleName 'TACE.Oracle.Admin'
-        }
-
-        It 'Returns Success = $false' {
+        It 'R7 several instances and no SID set nothing and list every SID' {
             $result = Set-OracleEnv
             $result.Success | Should -BeFalse
-        }
-
-        It 'Does not set $env:ORACLE_SID' {
-            $env:ORACLE_SID = $null
-            Set-OracleEnv | Out-Null
+            $result.Message | Should -Match 'ORCL'
+            $result.Message | Should -Match 'CDB1'
+            $result.Message | Should -Match '-SID'
             $env:ORACLE_SID | Should -BeNullOrEmpty
+            Should -Invoke Read-Host -ModuleName 'TACE.Oracle.Admin' -Times 0 -Exactly
+            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -Times 0 -Exactly
         }
     }
 
@@ -414,25 +393,55 @@ Describe 'Set-OracleEnv' {
             $env:ORACLE_BASE = $null
         }
 
-        It 'Has Success property' {
-            (Set-OracleEnv).PSObject.Properties.Name | Should -Contain 'Success'
+        # R1 is "on every path", so each path is tested. The context mock gives one instance.
+        It 'R1 returns exactly Success, Data and Message, without throwing, when <Path>' -ForEach @(
+            @{ Path = 'one instance is found and no SID is given' }
+            @{ Path = 'the given SID is found' }
+            @{ Path = 'the given SID is not found' }
+            @{ Path = 'several instances are found and no SID is given' }
+            @{ Path = 'no instance is found' }
+            @{ Path = 'discovery fails' }
+            @{ Path = 'the call runs under -WhatIf' }
+        ) {
+            $script:twoInstances = [PSCustomObject]@{
+                Success = $true
+                Data    = @(
+                    [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
+                    [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' }
+                )
+                Message = 'Found 2 Oracle database instance(s).'
+            }
+            $call = @{}
+            switch ($Path) {
+                'the given SID is found'     { $call['SID'] = 'ORCL' }
+                'the given SID is not found' { $call['SID'] = 'BOGUS' }
+                'several instances are found and no SID is given' {
+                    Mock Get-OracleDatabaseList { $script:twoInstances } -ModuleName 'TACE.Oracle.Admin'
+                }
+                'no instance is found' {
+                    Mock Get-OracleDatabaseList {
+                        [PSCustomObject]@{ Success = $true; Data = @(); Message = 'No Oracle database services found.' }
+                    } -ModuleName 'TACE.Oracle.Admin'
+                }
+                'discovery fails' {
+                    Mock Get-OracleDatabaseList {
+                        [PSCustomObject]@{ Success = $false; Data = $null; Message = 'Service query failed.' }
+                    } -ModuleName 'TACE.Oracle.Admin'
+                }
+                'the call runs under -WhatIf' { $call['WhatIf'] = $true }
+            }
+            $result = Set-OracleEnv @call
+            @($result.PSObject.Properties.Name) | Should -Be @('Success', 'Data', 'Message')
+            $result.Message | Should -BeOfType [string]
         }
 
-        It 'Has Data property' {
-            (Set-OracleEnv).PSObject.Properties.Name | Should -Contain 'Data'
-        }
-
-        It 'Has Message property' {
-            (Set-OracleEnv).PSObject.Properties.Name | Should -Contain 'Message'
-        }
-
-        It 'Data.SID is a non-empty string on success' {
+        It 'R2 Data.SID is a non-empty string on success' {
             $result = Set-OracleEnv
             $result.Data.SID | Should -BeOfType [string]
             $result.Data.SID | Should -Not -BeNullOrEmpty
         }
 
-        It 'Data.Applied is true when the variables are set' {
+        It 'R2 Data.Applied is true when the variables are set' {
             $result = Set-OracleEnv
             $result.Data.Applied | Should -BeTrue
             $result.Message      | Should -Not -BeLike 'WhatIf:*'
@@ -493,56 +502,6 @@ Describe 'Set-OracleEnv' {
         }
     }
 
-    Context 'Implementation - verbose display' {
-
-        BeforeEach {
-            Mock Get-OracleDatabaseList {
-                [PSCustomObject]@{
-                    Success = $true
-                    Data    = @(
-                        [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
-                    )
-                    Message = 'Found 1 Oracle database instance(s).'
-                }
-            } -ModuleName 'TACE.Oracle.Admin'
-            Mock Write-Host {} -ModuleName 'TACE.Oracle.Admin'
-            $env:ORACLE_SID  = $null
-            $env:ORACLE_HOME = $null
-            $env:ORACLE_BASE = $null
-        }
-
-        AfterEach {
-            $env:ORACLE_SID  = $null
-            $env:ORACLE_HOME = $null
-            $env:ORACLE_BASE = $null
-        }
-
-        It 'Shows ORACLE_SID on host by default' {
-            Set-OracleEnv -SID 'ORCL' | Out-Null
-            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -ParameterFilter { $Object -like 'ORACLE_SID*' } -Times 1 -Exactly
-        }
-
-        It 'Does not show ORACLE_HOME on host by default' {
-            Set-OracleEnv -SID 'ORCL' | Out-Null
-            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -ParameterFilter { $Object -like 'ORACLE_HOME*' } -Times 0 -Exactly
-        }
-
-        It 'Does not show ORACLE_BASE on host by default' {
-            Set-OracleEnv -SID 'ORCL' | Out-Null
-            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -ParameterFilter { $Object -like 'ORACLE_BASE*' } -Times 0 -Exactly
-        }
-
-        It 'Shows ORACLE_HOME on host when -Verbose is specified' {
-            Set-OracleEnv -SID 'ORCL' -Verbose 4>&1 | Out-Null
-            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -ParameterFilter { $Object -like 'ORACLE_HOME*' } -Times 1 -Exactly
-        }
-
-        It 'Shows ORACLE_BASE on host when -Verbose is specified' {
-            Set-OracleEnv -SID 'ORCL' -Verbose 4>&1 | Out-Null
-            Should -Invoke Write-Host -ModuleName 'TACE.Oracle.Admin' -ParameterFilter { $Object -like 'ORACLE_BASE*' } -Times 1 -Exactly
-        }
-    }
-
     Context 'Security' {
 
         BeforeEach {
@@ -564,6 +523,22 @@ Describe 'Set-OracleEnv' {
             $env:ORACLE_SID  = $null
             $env:ORACLE_HOME = $null
             $env:ORACLE_BASE = $null
+        }
+
+        It 'S1 every call discovers the instances afresh; nothing is remembered' -Tag 'SEC' {
+            Set-OracleEnv -SID 'ORCL' | Select-Object -ExpandProperty Success | Should -BeTrue
+
+            # The host now has only CDB1. A stored list would still accept ORCL.
+            Mock Get-OracleDatabaseList {
+                [PSCustomObject]@{
+                    Success = $true
+                    Data    = @([PSCustomObject]@{ SID = 'CDB1'; Status = 'Running'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' })
+                    Message = 'Found 1 Oracle database instance(s).'
+                }
+            } -ModuleName 'TACE.Oracle.Admin'
+            $second = Set-OracleEnv -SID 'ORCL'
+            $second.Success | Should -BeFalse
+            $second.Message | Should -Match 'CDB1'
         }
 
         It 'Message contains no credential fragments' {

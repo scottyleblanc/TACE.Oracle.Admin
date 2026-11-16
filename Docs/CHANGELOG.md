@@ -6,7 +6,135 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.2.3] - 2026-11-16
+
+Stack 3 of the AI Development Stack — tests. Not published to PSGallery. Records are in
+`Docs/audit/stack-3-mutation.md`, `stack-3-integration.md` and
+`stack-3-seeded-defect.md`.
+
+### Added
+
+- Rule I-11: every invariant except a limitation names its proof. A `Type:` or `Guard:`
+  line is followed by a `Test:` or `Static:` line, so removing the enforcement fails a
+  test. Rule I-12: a `Static:` line cites a check in
+  `Tests/Static/SourceInvariants.Tests.ps1` whose title starts with the function name.
+- Fixture tests for the linter's proof rules in `Tests/Static/InvariantConformance.Tests.ps1`.
+- `Scripts/Test-InvariantMutation.ps1` and `Tests/Mutation/InvariantMutations.psd1`: break
+  each invariant in a temporary copy and confirm its cited tests fail (rule I-10). It
+  refuses to run when a security invariant with a proof has no mutation. Result in
+  `Docs/audit/stack-3-mutation.md`.
+- `Tests/Unit/Set-EnvironmentSentinel.ps1` and `Compare-EnvironmentSentinel.ps1`, and rule
+  T-11: session-environment tests set known values first and compare every variable.
+- `Tests/Static/SourceInvariants.Tests.ps1`, the static checks cited on `Static:` lines.
+  The first: `ConvertFrom-SecureStringToPlaintext` S5.
+- Tests for 23 invariants that had none, among them 7 security invariants:
+  `Invoke-RmanProcess` S1 (no password in the argument list, checked from a file the
+  fake RMAN writes, since stdout is scrubbed), S4, S5, S6; `Get-RmanBackupStatus` S5;
+  `Remove-RmanObsoleteBackup` S8; `Set-OracleEnv` S1 (no remembered instance list).
+  Unproven invariants fall from 35 to 12.
+- Static checks for 11 invariants in `Tests/Static/SourceInvariants.Tests.ps1`, read from
+  the syntax tree: only `ConvertFrom-SecureStringToPlaintext` turns a secure value into
+  plaintext (S3), and it zeroes the buffer in a `finally` (S2); the password is extracted
+  only inside the stdin write (`Invoke-RmanProcess` S2); `ConvertFrom-RmanListBackup`
+  reads only its input (S1); `Get-OracleDatabaseList` connects to nothing and changes
+  nothing (S1, L1); `Get-RmanBackupStatus` hands Credential only to
+  `Invoke-RmanProcess` (S3); `Set-OracleEnv` changes only the three Oracle variables
+  and never prompts or writes to the host (S2, L3); both process wrappers dispose in a
+  `finally` (L3).
+- `Invoke-RmanProcess` L5 split in two, so each claim has its own proof. L5, the
+  timeout kills the whole process tree, has a unit test that checks no child of the
+  fake RMAN survives. New L6, a failed kill or wait does not replace the timeout error,
+  has a static check of the timeout branch. No invariant is now unproven.
+
+### Fixed
+
+- `Invoke-OraEnv` (`oraset`) with no SID threw when discovery failed or found no Oracle
+  instance: an empty list became `$null`, and `.Count` on it throws under StrictMode.
+  It now passes on to `Set-OracleEnv`, which returns the Message to show. The defect
+  came from the `Set-OracleEnv` split earlier in this stack, and was found by a
+  coverage test.
+- Twelve security invariants cited tests that passed with the invariant broken. The
+  environment tests compared with a value earlier tests had already polluted; the
+  credential tests ran with no credential; the tnsping scrub test never reached the
+  message; ConfirmImpact and directory inheritance were untested. Nine non-security
+  citations were weak in the same way. All now fail when their invariant is broken.
+
+### Changed
+
+- **Breaking:** `Set-OracleEnv` no longer prompts or writes to the host. With several
+  instances and no `-SID` it returns `Success = $false` with a Message listing them;
+  pass `-SID`. Its `Write-Host` suppression is removed. The menu, the confirmation line
+  and the `-Verbose` `ORACLE_HOME`/`ORACLE_BASE` lines moved to `Invoke-OraEnv`
+  (`oraset`, `oraenv`), which shows the Message from `Set-OracleEnv` on success.
+  Interactive use through the aliases is unchanged apart from the wording of the
+  confirmation line.
+- `Docs/standards/invariants-index.md` is now the invariant-to-test map: each invariant
+  is followed by the tests or static checks that prove it. "Enforced" is replaced by
+  "Proven"; a type or guard no longer counts as proven without a test.
+- The 35 `Type:` and `Guard:` entries carry a proof line: 17 cite an existing test, 18
+  are `Test: none yet.` Unproven invariants rise from 17 to 35 (15 security) because
+  they are now counted, not because anything regressed.
+- Every cited unit test follows rule T-09. 95 titles now start with the IDs they are
+  cited for, and 26 tests cited for a security invariant gained the Pester tag `SEC`.
+  Citations in the source blocks are updated to match; no test body changed. A leading
+  `[SEC] ` in a title is dropped in favour of the tag, and a `SEC-NN:` prefix moves to
+  the end as `(SEC-NN)`. One stale ID is removed: `ConvertFrom-RmanListBackup`'s title
+  `R1, P2 ...` named P2, a limitation that cites no test. The two `Invoke-RmanProcess`
+  R2 titles shared by tests in several authentication modes now end with the mode, so
+  each citation names one test.
+- The invariant linter checks rule T-09: a cited test's title starts with exactly the
+  IDs it is cited for, and a test cited for a security invariant carries the `SEC` tag.
+  Run against the previous commit it reports the same 95 titles and 26 tags.
+- Rules I-09 and I-12 now also require a cited title to be unique in its file, and the
+  linter refuses one that several tests share, since that citation names no single
+  test. Run before the R2 titles were made unique, it reports exactly those two.
+- A static check cited for a security invariant must carry the `SEC` tag (rule I-12),
+  and the linter refuses one without it, as it already did for unit tests. All 8 such
+  checks already carry it.
+- Rule T-03: a test that proves a security invariant may sit in the context that holds
+  its setup; the `SEC` tag marks it as a security test. The Stack 3 item "every
+  security invariant has a test in a `Security` context" is met through the tag rather
+  than by moving 20 tests out of the contexts whose setup they use.
+- Rule T-12 and a coverage floor: `Scripts/Invoke-UnitTest.ps1` measures coverage of
+  the built module, maps it back to each file in `Source/`, prints a per-file table and
+  fails below 95%. `-Verbose` lists every missed command by source line. JaCoCo XML goes
+  to `Tests/TestResults/coverage.xml`. Coverage is 97.7% (734 of 751 commands) after
+  five tests for reachable gaps: the `Set-OracleEnv` catch block, `Invoke-OraEnv` when
+  discovery fails, finds nothing, or `Set-OracleEnv` returns nothing, and an RMAN row
+  that ends before its last columns. The 17 commands left are recorded in `Docs/TODO.md`
+  by reason.
+- The integration tier: `Scripts/Invoke-IntegrationTest.ps1` runs `Tests/Integration/`
+  against a local Oracle database with OS authentication, and `Invoke-Gate.ps1
+  -Integration` runs it after the gate. The pre-push hook never does. Five guards, from
+  OracleBackup's AD-020, run first: host allowlist, opt-in variable
+  (`ORACLE_ADMIN_RUN_INTEGRATION`), complete local config, database-name denylist, and
+  an existing test folder. A failed guard fails the run. The local config,
+  `Tests/Integration/IntegrationConfig.local.ps1`, is gitignored; an example is
+  committed. Tests for `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup` take
+  control file backups and run a real `DELETE OBSOLETE`. 13 static tests cover the
+  guards. First runs against Oracle Database 21c XE: 12 of 12. Record in
+  `Docs/audit/stack-3-integration.md`.
+- `Invoke-Gate.ps1 -Unit` adds the unit tier, coverage floor included, as a seventh
+  check (decision 31). The pre-push hook does not pass it; CI will from Stack 4.
+  `Scripts/Test-SeededDefect.ps1` gains a fifth case, a behaviour defect: dropping
+  `Get-RmanBackupStatus`'s CompletionTime sort (breaking R3) fails the gate with `-Unit`
+  on `unit` alone, through the one test R3 cites. The control case now runs with
+  `-Unit`. Record in `Docs/audit/stack-3-seeded-defect.md`.
+- Integration evidence (decision 30, rule T-14): each run of the integration tier writes
+  `Tests/Integration/LastRun.json` with the commit, whether the working tree was clean,
+  the database edition and version, the PowerShell and Pester versions, the totals and
+  each test's outcome. No host name, path or SID. It counts as evidence only for a
+  passing run on a clean tree, and is committed as the last commit of a branch. A static
+  test holds the file to its agreed fields. Rule T-13 records the integration test rules
+  (decision 29), deferred to Stack 3 at ratification.
+- Signing references in `Assert-OracleEnvironment`, its tests and `Docs/SECURITY.md` now
+  state only the fact: Oracle binaries are not signed. The claims that Oracle signs
+  distribution archives, and the references to the old design decision, are removed.
+  The tests' pass-through mocks return `NotSigned`, the real state; one test keeps a
+  valid Oracle-signed mock to cover the accepting side of the signer check. `R1` is
+  retitled without "valid Oracle signature, SYSTEM owner"; the owner is not checked.
+  The RMAN functions' integrity-failure mocks use `HashMismatch`, since `NotSigned`
+  never fails the check.
 
 ---
 

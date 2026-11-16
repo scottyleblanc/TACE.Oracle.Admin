@@ -1,18 +1,21 @@
 #Requires -Version 7.6
 <#
 .SYNOPSIS
-    Proves the gate fails on planted defects: a lint violation, and a secret in a file
-    and in a commit message.
+    Proves the gate fails on planted defects: a lint violation, a secret in a file and in
+    a commit message, and a behaviour defect.
 
 .DESCRIPTION
     Copies the files the next commit could contain (tracked, plus untracked files that
     are not ignored) into a new folder under the system temp folder, makes that copy a
     git repository with one commit, and runs Scripts\Invoke-Gate.ps1 there:
 
-      control   the copy as it is              the gate passes
-      lint      a $_ planted in a function     the gate fails on 'analyzer'
-      secret    a token committed in a file    the gate fails on 'secrets' and 'commits'
-      message   a token in a commit message    the gate fails on 'messages'
+      control    the copy as it is, with -Unit       the gate passes, unit tier included
+      lint       a $_ planted in a function          the gate fails on 'analyzer'
+      secret     a token committed in a file         the gate fails on 'secrets' and 'commits'
+      message    a token in a commit message         the gate fails on 'messages'
+      behaviour  Get-RmanBackupStatus picks the      the gate with -Unit fails on 'unit'
+                 highest Key, not the latest         only: valid code that every static
+                 CompletionTime (breaks its R3)      check passes
 
     Each case starts from the clean copy. The planted token is generated at random in
     the GitHub token format, so it is no real credential; it is never printed. This
@@ -32,7 +35,7 @@
     Copyright © TACE Data Management Inc.
     **Invocation:** Standalone — self-contained; safe to run with `pwsh -File`. Needs
     everything the gate needs (PREREQUISITES.md). Takes a few minutes: the gate, static
-    tier included, runs four times.
+    tier included, runs five times, twice with the unit tier.
 #>
 [CmdletBinding()]
 [OutputType([string])]
@@ -68,11 +71,14 @@ function Invoke-CopyGit {
 }
 
 # Runs the gate in the copy; returns its exit code and the names of the checks that failed.
+# -Unit passes the gate's -Unit switch, adding the unit tier.
 function Invoke-CopyGate {
     [OutputType([PSCustomObject])]
-    param()
-    $gate   = Join-Path -Path $copy -ChildPath 'Scripts' -AdditionalChildPath 'Invoke-Gate.ps1'
-    $output = @(& pwsh -NoProfile -File $gate 2>&1 | ForEach-Object { "$PSItem" })
+    param([switch] $Unit)
+    $gate     = Join-Path -Path $copy -ChildPath 'Scripts' -AdditionalChildPath 'Invoke-Gate.ps1'
+    $gateArgs = @('-NoProfile', '-File', $gate)
+    if ($Unit) { $gateArgs += '-Unit' }
+    $output = @(& pwsh @gateArgs 2>&1 | ForEach-Object { "$PSItem" })
     $exit   = $LASTEXITCODE
     $failed = @($output | ForEach-Object { if ($PSItem -match '^\[FAIL\] (\w+) :') { $Matches[1] } })
     [PSCustomObject]@{ ExitCode = $exit; Failed = $failed }
@@ -136,7 +142,7 @@ try {
     Write-Output "[INFO] copy: $($listed.Count) files"
 
     # -- control ---------------------------------------------------------------
-    Add-Case -Name 'control' -Result (Invoke-CopyGate) -ExpectFailed @()
+    Add-Case -Name 'control' -Result (Invoke-CopyGate -Unit) -ExpectFailed @()
 
     # -- lint: a $_ planted in a function --------------------------------------
     $target = Join-Path -Path $copy -ChildPath 'Source' -AdditionalChildPath 'Private', 'Test-WindowsPlatform.ps1'
@@ -162,6 +168,18 @@ try {
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--allow-empty', '--message', "fix: rotate token $(Get-FakeToken)")
     Add-Case -Name 'message' -Result (Invoke-CopyGate) -ExpectFailed @('messages')
     $null = Invoke-CopyGit -Argument @('reset', '--quiet', '--hard', $baseline)
+
+    # -- behaviour: the latest-backup rule broken, in valid code -------------------
+    # A plausible simplification: drop the CompletionTime sort, so the highest Key wins.
+    # Nothing static can see it; the R3 unit test can.
+    $target = Join-Path -Path $copy -ChildPath 'Source' -AdditionalChildPath 'Public', 'Get-RmanBackupStatus.ps1'
+    Assert-InCopy -Path $target
+    $text = [System.IO.File]::ReadAllText($target)
+    $anchor = "                @{ Expression = { `$PSItem.CompletionTime }; Descending = `$true },`n"
+    if (([regex]::Matches($text, [regex]::Escape($anchor))).Count -ne 1) { throw '[Test-SeededDefect] behaviour anchor not found exactly once in Get-RmanBackupStatus.ps1' }
+    [System.IO.File]::WriteAllText($target, $text.Replace($anchor, ''), [System.Text.UTF8Encoding]::new($false))
+    Add-Case -Name 'behaviour' -Result (Invoke-CopyGate -Unit) -ExpectFailed @('unit')
+    $null = Invoke-CopyGit -Argument @('checkout', '--quiet', '--', 'Source/Public/Get-RmanBackupStatus.ps1')
 }
 finally {
     if ($KeepCopy) {
@@ -178,7 +196,7 @@ finally {
 }
 
 $failedCases = @($cases | Where-Object { -not $PSItem.Passed })
-if ($failedCases.Count -gt 0 -or $cases.Count -ne 4) {
+if ($failedCases.Count -gt 0 -or $cases.Count -ne 5) {
     Write-Output "[FAIL] seeded defects: $($failedCases.Count) of $($cases.Count) cases did not behave as expected"
     exit 1
 }

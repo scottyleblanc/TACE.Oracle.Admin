@@ -184,7 +184,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'TimeoutSeconds has ValidateRange with minimum 1' {
+        It 'P3 TimeoutSeconds has ValidateRange with minimum 1' {
             InModuleScope TACE.Oracle.Admin {
                 $param = (Get-Command Invoke-RmanProcess).Parameters['TimeoutSeconds']
                 $rangeAttr = $param.Attributes |
@@ -194,7 +194,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'TimeoutSeconds has ValidateRange with maximum 86400' {
+        It 'P3 TimeoutSeconds has ValidateRange with maximum 86400' {
             InModuleScope TACE.Oracle.Admin {
                 $param = (Get-Command Invoke-RmanProcess).Parameters['TimeoutSeconds']
                 $rangeAttr = $param.Attributes |
@@ -204,7 +204,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'OracleSid and WalletAlias are mutually exclusive — binding both throws' {
+        It 'P2 OracleSid and WalletAlias are mutually exclusive — binding both throws' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 {
@@ -218,7 +218,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'WalletAlias and ServiceAlias are mutually exclusive — binding both throws' {
+        It 'P2 WalletAlias and ServiceAlias are mutually exclusive — binding both throws' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
                 FakeCmd  = $script:fakeRmanCmd
                 FakeHome = $script:fakeOracleHome
@@ -239,13 +239,60 @@ Describe 'Invoke-RmanProcess' {
                 } | Should -Throw
             }
         }
+
+        It 'P1 <Name> is mandatory in every parameter set and rejects an empty string' -ForEach @(
+            @{ Name = 'RmanBinaryPath' }
+            @{ Name = 'RmanScript' }
+            @{ Name = 'OracleHome' }
+        ) {
+            $param = InModuleScope TACE.Oracle.Admin -Parameters @{ Name = $Name } {
+                param($Name)
+                (Get-Command Invoke-RmanProcess).Parameters[$Name]
+            }
+            $sets = @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ParameterAttribute] })
+            $sets | Should -Not -BeNullOrEmpty
+            foreach ($set in $sets) {
+                $set.Mandatory | Should -BeTrue -Because "$Name in set $($set.ParameterSetName)"
+            }
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidateNotNullOrEmptyAttribute] }) |
+                Should -Not -BeNullOrEmpty
+        }
+
+        It 'P2 each authentication mode is its own parameter set, with its own mandatory parameters' {
+            $command = InModuleScope TACE.Oracle.Admin { Get-Command Invoke-RmanProcess }
+            @($command.ParameterSets.Name | Sort-Object) | Should -Be @('NamedCredential', 'OSAuth', 'WalletAuth')
+            $expected = @{
+                OSAuth          = @('OracleSid')
+                WalletAuth      = @('WalletAlias')
+                NamedCredential = @('Credential', 'ServiceAlias')
+            }
+            foreach ($set in $command.ParameterSets) {
+                $modeParams = @($set.Parameters | Where-Object { $PSItem.Name -in @('OracleSid', 'WalletAlias', 'ServiceAlias', 'Credential') })
+                @($modeParams.Name | Sort-Object) | Should -Be $expected[$set.Name] -Because "set $($set.Name)"
+                foreach ($modeParam in $modeParams) {
+                    $modeParam.IsMandatory | Should -BeTrue -Because "$($modeParam.Name) in set $($set.Name)"
+                }
+            }
+        }
+
+        It 'P2 OracleSid and ServiceAlias are mutually exclusive — binding both throws' {
+            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
+                param($FakeCmd, $FakeHome)
+                $cred = [PSCredential]::new('rman_user', (ConvertTo-SecureString 'TestPass1!' -AsPlainText -Force))
+                $params = @{
+                    RmanBinaryPath = $FakeCmd; RmanScript = 'BACKUP DATABASE;'; OracleHome = $FakeHome
+                    OracleSid = 'ORCL'; ServiceAlias = 'ORCL_SVC'; Credential = $cred
+                }
+                { Invoke-RmanProcess @params } | Should -Throw
+            }
+        }
     }
 
     # ── Implementation — OSAuth ────────────────────────────────────────────────
 
     Context 'Implementation — OSAuth' {
 
-        It 'Returns a PSCustomObject with the correct five properties' {
+        It 'R1 returns exactly ExitCode, StdOut, StdErr, Success and AuthMode' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -253,11 +300,7 @@ Describe 'Invoke-RmanProcess' {
                     -RmanScript 'BACKUP DATABASE;' `
                     -OracleHome $FakeHome `
                     -OracleSid 'ORCL'
-                $result.PSObject.Properties.Name | Should -Contain 'ExitCode'
-                $result.PSObject.Properties.Name | Should -Contain 'StdOut'
-                $result.PSObject.Properties.Name | Should -Contain 'StdErr'
-                $result.PSObject.Properties.Name | Should -Contain 'Success'
-                $result.PSObject.Properties.Name | Should -Contain 'AuthMode'
+                @($result.PSObject.Properties.Name) | Should -Be @('ExitCode', 'StdOut', 'StdErr', 'Success', 'AuthMode')
             }
         }
 
@@ -271,6 +314,47 @@ Describe 'Invoke-RmanProcess' {
                     -OracleSid 'ORCL'
                 $result.Success | Should -Be $true
             }
+        }
+
+        It 'L2 writes the script, then EXIT;, then closes stdin' {
+            # The fake echoes stdin until it closes. If stdin stayed open it would block
+            # until the timeout and the call would throw.
+            $echoCmd = Join-Path $TestDrive 'fakerManEcho.cmd'
+            Set-Content -Path $echoCmd -Encoding ASCII -Value "@findstr `"^`"`r`n@echo Recovery Manager complete."
+            $result = InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $echoCmd; FakeHome = $script:fakeOracleHome } {
+                param($FakeCmd, $FakeHome)
+                $params = @{
+                    RmanBinaryPath = $FakeCmd
+                    RmanScript     = 'LIST BACKUP SUMMARY;'
+                    OracleHome     = $FakeHome
+                    OracleSid      = 'ORCL'
+                    TimeoutSeconds = 20
+                }
+                Invoke-RmanProcess @params
+            }
+            $lines = @($result.StdOut -split "`r?`n" | Where-Object { $PSItem.Trim() -ne '' })
+            $lines | Should -Be @('LIST BACKUP SUMMARY;', 'EXIT;', 'Recovery Manager complete.')
+        }
+
+        It 'L1 an RMAN process that floods stderr still completes' {
+            # About 200 KB to stderr: far past the pipe buffer, so a synchronous stdout read
+            # would leave the child blocked on stderr until the timeout.
+            $floodCmd = Join-Path $TestDrive 'fakerManFlood.cmd'
+            Set-Content -Path $floodCmd -Encoding ASCII -Value (
+                "@for /l %%i in (1,1,4000) do @echo STDERR_FLOOD_LINE_%%i_padding_padding_padding 1>&2`r`n@echo Recovery Manager complete.")
+            $result = InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $floodCmd; FakeHome = $script:fakeOracleHome } {
+                param($FakeCmd, $FakeHome)
+                $params = @{
+                    RmanBinaryPath = $FakeCmd
+                    RmanScript     = 'BACKUP DATABASE;'
+                    OracleHome     = $FakeHome
+                    OracleSid      = 'ORCL'
+                    TimeoutSeconds = 60
+                }
+                Invoke-RmanProcess @params
+            }
+            $result.StdOut        | Should -Match 'Recovery Manager complete'
+            $result.StdErr.Length | Should -BeGreaterThan 100000
         }
 
         It 'Returns AuthMode = OSAuth' {
@@ -309,7 +393,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'Returns Success=$false when output contains ORA- error code' {
+        It 'R2 returns Success=$false when output contains ORA- error code (OSAuth)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanErrorCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -321,7 +405,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'Returns Success=$false when output contains RMAN- error code' {
+        It 'R2 returns Success=$false when output contains RMAN- error code (OSAuth)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanRmanErrorCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -397,7 +481,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'TimeoutSeconds of 0 is rejected (below ValidateRange minimum of 1)' {
+        It 'P3 TimeoutSeconds of 0 is rejected (below ValidateRange minimum of 1)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 {
@@ -411,7 +495,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'TimeoutSeconds of 86401 is rejected (above ValidateRange maximum of 86400)' {
+        It 'P3 TimeoutSeconds of 86401 is rejected (above ValidateRange maximum of 86400)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 {
@@ -496,7 +580,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'Returns Success=$false when output contains ORA- error code' {
+        It 'R2 returns Success=$false when output contains ORA- error code (WalletAuth)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanErrorCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -508,7 +592,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'Returns Success=$false when output contains RMAN- error code' {
+        It 'R2 returns Success=$false when output contains RMAN- error code (WalletAuth)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanRmanErrorCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -653,7 +737,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'Returns Success=$false when output contains ORA- error code' {
+        It 'R2 returns Success=$false when output contains ORA- error code (NamedCredential)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
                 FakeCmd    = $script:fakeRmanErrorCmd
                 FakeHome   = $script:fakeOracleHome
@@ -761,7 +845,7 @@ Describe 'Invoke-RmanProcess' {
         }
 
         # AD-029: NLS_DATE_FORMAT is set on the child process — ensures consistent date output
-        It 'NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment' {
+        It 'S3 NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanNlsCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -773,46 +857,109 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        # [SEC] OSAuth: ORACLE_SID is never set on the current session
-        It 'OSAuth: ORACLE_SID is NOT set on the current session after the call' {
-            $sidBefore = $env:ORACLE_SID
-            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
-                param($FakeCmd, $FakeHome)
-                Invoke-RmanProcess `
-                    -RmanBinaryPath $FakeCmd `
-                    -RmanScript 'BACKUP DATABASE;' `
-                    -OracleHome $FakeHome `
-                    -OracleSid 'ORCL' | Out-Null
+        # [SEC] S3: ORACLE_HOME, ORACLE_SID, PATH and NLS_DATE_FORMAT go to the child only.
+        # Sentinels first: a before-and-after read proves nothing when an earlier test has
+        # already left the value the call would set.
+        It 'S3 <Mode> leaves the session environment unchanged, PATH included' -Tag 'SEC' -ForEach @(
+            @{ Mode = 'OSAuth' }
+            @{ Mode = 'WalletAuth' }
+            @{ Mode = 'NamedCredential' }
+        ) {
+            $sentinel = & (Join-Path $PSScriptRoot '..' 'Set-EnvironmentSentinel.ps1')
+            try {
+                InModuleScope TACE.Oracle.Admin -Parameters @{
+                    FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome; Mode = $Mode; Cred = $script:secTestCred
+                } {
+                    param($FakeCmd, $FakeHome, $Mode, $Cred)
+                    $params = @{ RmanBinaryPath = $FakeCmd; RmanScript = 'BACKUP DATABASE;'; OracleHome = $FakeHome }
+                    switch ($Mode) {
+                        'OSAuth'          { $params['OracleSid'] = 'ORCL' }
+                        'WalletAuth'      { $params['WalletAlias'] = 'ORCL_WALLET' }
+                        'NamedCredential' { $params['ServiceAlias'] = 'ORCL_SVC'; $params['Credential'] = $Cred }
+                    }
+                    Invoke-RmanProcess @params | Out-Null
+                }
             }
-            $env:ORACLE_SID | Should -Be $sidBefore
+            finally {
+                $changed = & (Join-Path $PSScriptRoot '..' 'Compare-EnvironmentSentinel.ps1') -Snapshot $sentinel
+            }
+            ($changed -join ', ') | Should -BeNullOrEmpty
         }
 
-        # [SEC] OSAuth: ORACLE_HOME is never set on the current session
-        It 'OSAuth: ORACLE_HOME on the current session is unchanged after the call' {
-            $homeBefore = $env:ORACLE_HOME
-            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
-                param($FakeCmd, $FakeHome)
-                Invoke-RmanProcess `
-                    -RmanBinaryPath $FakeCmd `
-                    -RmanScript 'BACKUP DATABASE;' `
-                    -OracleHome $FakeHome `
-                    -OracleSid 'ORCL' | Out-Null
+        It 'S1 no password reaches the process argument list (<Mode>)' -Tag 'SEC' -ForEach @(
+            @{ Mode = 'OSAuth' }
+            @{ Mode = 'WalletAuth' }
+            @{ Mode = 'NamedCredential' }
+        ) {
+            # The fake writes its arguments to a file, not stdout: stdout is scrubbed and
+            # would hide a user/password@service argument.
+            $argsFile = Join-Path $TestDrive "rman-args-$Mode.txt"
+            $argsCmd  = Join-Path $TestDrive "fakerManArgs-$Mode.cmd"
+            Set-Content -Path $argsCmd -Encoding ASCII -Value "@echo ARGS=[%*]> `"$argsFile`"`r`n@echo Recovery Manager complete."
+            InModuleScope TACE.Oracle.Admin -Parameters @{
+                FakeCmd = $argsCmd; FakeHome = $script:fakeOracleHome; Mode = $Mode; Cred = $script:secTestCred
+            } {
+                param($FakeCmd, $FakeHome, $Mode, $Cred)
+                $params = @{ RmanBinaryPath = $FakeCmd; RmanScript = 'BACKUP DATABASE;'; OracleHome = $FakeHome; Credential = $Cred }
+                switch ($Mode) {
+                    'OSAuth'          { $params.Remove('Credential'); $params['OracleSid'] = 'ORCL' }
+                    'WalletAuth'      { $params.Remove('Credential'); $params['WalletAlias'] = 'ORCL_WALLET' }
+                    'NamedCredential' { $params['ServiceAlias'] = 'ORCL_SVC' }
+                }
+                Invoke-RmanProcess @params | Out-Null
             }
-            $env:ORACLE_HOME | Should -Be $homeBefore
+            $recorded = Get-Content -Path $argsFile -Raw
+            $recorded | Should -Match 'ARGS='
+            $recorded | Should -Not -Match ([regex]::Escape($script:secTestPassword))
         }
 
-        # [SEC] WalletAuth: current session environment unmodified
-        It 'WalletAuth: ORACLE_SID is NOT set on the current session after the call' {
-            $sidBefore = $env:ORACLE_SID
-            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
+        It 'S4 a credential in stdout or stderr is scrubbed before it is returned' -Tag 'SEC' {
+            $leakCmd = Join-Path $TestDrive 'fakerManLeak.cmd'
+            Set-Content -Path $leakCmd -Encoding ASCII -Value (
+                "@echo CONNECT backup_user/$($script:secTestPassword)@ORCL_SVC`r`n@echo CONNECT backup_user/$($script:secTestPassword)@ORCL_SVC 1>&2`r`n@echo Recovery Manager complete.")
+            $result = InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $leakCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
-                Invoke-RmanProcess `
-                    -RmanBinaryPath $FakeCmd `
-                    -RmanScript 'BACKUP DATABASE;' `
-                    -OracleHome $FakeHome `
-                    -WalletAlias 'ORCL_WALLET' | Out-Null
+                Invoke-RmanProcess -RmanBinaryPath $FakeCmd -RmanScript 'BACKUP DATABASE;' -OracleHome $FakeHome -OracleSid 'ORCL'
             }
-            $env:ORACLE_SID | Should -Be $sidBefore
+            $result.StdOut | Should -Match 'SCRUBBED'
+            $result.StdErr | Should -Match 'SCRUBBED'
+            $result.StdOut | Should -Not -Match ([regex]::Escape($script:secTestPassword))
+            $result.StdErr | Should -Not -Match ([regex]::Escape($script:secTestPassword))
+        }
+
+        It 'S5 an exception message is scrubbed before it is re-thrown' -Tag 'SEC' {
+            # A binary path that does not exist and has the shape of a connect string: the
+            # start failure names the path, so the scrub is what keeps the password out.
+            $badPath = (Join-Path $TestDrive 'nope') + "\backup_user/$($script:secTestPassword)@ORCL_SVC.exe"
+            $message = $null
+            try {
+                InModuleScope TACE.Oracle.Admin -Parameters @{ Bad = $badPath; FakeHome = $script:fakeOracleHome } {
+                    param($Bad, $FakeHome)
+                    Invoke-RmanProcess -RmanBinaryPath $Bad -RmanScript 'BACKUP DATABASE;' -OracleHome $FakeHome -OracleSid 'ORCL'
+                }
+            }
+            catch { $message = $PSItem.Exception.Message }
+            $message | Should -BeLike 'RMAN process invocation failed: *'
+            $message | Should -Match 'SCRUBBED'
+            $message | Should -Not -Match ([regex]::Escape($script:secTestPassword))
+        }
+
+        It 'S6 verbose output names the mode and user but never the password' -Tag 'SEC' {
+            $verbose = InModuleScope TACE.Oracle.Admin -Parameters @{
+                FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome; Cred = $script:secTestCred
+            } {
+                param($FakeCmd, $FakeHome, $Cred)
+                $params = @{
+                    RmanBinaryPath = $FakeCmd; RmanScript = 'BACKUP DATABASE;'; OracleHome = $FakeHome
+                    ServiceAlias = 'ORCL_SVC'; Credential = $Cred; Verbose = $true
+                }
+                Invoke-RmanProcess @params 4>&1 | Where-Object { $PSItem -is [System.Management.Automation.VerboseRecord] } |
+                    ForEach-Object { $PSItem.Message }
+            }
+            $text = @($verbose) -join "`n"
+            $text | Should -Match 'NamedCredential'
+            $text | Should -Match 'backup_user'
+            $text | Should -Not -Match ([regex]::Escape($script:secTestPassword))
         }
 
         # [SEC] WalletAuth: ArgumentList contains alias in safe form — not a password
@@ -934,7 +1081,7 @@ Describe 'Invoke-RmanProcess' {
         }
 
         # [SEC] AuthMode values are the expected audit strings
-        It 'AuthMode = OSAuth exactly for OS authentication' {
+        It 'R3 AuthMode = OSAuth exactly for OS authentication' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -946,7 +1093,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'AuthMode = WalletAuth exactly for wallet authentication' {
+        It 'R3 AuthMode = WalletAuth exactly for wallet authentication' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -958,7 +1105,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'AuthMode = NamedCredential exactly for named credential authentication' {
+        It 'R3 AuthMode = NamedCredential exactly for named credential authentication' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
                 FakeCmd    = $script:fakeRmanCmd
                 FakeHome   = $script:fakeOracleHome
@@ -1034,7 +1181,7 @@ Describe 'Invoke-RmanProcess' {
         # Validates that BeginErrorReadLine is active — sequential ReadToEnd() on stdout
         # followed by ReadToEnd() on stderr would deadlock if stderr filled the pipe buffer
         # before stdout closed. This test confirms the async path captures stderr correctly.
-        It 'SEC-04: stderr content written by the RMAN process is captured in StdErr' {
+        It 'L1 stderr content written by the RMAN process is captured in StdErr (SEC-04)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanStderrCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -1049,7 +1196,7 @@ Describe 'Invoke-RmanProcess' {
         # [SEC-04] Async reads: stdout is still captured when stderr also has content.
         # Confirms both async readers operate concurrently — the stdout success trailer
         # must appear even though the fake binary also wrote to stderr.
-        It 'SEC-04: stdout is captured correctly when the RMAN process also writes to stderr' {
+        It 'L1 stdout is captured correctly when the RMAN process also writes to stderr (SEC-04)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanStderrCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -1097,6 +1244,45 @@ Describe 'Invoke-RmanProcess' {
             $watch.Elapsed.TotalSeconds | Should -BeLessThan 15
             $env:ORACLE_SID  | Should -Be $sidBefore
             $env:ORACLE_HOME | Should -Be $homeBefore
+        }
+
+        It 'L5 a timeout kills the child processes of RMAN as well' {
+            # The fake RMAN is cmd.exe running ping.exe as a child. Killing only cmd.exe
+            # would leave ping running. The ping count is unique to this test, so its
+            # process can be told apart from any other ping on the host.
+            $treeCmd = Join-Path $TestDrive 'fakerManTree.cmd'
+            Set-Content -Path $treeCmd -Encoding ASCII -Value "@ping -n 43 127.0.0.1 >nul`r`n@echo Recovery Manager complete."
+            $findChild = {
+                @(Get-CimInstance -ClassName Win32_Process -Filter "Name = 'PING.EXE'" |
+                    Where-Object { $PSItem.CommandLine -like '*-n 43 127.0.0.1*' })
+            }
+            try {
+                {
+                    InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $treeCmd; FakeHome = $script:fakeOracleHome } {
+                        param($FakeCmd, $FakeHome)
+                        $params = @{
+                            RmanBinaryPath = $FakeCmd
+                            RmanScript     = 'LIST BACKUP SUMMARY;'
+                            OracleHome     = $FakeHome
+                            OracleSid      = 'ORCL'
+                            TimeoutSeconds = 2
+                        }
+                        Invoke-RmanProcess @params
+                    }
+                } | Should -Throw -ExpectedMessage '*timed out after 2 seconds*'
+
+                # Allow up to 5 seconds for the killed tree to leave the process table.
+                $watch = [System.Diagnostics.Stopwatch]::StartNew()
+                $survivors = @(& $findChild)
+                while ($survivors.Count -gt 0 -and $watch.Elapsed.TotalSeconds -lt 5) {
+                    Start-Sleep -Milliseconds 250
+                    $survivors = @(& $findChild)
+                }
+                $survivors.Count | Should -Be 0 -Because 'no child of the timed-out RMAN may survive the kill'
+            }
+            finally {
+                & $findChild | ForEach-Object { Stop-Process -Id $PSItem.ProcessId -Force -ErrorAction SilentlyContinue }
+            }
         }
 
         It 'L4 child PATH starts with OracleHome bin and the platform separator' {

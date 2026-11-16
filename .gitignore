@@ -12,6 +12,9 @@ MEMORY.md
 # Pester test results
 Tests/TestResults/
 
+# Integration tier: this machine's host name, database and folders — never committed
+Tests/Integration/IntegrationConfig.local.ps1
+
 # Ephemeral handoff docs — not part of the published history
 Docs/HANDOFF.md
 Docs/Publish-Steps.md

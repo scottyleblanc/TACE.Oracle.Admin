@@ -13,12 +13,21 @@
         within a function (rule I-03)
       - an entry with no enforcement line (rule I-05)
       - a security entry without the [SEC] tag (rule I-06)
+      - a cited test that is not in the function's test file, or whose title more than
+        one test in that file carries (rule I-09; I-12 for static checks)
+      - a cited test whose title does not start with exactly the IDs it is cited for, or
+        that is cited for a security invariant and has no SEC tag (rule T-09)
+      - a Type or Guard entry with no Test or Static line under it (rule I-11)
+      - a cited static check that is not in Tests\Static\SourceInvariants.Tests.ps1, whose
+        title does not start with the function name, or that is cited for a security
+        invariant and has no SEC tag (rule I-12)
       - a line inside a block that it cannot read
 
     It reads source text only. It does not import the module or run any function.
 
-    With -IndexPath it also writes the index: one line per invariant, with what
-    enforces it and whether that is in place.
+    With -IndexPath it also writes the index, which is the invariant-to-test map: one
+    line per invariant with what enforces it, then each test or static check that
+    proves it.
 
 .PARAMETER RepoRoot
     The repository root. Defaults to two levels above this script's folder (Tests\Lint\).
@@ -72,6 +81,7 @@ try {
     }
     $entryPattern   = '^(?<sec>\[SEC\]\s+)?(?<prefix>[PSRTL])(?<number>\d+)\s+(?<text>.+)$'
     $keywordPattern = '^(?<keyword>Type|Guard|Test|Static|Limitation):\s*(?<note>.*)$'
+    $proofPattern   = '^(?<keyword>Test|Static):\s*(?<note>.*)$'
 
     $resolvedRoot = (Resolve-Path -LiteralPath $RepoRoot).ProviderPath
 
@@ -153,6 +163,8 @@ try {
                         Statement = $Matches['text']
                         Keyword   = ''
                         Note      = ''
+                        ProofKind = ''
+                        ProofNote = ''
                         Line      = $lineNumber
                     }
                     $entries.Add($current)
@@ -172,8 +184,16 @@ try {
                         $current.Keyword = $Matches['keyword']
                         $current.Note    = $Matches['note']
                     }
+                    elseif ($current.Keyword -in @('Type', 'Guard') -and $current.ProofKind -eq '' -and $trimmed -match $proofPattern) {
+                        # The proof line under a Type or Guard line (rule I-11).
+                        $current.ProofKind = $Matches['keyword']
+                        $current.ProofNote = $Matches['note']
+                    }
                     elseif ($current.Keyword -eq '') {
                         $current.Statement = "$($current.Statement) $trimmed"
+                    }
+                    elseif ($current.ProofKind -ne '') {
+                        $current.ProofNote = "$($current.ProofNote) $trimmed"
                     }
                     else {
                         $current.Note = "$($current.Note) $trimmed"
@@ -210,6 +230,16 @@ try {
                     $reasons.Add('Entry has no enforcement line (Type, Guard, Test, Static or Limitation).')
                 }
 
+                # A Test or Static entry is its own proof. A Type or Guard entry needs a
+                # proof line under it (rule I-11). A limitation has none.
+                if ($entry.Keyword -in @('Test', 'Static')) {
+                    $entry.ProofKind = $entry.Keyword
+                    $entry.ProofNote = $entry.Note
+                }
+                elseif ($entry.Keyword -in @('Type', 'Guard') -and $entry.ProofKind -eq '') {
+                    $reasons.Add("$($entry.Keyword) entry has no Test or Static line that proves it (rule I-11). Use 'Test: none yet.' until one exists.")
+                }
+
                 foreach ($reason in $reasons) {
                     $defects.Add([PSCustomObject]@{
                             File = $relative; Function = $functionName; Line = $entry.Line; Id = $entry.Id
@@ -217,74 +247,218 @@ try {
                         })
                 }
 
-                $state = switch ($entry.Keyword) {
-                    'Limitation' { 'Accepted' }
-                    'Type'       { 'Enforced' }
-                    'Guard'      { 'Enforced' }
-                    ''           { 'Unknown' }
-                    default      { if ($entry.Note -match '^none yet') { 'Unproven' } else { 'Enforced' } }
-                }
+                $state = if ($entry.Keyword -eq 'Limitation') { 'Accepted' }
+                elseif ($entry.ProofKind -eq '') { 'Unknown' }
+                elseif ($entry.ProofNote -match '^none yet') { 'Unproven' }
+                else { 'Proven' }
+
+                $proofTitles = @(
+                    if ($state -eq 'Proven') {
+                        [regex]::Matches($entry.ProofNote, "'(?<title>[^']+)'") | ForEach-Object { $PSItem.Groups['title'].Value }
+                    }
+                )
 
                 $catalog.Add([PSCustomObject]@{
-                        File      = $relative
-                        Function  = $functionName
-                        Id        = $entry.Id
-                        Sec       = $entry.Sec
-                        Section   = $entry.Section
-                        Statement = $entry.Statement
-                        Keyword   = $entry.Keyword
-                        Note      = $entry.Note
-                        State     = $state
-                        Line      = $entry.Line
+                        File        = $relative
+                        Function    = $functionName
+                        Id          = $entry.Id
+                        Sec         = $entry.Sec
+                        Section     = $entry.Section
+                        Statement   = $entry.Statement
+                        Keyword     = $entry.Keyword
+                        Note        = $entry.Note
+                        ProofKind   = $entry.ProofKind
+                        ProofNote   = $entry.ProofNote
+                        ProofTitles = $proofTitles
+                        State       = $state
+                        Line        = $entry.Line
                     })
             }
         }
     }
 
-    # --- Check that every cited test exists (rule I-09) --------------------------------
+    # --- Check that every cited test and static check exists (rules I-09, I-12) ---------
 
     # A cited test must be in the test file named for the source file, in the Tests\Unit\
     # folder that mirrors its source folder. Test titles are not unique across files, so a
-    # match anywhere else would prove nothing.
-    $testsPath    = Join-Path -Path $resolvedRoot -ChildPath 'Tests' -AdditionalChildPath 'Unit'
-    $titlesByFile = @{}
+    # match anywhere else would prove nothing. A cited static check must be in the one
+    # static file for source invariants, and its title must start with the function name,
+    # because identifiers are local to a function.
+    $testsPath      = Join-Path -Path $resolvedRoot -ChildPath 'Tests' -AdditionalChildPath 'Unit'
+    $staticFile     = Join-Path -Path $resolvedRoot -ChildPath 'Tests' -AdditionalChildPath 'Static', 'SourceInvariants.Tests.ps1'
+    $staticRelative = Join-Path -Path 'Tests' -ChildPath 'Static' -AdditionalChildPath 'SourceInvariants.Tests.ps1'
+    $titlesByFile   = @{}
+
+    # Title -> how many tests in the file carry it. A citation must name one test only.
+    $readTitles = {
+        param([string]$Path)
+        $titles = [System.Collections.Generic.Dictionary[string, int]]::new([System.StringComparer]::Ordinal)
+        if (Test-Path -LiteralPath $Path) {
+            $text  = Get-Content -LiteralPath $Path -Raw
+            $found = [regex]::Matches($text, '(?m)^\s*It\s+([''"])(?<title>.+?)\1')
+            foreach ($match in $found) {
+                $title = $match.Groups['title'].Value
+                $titles[$title] = if ($titles.ContainsKey($title)) { $titles[$title] + 1 } else { 1 }
+            }
+        }
+        , $titles
+    }
 
     foreach ($item in $catalog) {
-        if ($item.Keyword -ne 'Test' -or $item.State -ne 'Enforced') { continue }
+        if ($item.State -ne 'Proven') { continue }
 
-        $sourceName   = [System.IO.Path]::GetFileNameWithoutExtension($item.File)
-        $sourceFolder = Split-Path -Path (Split-Path -Path $item.File -Parent) -Leaf
-        $testKey      = "$sourceFolder/$sourceName"
-
-        if (-not $titlesByFile.ContainsKey($testKey)) {
-            $titles   = [System.Collections.Generic.HashSet[string]]::new()
-            $testFile = Join-Path -Path $testsPath -ChildPath $sourceFolder -AdditionalChildPath "$sourceName.Tests.ps1"
-            if (Test-Path -LiteralPath $testFile) {
-                $testText = Get-Content -LiteralPath $testFile -Raw
-                $found    = [regex]::Matches($testText, '(?m)^\s*It\s+([''"])(?<title>.+?)\1')
-                foreach ($match in $found) {
-                    $null = $titles.Add($match.Groups['title'].Value)
-                }
-            }
-            $titlesByFile[$testKey] = $titles
+        if ($item.ProofKind -eq 'Static') {
+            $fileKey     = 'static'
+            $displayPath = $staticRelative
+            if (-not $titlesByFile.ContainsKey($fileKey)) { $titlesByFile[$fileKey] = & $readTitles $staticFile }
         }
-        $testTitles = $titlesByFile[$testKey]
+        else {
+            $sourceName   = [System.IO.Path]::GetFileNameWithoutExtension($item.File)
+            $sourceFolder = Split-Path -Path (Split-Path -Path $item.File -Parent) -Leaf
+            $fileKey      = "$sourceFolder/$sourceName"
+            $displayPath  = Join-Path -Path 'Tests' -ChildPath 'Unit' -AdditionalChildPath $sourceFolder, "$sourceName.Tests.ps1"
+            if (-not $titlesByFile.ContainsKey($fileKey)) {
+                $testFile = Join-Path -Path $testsPath -ChildPath $sourceFolder -AdditionalChildPath "$sourceName.Tests.ps1"
+                $titlesByFile[$fileKey] = & $readTitles $testFile
+            }
+        }
+        $knownTitles = $titlesByFile[$fileKey]
 
-        $cited = @([regex]::Matches($item.Note, "'(?<title>[^']+)'") | ForEach-Object { $PSItem.Groups['title'].Value })
-
-        if ($cited.Count -eq 0) {
+        if ($item.ProofTitles.Count -eq 0) {
             $defects.Add([PSCustomObject]@{
                     File = $item.File; Function = $item.Function; Line = $item.Line; Id = $item.Id
-                    Reason = 'Test line names no test. Give each test title in single quotes.'
+                    Reason = "$($item.ProofKind) line names no $(if ($item.ProofKind -eq 'Static') { 'check' } else { 'test' }). Give each title in single quotes."
                 })
             continue
         }
 
-        foreach ($title in $cited) {
-            if (-not $testTitles.Contains($title)) {
+        foreach ($title in $item.ProofTitles) {
+            $kind = if ($item.ProofKind -eq 'Static') { 'check' } else { 'test' }
+            if (-not $knownTitles.ContainsKey($title)) {
                 $defects.Add([PSCustomObject]@{
                         File = $item.File; Function = $item.Function; Line = $item.Line; Id = $item.Id
-                        Reason = "Cited test not found in Tests\Unit\$sourceFolder\$sourceName.Tests.ps1: '$title'."
+                        Reason = "Cited $kind not found in ${displayPath}: '$title'."
+                    })
+            }
+            elseif ($knownTitles[$title] -gt 1) {
+                $defects.Add([PSCustomObject]@{
+                        File = $item.File; Function = $item.Function; Line = $item.Line; Id = $item.Id
+                        Reason = "Cited $kind title is shared by $($knownTitles[$title]) tests in ${displayPath}, so the citation does not name one: '$title'."
+                    })
+            }
+            if ($item.ProofKind -eq 'Static' -and -not $title.StartsWith("$($item.Function) ", [System.StringComparison]::Ordinal)) {
+                $defects.Add([PSCustomObject]@{
+                        File = $item.File; Function = $item.Function; Line = $item.Line; Id = $item.Id
+                        Reason = "Cited static check does not start with the function name (rule I-12): '$title'."
+                    })
+            }
+        }
+    }
+
+    # --- Check cited test titles and tags (rule T-09) -----------------------------------
+
+    # A cited unit test's title starts with the ID of each invariant it is cited for, and
+    # nothing else, comma-separated. A test cited for a security invariant carries the
+    # Pester tag SEC. One test can be cited by several entries, so the IDs are collected
+    # per test file and title first.
+    $itsByFile = @{}
+    $readIts = {
+        param([string]$Path)
+        $its = [System.Collections.Generic.List[PSCustomObject]]::new()
+        if (Test-Path -LiteralPath $Path) {
+            $testTokens = $null
+            $testErrors = $null
+            $testAst = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$testTokens, [ref]$testErrors)
+            $commands = $testAst.FindAll({
+                    param([System.Management.Automation.Language.Ast]$node)
+                    $node -is [System.Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'It'
+                }, $true)
+            foreach ($command in $commands) {
+                $title = $null
+                $tags  = [System.Collections.Generic.List[string]]::new()
+                $elements = $command.CommandElements
+                for ($i = 1; $i -lt $elements.Count; $i++) {
+                    $element = $elements[$i]
+                    if ($element -is [System.Management.Automation.Language.CommandParameterAst]) {
+                        if ($element.ParameterName -eq 'Tag') {
+                            $argument = if ($null -ne $element.Argument) { $element.Argument } elseif ($i + 1 -lt $elements.Count) { $i++; $elements[$i] } else { $null }
+                            if ($null -ne $argument) {
+                                foreach ($value in $argument.FindAll({ param([System.Management.Automation.Language.Ast]$node) $node -is [System.Management.Automation.Language.StringConstantExpressionAst] }, $true)) {
+                                    $tags.Add($value.Value)
+                                }
+                            }
+                        }
+                        elseif ($null -eq $element.Argument -and $element.ParameterName -ne 'Skip' -and $i + 1 -lt $elements.Count -and
+                            $elements[$i + 1] -isnot [System.Management.Automation.Language.CommandParameterAst]) {
+                            $i++
+                        }
+                        continue
+                    }
+                    if ($null -eq $title -and $element -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
+                        $title = $element.Value
+                    }
+                    elseif ($null -eq $title -and $element -is [System.Management.Automation.Language.ExpandableStringExpressionAst]) {
+                        $title = $element.Value
+                    }
+                }
+                if ($null -ne $title) { $its.Add([PSCustomObject]@{ Title = $title; Tags = @($tags) }) }
+            }
+        }
+        , $its
+    }
+
+    $citedTests = [ordered]@{}
+    # Static checks are collected too: a static check cited for a security invariant
+    # carries the SEC tag as well (rule I-12). Their titles start with the function name,
+    # so the ID-prefix part of T-09 applies to unit tests only.
+    foreach ($item in $catalog) {
+        if ($item.State -ne 'Proven' -or $item.ProofKind -notin @('Test', 'Static')) { continue }
+        if ($item.ProofKind -eq 'Static') {
+            $fileKey  = 'static'
+            $testFile = $staticFile
+        }
+        else {
+            $sourceName   = [System.IO.Path]::GetFileNameWithoutExtension($item.File)
+            $sourceFolder = Split-Path -Path (Split-Path -Path $item.File -Parent) -Leaf
+            $fileKey      = "$sourceFolder/$sourceName"
+            $testFile     = Join-Path -Path $testsPath -ChildPath $sourceFolder -AdditionalChildPath "$sourceName.Tests.ps1"
+        }
+        foreach ($title in $item.ProofTitles) {
+            $key = "$fileKey|$title"
+            if (-not $citedTests.Contains($key)) {
+                $citedTests[$key] = [PSCustomObject]@{
+                    FileKey = $fileKey; TestFile = $testFile; Kind = $item.ProofKind; Title = $title; First = $item
+                    Ids = [System.Collections.Generic.List[string]]::new(); Sec = $false
+                }
+            }
+            if (-not $citedTests[$key].Ids.Contains($item.Id)) { $citedTests[$key].Ids.Add($item.Id) }
+            if ($item.Sec) { $citedTests[$key].Sec = $true }
+        }
+    }
+
+    foreach ($cited in $citedTests.Values) {
+        $first = $cited.First
+        $want  = @($cited.Ids | Sort-Object)
+        $have  = @(if ($cited.Title -cmatch '^(?<ids>[PSRTL]\d+(?:, [PSRTL]\d+)*) ') { $Matches['ids'] -split ', ' })
+        $haveUnique = @($have | Sort-Object -Unique)
+        if ($cited.Kind -eq 'Test' -and (($want -join ',') -ne ($haveUnique -join ',') -or $have.Count -ne $haveUnique.Count)) {
+            $defects.Add([PSCustomObject]@{
+                    File = $first.File; Function = $first.Function; Line = $first.Line; Id = $first.Id
+                    Reason = "Cited test does not start with exactly the IDs it is cited for, $($want -join ', ') (rule T-09): '$($cited.Title)'."
+                })
+        }
+
+        if ($cited.Sec) {
+            if (-not $itsByFile.ContainsKey($cited.FileKey)) {
+                $itsByFile[$cited.FileKey] = & $readIts $cited.TestFile
+            }
+            $untagged = @($itsByFile[$cited.FileKey] | Where-Object { $PSItem.Title -ceq $cited.Title -and $PSItem.Tags -notcontains 'SEC' })
+            if ($untagged.Count -gt 0) {
+                $what = if ($cited.Kind -eq 'Static') { 'static check' } else { 'test' }
+                $rule = if ($cited.Kind -eq 'Static') { 'I-12' } else { 'T-09' }
+                $defects.Add([PSCustomObject]@{
+                        File = $first.File; Function = $first.Function; Line = $first.Line; Id = $first.Id
+                        Reason = "Cited $what for a security invariant has no SEC tag (rule $rule): '$($cited.Title)'."
                     })
             }
         }
@@ -292,7 +466,7 @@ try {
 
     # --- Build the index ---------------------------------------------------------------
 
-    $enforced    = @($catalog | Where-Object { $PSItem.State -eq 'Enforced' })
+    $proven      = @($catalog | Where-Object { $PSItem.State -eq 'Proven' })
     $unproven    = @($catalog | Where-Object { $PSItem.State -eq 'Unproven' })
     $accepted    = @($catalog | Where-Object { $PSItem.State -eq 'Accepted' })
     $security    = @($catalog | Where-Object { $PSItem.Sec })
@@ -302,7 +476,8 @@ try {
     $index.Add('# Invariant Index')
     $index.Add('')
     $index.Add('Generated by `Tests\Lint\Invoke-InvariantLint.ps1 -IndexPath`. Do not edit by hand.')
-    $index.Add('The block in each function is the source; this is a one-line cross-reference.')
+    $index.Add('The block in each function is the source. This is the invariant-to-test map: one line')
+    $index.Add('per invariant, then the tests or static checks that prove it.')
     $index.Add('Identifiers are local to a function. The format is defined in [invariants.md](invariants.md).')
     $index.Add('')
     $index.Add('| Measure | Count |')
@@ -310,7 +485,7 @@ try {
     $index.Add("| Functions | $functionCount |")
     $index.Add("| Invariants | $($catalog.Count) |")
     $index.Add("| Security invariants | $($security.Count) |")
-    $index.Add("| Enforced (type, guard, test or static check in place) | $($enforced.Count) |")
+    $index.Add("| Proven (a cited test or static check) | $($proven.Count) |")
     $index.Add("| Unproven (test or static check not written yet) | $($unproven.Count) |")
     $index.Add("| Unproven security invariants | $($secUnproven.Count) |")
     $index.Add("| Accepted limitations | $($accepted.Count) |")
@@ -332,12 +507,16 @@ try {
         }
 
         $secTag = if ($item.Sec) { ' `[SEC]`' } else { '' }
+        $proofWord = if ($item.Keyword -in @('Type', 'Guard')) { "$($item.Keyword); $($item.ProofKind)" } else { $item.Keyword }
         $how = switch ($item.State) {
-            'Unproven' { "$($item.Keyword), none yet" }
+            'Unproven' { "$proofWord, none yet" }
             'Accepted' { 'Limitation' }
-            default    { $item.Keyword }
+            default    { $proofWord }
         }
         $index.Add("- **$($item.Id)**$secTag $($item.Statement) *($how)*")
+        foreach ($title in $item.ProofTitles) {
+            $index.Add("  - $($item.ProofKind): '$title'")
+        }
     }
 
     $indexMarkdown = ($index -join "`n") + "`n"
@@ -359,7 +538,7 @@ try {
         Data    = [PSCustomObject]@{
             FunctionCount = $functionCount
             EntryCount    = $catalog.Count
-            Enforced      = $enforced.Count
+            Proven        = $proven.Count
             Unproven      = $unproven.Count
             Accepted      = $accepted.Count
             MissingBlock  = @($missingBlock)

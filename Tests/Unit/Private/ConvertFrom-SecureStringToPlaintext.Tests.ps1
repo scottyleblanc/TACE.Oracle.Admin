@@ -53,7 +53,7 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
 
     Context 'Parameter validation' {
 
-        It 'SecureString parameter is mandatory' {
+        It 'P1 SecureString parameter is mandatory' {
             InModuleScope TACE.Oracle.Admin {
                 $param = (Get-Command ConvertFrom-SecureStringToPlaintext).Parameters['SecureString']
                 $isMandatory = @($param.Attributes |
@@ -62,7 +62,7 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
             }
         }
 
-        It 'SecureString parameter is typed as [SecureString]' {
+        It 'P1 SecureString parameter is typed as [SecureString]' {
             InModuleScope TACE.Oracle.Admin {
                 $param = (Get-Command ConvertFrom-SecureStringToPlaintext).Parameters['SecureString']
                 $param.ParameterType | Should -Be ([SecureString])
@@ -74,7 +74,7 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
 
     Context 'Implementation' {
 
-        It 'Returns the correct plaintext for a standard password' {
+        It 'R1 returns the correct plaintext for a standard password' {
             InModuleScope TACE.Oracle.Admin {
                 $plain = 'MyTestPassword123!'
                 $secure = ConvertTo-SecureString $plain -AsPlainText -Force
@@ -83,7 +83,7 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
             }
         }
 
-        It 'Returns an empty string for an empty SecureString' {
+        It 'R1 returns an empty string for an empty SecureString' {
             InModuleScope TACE.Oracle.Admin {
                 $secure = [System.Security.SecureString]::new()
                 $secure.MakeReadOnly()
@@ -92,7 +92,7 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
             }
         }
 
-        It 'Handles special characters correctly' {
+        It 'R1 handles special characters correctly' {
             InModuleScope TACE.Oracle.Admin {
                 $plain = 'P@$$w0rd!#%^&*()'
                 $secure = ConvertTo-SecureString $plain -AsPlainText -Force
@@ -123,13 +123,13 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
         # throw before $ptr is assigned. With the pre-initialization, $ptr remains
         # [IntPtr]::Zero and ZeroFreeGlobalAllocUnicode is correctly skipped. Without it,
         # $ptr is undefined and the guard may call ZeroFreeGlobalAllocUnicode($null).
-        It 'SEC-06: Throws a clean "Failed to convert SecureString" error when conversion fails — not a pointer or memory error' {
+        It 'T1 throws a clean "Failed to convert SecureString" error when conversion fails — not a pointer or memory error (SEC-06)' {
             InModuleScope TACE.Oracle.Admin {
                 $secure = ConvertTo-SecureString 'throwtest' -AsPlainText -Force
                 $secure.Dispose()
 
                 { ConvertFrom-SecureStringToPlaintext -SecureString $secure } |
-                    Should -Throw -ExpectedMessage '*Failed to convert SecureString*'
+                    Should -Throw -ExpectedMessage 'Failed to convert SecureString:*'
             }
         }
     }
@@ -138,7 +138,7 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
 
     Context 'Security' {
 
-        It 'Function is not exported as a public command' {
+        It 'S4 function is not exported as a public command' -Tag 'SEC' {
             $exported = (Get-Module TACE.Oracle.Admin).ExportedCommands.Keys
             $exported | Should -Not -Contain 'ConvertFrom-SecureStringToPlaintext'
         }
@@ -165,7 +165,7 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
 
         # [SEC] Verify the function is accessible only within the module scope —
         # calling it outside InModuleScope must fail.
-        It 'Is not callable outside module scope' {
+        It 'S4 is not callable outside module scope' -Tag 'SEC' {
             { ConvertFrom-SecureStringToPlaintext -SecureString (ConvertTo-SecureString 'x' -AsPlainText -Force) } |
                 Should -Throw
         }

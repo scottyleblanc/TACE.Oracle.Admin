@@ -46,11 +46,14 @@ function Get-OracleBackupConfigStore {
     #   P1 The config file is Config\OracleBackup.json under the module folder, unless
     #       the module-scoped test override $script:ConfigPathOverride is set.
     #       Guard: the path resolution at the start of the body.
+    #       Test: 'P1 reads Config\OracleBackup.json under the module folder when no override is set',
+    #       'P1 reads the override path when one is set'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 A config file created here is given restricted permissions straight
     #       after it is written.
     #       Guard: the Set-RestrictiveAcl call that follows the write.
+    #       Test: 'S1, L1 creates the folder, file and ACL even when the caller runs under -WhatIf'.
     #   [SEC] S2 The config holds paths and defaults, never a credential.
     #       Limitation: nothing checks what the file contains.
     #   [SEC] S3 OracleHome read from the config is untrusted until checked.
@@ -68,13 +71,13 @@ function Get-OracleBackupConfigStore {
     #       Test: 'R2 writes the defaults to the override path when the file is absent'.
     #   T1 Every throw starts with 'Failed to load OracleBackup configuration from' and
     #       names the path.
-    #       Test: none yet.
+    #       Test: 'T1 a file it cannot read throws with the prefix and the path'.
     #
     # EXECUTION INVARIANTS
     #   L1 The first call creates the folder, the file and its ACL even when the caller
     #       runs under -WhatIf: creating the default is part of reading the config, not a
     #       change being previewed. The writes pin -WhatIf:$false.
-    #       Test: 'L1 creates the folder, file and ACL even when the caller runs under -WhatIf'.
+    #       Test: 'S1, L1 creates the folder, file and ACL even when the caller runs under -WhatIf'.
     #--------------------------------------------------------------
 
     # [SEC] S4 — fixed path under the module folder. Only the module-scoped test

@@ -133,12 +133,12 @@ Describe 'Get-OracleDatabaseList' {
             } -ModuleName 'TACE.Oracle.Admin'
         }
 
-        It 'Returns OracleHome as $null when PathName is empty' {
+        It 'R4 returns OracleHome as $null when PathName is empty' {
             ($result = Get-OracleDatabaseList -Platform Windows)
             ($result.Data | Where-Object SID -EQ 'ORCL').OracleHome | Should -BeNullOrEmpty
         }
 
-        It 'Returns OracleBase as $null when PathName is empty' {
+        It 'R4 returns OracleBase as $null when PathName is empty' {
             $result = Get-OracleDatabaseList -Platform Windows
             ($result.Data | Where-Object SID -EQ 'ORCL').OracleBase | Should -BeNullOrEmpty
         }
@@ -150,7 +150,7 @@ Describe 'Get-OracleDatabaseList' {
             Mock Get-CimInstance { @() } -ModuleName 'TACE.Oracle.Admin'
         }
 
-        It 'Returns Success = $true with empty Data' {
+        It 'R2 returns Success = $true with empty Data' {
             $result = Get-OracleDatabaseList -Platform Windows
             $result.Success | Should -BeTrue
             @($result.Data).Count | Should -Be 0
@@ -242,7 +242,7 @@ Describe 'Get-OracleDatabaseList' {
             ($result.Data | Where-Object SID -EQ 'CDB1').Status | Should -Be 'Stopped'
         }
 
-        It 'Returns ServiceName as $null' {
+        It 'R5 returns ServiceName as $null' {
             $result = Get-OracleDatabaseList -Platform Linux
             ($result.Data | Where-Object SID -EQ 'ORCL').ServiceName | Should -BeNullOrEmpty
             ($result.Data | Where-Object SID -EQ 'CDB1').ServiceName | Should -BeNullOrEmpty
@@ -393,26 +393,57 @@ Describe 'Get-OracleDatabaseList' {
     # Return object shape and data entry shape (platform-agnostic)
     # -------------------------------------------------------------------------
 
-    Context 'Return object shape' -Skip:(-not $IsWindows) {
+    Context 'Return object shape' {
 
-        BeforeEach {
-            Mock Get-CimInstance { @() } -ModuleName 'TACE.Oracle.Admin'
-        }
-
-        It 'Has Success property' {
-            (Get-OracleDatabaseList -Platform Windows).PSObject.Properties.Name | Should -Contain 'Success'
-        }
-
-        It 'Has Data property' {
-            (Get-OracleDatabaseList -Platform Windows).PSObject.Properties.Name | Should -Contain 'Data'
-        }
-
-        It 'Has Message property' {
-            (Get-OracleDatabaseList -Platform Windows).PSObject.Properties.Name | Should -Contain 'Message'
-        }
-
-        It 'Message is always a non-null string' {
+        # R1 is "on every path", so each path is tested. Get-CimInstance exists only on
+        # Windows, so its paths run there.
+        It 'R1 returns exactly Success, Data and Message, without throwing, on Windows when <Path>' -Skip:(-not $IsWindows) -ForEach @(
+            @{ Path = 'services are found' }
+            @{ Path = 'no service is found' }
+            @{ Path = 'the service query throws' }
+            @{ Path = 'the service query writes a non-terminating error' }
+        ) {
+            switch ($Path) {
+                'services are found' {
+                    Mock Get-CimInstance {
+                        @([PSCustomObject]@{ Name = 'OracleServiceORCL'; State = 'Running'; PathName = 'C:\app\oracle\product\19.3\dbhome_1\bin\ORACLE.EXE ORCL' })
+                    } -ModuleName 'TACE.Oracle.Admin'
+                }
+                'no service is found'       { Mock Get-CimInstance { @() } -ModuleName 'TACE.Oracle.Admin' }
+                'the service query throws'  { Mock Get-CimInstance { throw 'Access denied' } -ModuleName 'TACE.Oracle.Admin' }
+                'the service query writes a non-terminating error' {
+                    Mock Get-CimInstance {
+                        $action = if ($PesterBoundParameters.ContainsKey('ErrorAction')) { $PesterBoundParameters['ErrorAction'] } else { 'Continue' }
+                        Write-Error -Message 'Invalid query' -ErrorAction $action
+                    } -ModuleName 'TACE.Oracle.Admin'
+                }
+            }
             $result = Get-OracleDatabaseList -Platform Windows
+            @($result.PSObject.Properties.Name) | Should -Be @('Success', 'Data', 'Message')
+            $result.Message | Should -BeOfType [string]
+            $result.Message | Should -Not -BeNullOrEmpty
+        }
+
+        It 'R1 returns exactly Success, Data and Message, without throwing, on <Platform> when <Path>' -ForEach @(
+            @{ Platform = 'Linux'; Path = 'oratab lists instances' }
+            @{ Platform = 'Linux'; Path = 'oratab is absent' }
+            @{ Platform = 'Linux'; Path = 'reading oratab throws' }
+            @{ Platform = 'Unsupported'; Path = 'the platform is not supported' }
+        ) {
+            switch ($Path) {
+                'oratab lists instances' {
+                    Mock Test-Path { $true } -ModuleName 'TACE.Oracle.Admin'
+                    Mock Get-Content { @('ORCL:/u01/app/oracle/product/19.3.0/dbhome_1:Y') } -ModuleName 'TACE.Oracle.Admin'
+                    Mock Get-Process { @() } -ModuleName 'TACE.Oracle.Admin'
+                }
+                'oratab is absent' { Mock Test-Path { $false } -ModuleName 'TACE.Oracle.Admin' }
+                'reading oratab throws' {
+                    Mock Test-Path { $true } -ModuleName 'TACE.Oracle.Admin'
+                    Mock Get-Content { throw 'Permission denied' } -ModuleName 'TACE.Oracle.Admin'
+                }
+            }
+            $result = Get-OracleDatabaseList -Platform $Platform
+            @($result.PSObject.Properties.Name) | Should -Be @('Success', 'Data', 'Message')
             $result.Message | Should -BeOfType [string]
             $result.Message | Should -Not -BeNullOrEmpty
         }
@@ -432,23 +463,23 @@ Describe 'Get-OracleDatabaseList' {
             } -ModuleName 'TACE.Oracle.Admin'
         }
 
-        It 'Data entries have SID property' {
+        It 'R3 Data entries have SID property' {
             (Get-OracleDatabaseList -Platform Windows).Data[0].PSObject.Properties.Name | Should -Contain 'SID'
         }
 
-        It 'Data entries have Status property' {
+        It 'R3 Data entries have Status property' {
             (Get-OracleDatabaseList -Platform Windows).Data[0].PSObject.Properties.Name | Should -Contain 'Status'
         }
 
-        It 'Data entries have ServiceName property' {
+        It 'R3 Data entries have ServiceName property' {
             (Get-OracleDatabaseList -Platform Windows).Data[0].PSObject.Properties.Name | Should -Contain 'ServiceName'
         }
 
-        It 'Data entries have OracleHome property' {
+        It 'R3 Data entries have OracleHome property' {
             (Get-OracleDatabaseList -Platform Windows).Data[0].PSObject.Properties.Name | Should -Contain 'OracleHome'
         }
 
-        It 'Data entries have OracleBase property' {
+        It 'R3 Data entries have OracleBase property' {
             (Get-OracleDatabaseList -Platform Windows).Data[0].PSObject.Properties.Name | Should -Contain 'OracleBase'
         }
     }

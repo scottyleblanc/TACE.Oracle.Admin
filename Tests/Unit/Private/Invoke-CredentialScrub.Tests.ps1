@@ -21,9 +21,21 @@ Describe 'Invoke-CredentialScrub' {
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
     }
 
+    Context 'Parameter validation' {
+
+        It 'P1 Content is a mandatory string that accepts an empty string' {
+            $param = InModuleScope TACE.Oracle.Admin { (Get-Command Invoke-CredentialScrub).Parameters['Content'] }
+            $param.ParameterType | Should -Be ([string])
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ParameterAttribute] -and $PSItem.Mandatory }) |
+                Should -Not -BeNullOrEmpty
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.AllowEmptyStringAttribute] }) |
+                Should -Not -BeNullOrEmpty
+        }
+    }
+
     Context 'Implementation' {
 
-        It 'Invoke-CredentialScrub returns clean content unchanged' {
+        It 'R2 returns clean content unchanged' {
             InModuleScope TACE.Oracle.Admin {
                 $clean = 'Recovery Manager: Release 19.0.0.0.0 - Production'
                 $result = Invoke-CredentialScrub -Content $clean
@@ -31,17 +43,18 @@ Describe 'Invoke-CredentialScrub' {
             }
         }
 
-        It 'Invoke-CredentialScrub handles empty string without error' {
+        It 'R1 handles empty string without error' {
             InModuleScope TACE.Oracle.Admin {
                 $result = Invoke-CredentialScrub -Content ''
-                $result | Should -BeNullOrEmpty
+                $result | Should -BeOfType [string]
+                $result | Should -BeExactly ''
             }
         }
     }
 
     Context 'Security' {
 
-        It 'Invoke-CredentialScrub scrubs credential fragment matching user/pass@service' -Tag 'SEC' {
+        It 'S1 scrubs credential fragment matching user/pass@service' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin {
                 $raw = 'CONNECT TARGET backup_user/S3cr3tP@ss!@ORCL_SVC; BACKUP DATABASE;'
                 $scrubbed = Invoke-CredentialScrub -Content $raw

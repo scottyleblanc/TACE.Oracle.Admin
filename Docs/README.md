@@ -38,8 +38,8 @@ The profile at `profile.ps1` imports this module automatically on session start.
 | Function | Description |
 |---|---|
 | `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host. Windows: via `Win32_Service` (WMI). Linux: via `/etc/oratab`. Returns SID, Status, ServiceName, OracleHome, and OracleBase for each instance. |
-| `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current session from a validated Oracle instance. Prompts interactively when no SID is supplied. Always prints `ORACLE_SID`; prints `ORACLE_HOME` and `ORACLE_BASE` only when `-Verbose` is specified. Returns a standard `PSCustomObject`. |
-| `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Suppresses the return object for clean terminal output; writes `[ERROR]` to host on failure. Target of the `oraset` and `oraenv` aliases. Not intended for scripted use — use `Set-OracleEnv` directly in automation. |
+| `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current session from a validated Oracle instance. With several instances and no `-SID`, returns `Success = $false` and lists them. Never prompts and never writes to the host. Returns a standard `PSCustomObject`. |
+| `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Shows a numbered menu when several instances are present, prints the result, and with `-Verbose` prints `ORACLE_HOME` and `ORACLE_BASE`; writes `[ERROR]` to host on failure. Target of the `oraset` and `oraenv` aliases. Not intended for scripted use — use `Set-OracleEnv` directly in automation. |
 | `Get-RmanBackupStatus` | Added in v0.2.0; not on PSGallery. Runs RMAN `LIST BACKUP SUMMARY` and returns the most recent backup with `IsRecentDay` and `AgeHours`. Read-only. Windows only. |
 | `Remove-RmanObsoleteBackup` | Added in v0.2.0; not on PSGallery. Runs RMAN `DELETE NOPROMPT OBSOLETE`. Destructive: `SupportsShouldProcess` with `ConfirmImpact = 'High'`; supports `-WhatIf`. Windows only. |
 
@@ -80,7 +80,7 @@ and returns `Success = $true`, `Data.Applied = $false`, and a `Message` starting
   `Invoke-RmanProcess` throw; the public RMAN functions catch, scrub the message
   and return `Success=$false`.
 - **Success=$false**: expected, handleable outcomes (e.g. SID not found, no
-  Oracle services present, invalid menu selection). The caller can inspect
+  Oracle services present, several instances and no `-SID`). The caller can inspect
   `Message` and decide how to proceed.
 
 ## Logging and Diagnostics
@@ -99,9 +99,9 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.2.2 |
-| Last audit | 2026-11-15 — Stack 2 deterministic checks: analyzer with custom rules, secret scanning, gate |
-| Tests | 352 unit tests and 118 static checks (all passing); 0 analyzer findings |
+| Version | 0.2.3 |
+| Last audit | 2026-11-16 — Stack 3 tests: every invariant proven, mutation check of every security proof, coverage floor, local integration tier |
+| Tests | 405 unit tests, 160 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
 | Open SEC items | 6 — see the Open Items in SECURITY.md |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.

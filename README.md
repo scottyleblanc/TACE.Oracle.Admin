@@ -40,8 +40,8 @@ Install-Module 'TACE.Oracle.Admin' -Scope AllUsers
 | Function | Description |
 |---|---|
 | `Get-OracleDatabaseList` | Discovers Oracle database instances on the local host. Windows: queries `Win32_Service` for `OracleService*` services. Linux: parses `/etc/oratab`. Returns `SID`, `Status`, `ServiceName`, `OracleHome`, and `OracleBase` for each instance. |
-| `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current PowerShell session from a validated instance. Auto-selects when one instance is found; presents a numbered menu when multiple instances are present. Always prints `ORACLE_SID`; add `-Verbose` to also print `ORACLE_HOME` and `ORACLE_BASE`. |
-| `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Suppresses the return object for clean output. Target of the `oraset` and `oraenv` aliases. Use `Set-OracleEnv` directly in scripts and automation. |
+| `Set-OracleEnv` | Sets `ORACLE_SID`, `ORACLE_HOME`, and `ORACLE_BASE` for the current PowerShell session from a validated instance. Auto-selects when one instance is found; with several and no `-SID`, returns `Success = $false` and lists them. Never prompts and never writes to the host, so it is safe in scripts and automation. |
+| `Invoke-OraEnv` | Interactive terminal wrapper for `Set-OracleEnv`. Presents a numbered menu when several instances are present, prints the result, and with `-Verbose` also prints `ORACLE_HOME` and `ORACLE_BASE`. Target of the `oraset` and `oraenv` aliases. |
 | `Get-RmanBackupStatus` | Returns the most recent RMAN backup for a database, with its age. Read-only. Windows only. In development — not in the published release. |
 | `Remove-RmanObsoleteBackup` | Deletes RMAN backups that are obsolete under the configured retention policy. Asks for confirmation; supports `-WhatIf`. Windows only. In development — not in the published release. |
 
@@ -63,13 +63,11 @@ if ($result.Success) {
     $result.Data | Format-Table SID, Status, OracleHome
 }
 
-# Set the active Oracle environment (interactive — presents a menu if multiple instances)
-Set-OracleEnv
+# Set the active Oracle environment in a script: pass -SID when the host has several
+$result = Set-OracleEnv -SID ORCL
+if (-not $result.Success) { throw $result.Message }
 
-# Or set a specific SID directly
-Set-OracleEnv -SID ORCL
-
-# Interactive shorthand (alias — suppresses return object for clean terminal output)
+# Interactive shorthand (alias — presents a menu if multiple instances)
 oraset
 oraset ORCL
 
@@ -151,7 +149,7 @@ have happened. A real run returns `Data.Applied = $true`. Check `Applied`, not
 
 - **Terminating throw**: unrecoverable failures (e.g. required helper not found at load time)
 - **`Success=$false`**: expected, handleable outcomes (e.g. SID not found, no Oracle services
-  present, invalid menu selection) — inspect `Message` and decide how to proceed
+  present, several instances and no `-SID`) — inspect `Message` and decide how to proceed
 
 ---
 

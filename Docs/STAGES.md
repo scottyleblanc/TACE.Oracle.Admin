@@ -87,7 +87,7 @@ soak tests run locally against an Oracle database; they do not run in public CI.
 | 0 | Setup and scope | — | Complete (v0.2.0) |
 | 1 | Intent | 1 | Complete (v0.2.1) |
 | 2 | Deterministic checks | 3 | Complete (v0.2.2) |
-| 3 | Tests | 4 | Not started |
+| 3 | Tests | 4 | Complete (v0.2.3) |
 | 4 | Enforced gate | 6 | Not started |
 | 5 | Agent instructions | 2 | Not started |
 | 6 | Independent review | 5 | Not started |
@@ -144,11 +144,13 @@ violation and a seeded secret both fail it.
 
 **Goal:** every invariant is proven by a test, and coverage is measured.
 
-**Deliverables:** an invariant-to-test map; a coverage floor in the gate script;
-unit tests passing on Windows and Linux; a local-only integration and soak tier
+**Deliverables:** an invariant-to-test map; a coverage floor that fails the unit tier
+(not the gate script, which holds only checks that read source text);
+a local-only integration tier (soak tests dropped from Stack 3)
 behind a separate gate-script switch.
 
-**Done when:** the map is complete; a seeded behaviour defect fails the gate;
+**Done when:** the map is complete; a seeded behaviour defect fails the gate run with
+`-Unit`;
 the integration tier runs locally with one command.
 
 ---
@@ -157,7 +159,8 @@ the integration tier runs locally with one command.
 
 **Goal:** a failing change cannot reach `master`.
 
-**Deliverables:** `.github\workflows\gate.yml` that only calls the gate script;
+**Deliverables:** `.github\workflows\gate.yml` that only calls the gate script, with
+`-Unit`;
 branch protection requiring a pull request and passing checks.
 
 **Done when:** a pull request carrying the seeded defects from Stack 2 and
@@ -234,7 +237,9 @@ recorded.
 wrapper) lifted into a template; a summary write-up answering the question
 layer by layer.
 
-**Done when:** the template produces a working gate on a fresh, empty repo.
+**Done when:** the template produces a working gate on a fresh, empty repo, and
+on a file copy of an existing private module repo: one with a class, its own
+packaging step and a host other than GitHub.
 
 ---
 

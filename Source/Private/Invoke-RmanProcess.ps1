@@ -133,11 +133,20 @@ function Invoke-RmanProcess {
     # PRE-CONDITIONS
     #   P1 RmanBinaryPath, RmanScript and OracleHome are non-empty strings.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #       Test: 'P1 <Name> is mandatory in every parameter set and rejects an empty string'.
     #   P2 Exactly one authentication mode is chosen: OracleSid (OSAuth), WalletAlias
     #       (WalletAuth), or ServiceAlias with Credential (NamedCredential).
     #       Type: parameter sets.
+    #       Test: 'P2 each authentication mode is its own parameter set, with its own mandatory parameters',
+    #       'P2 OracleSid and ServiceAlias are mutually exclusive — binding both throws',
+    #       'P2 OracleSid and WalletAlias are mutually exclusive — binding both throws',
+    #       'P2 WalletAlias and ServiceAlias are mutually exclusive — binding both throws'.
     #   P3 TimeoutSeconds is between 1 and 86400.
     #       Type: ValidateRange.
+    #       Test: 'P3 TimeoutSeconds has ValidateRange with minimum 1',
+    #       'P3 TimeoutSeconds has ValidateRange with maximum 86400',
+    #       'P3 TimeoutSeconds of 0 is rejected (below ValidateRange minimum of 1)',
+    #       'P3 TimeoutSeconds of 86401 is rejected (above ValidateRange maximum of 86400)'.
     #   P4 RmanBinaryPath was validated by Assert-OracleEnvironment before this call.
     #       Limitation: the caller's duty. This function does not check the path again.
     #   P5 RmanScript holds no password.
@@ -145,39 +154,39 @@ function Invoke-RmanProcess {
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 No password is placed in the process argument list, in any mode.
-    #       Test: none yet.
+    #       Test: 'S1 no password reaches the process argument list (<Mode>)'.
     #   [SEC] S2 In NamedCredential mode the password is extracted inline at the stdin
     #       write and is never assigned to a variable.
-    #       Static: none yet.
+    #       Static: 'Invoke-RmanProcess S2 extracts the password only inside the stdin write, never into a variable'.
     #   [SEC] S3 ORACLE_HOME, ORACLE_SID, PATH and NLS_DATE_FORMAT are set on the child
     #       process only. The current session environment is not changed.
-    #       Test: 'OSAuth: ORACLE_SID is NOT set on the current session after the call',
-    #       'OSAuth: ORACLE_HOME on the current session is unchanged after the call',
-    #       'WalletAuth: ORACLE_SID is NOT set on the current session after the call',
-    #       'NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment'.
+    #       Test: 'S3 <Mode> leaves the session environment unchanged, PATH included',
+    #       'S3 NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment'.
     #   [SEC] S4 Stdout and stderr are scrubbed before they are returned.
-    #       Test: none yet. The existing 'does not contain the plaintext password' tests
-    #       run a fake RMAN that never echoes its input, so they pass without the scrub.
+    #       Test: 'S4 a credential in stdout or stderr is scrubbed before it is returned'.
     #   [SEC] S5 An exception message is scrubbed before it is re-thrown.
-    #       Test: none yet.
+    #       Test: 'S5 an exception message is scrubbed before it is re-thrown'.
     #   [SEC] S6 Verbose output names the mode and the SID, alias or user name. It never
     #       holds a password.
-    #       Test: none yet.
+    #       Test: 'S6 verbose output names the mode and user but never the password'.
     #   [SEC] S7 The WalletAlias placed in the argument list is a connection name, not a
     #       credential.
     #       Limitation: true by definition of a TNS alias. Nothing checks the value.
     #
     # POST-CONDITIONS
     #   R1 Returns an object with exactly ExitCode, StdOut, StdErr, Success and AuthMode.
-    #       Test: 'Returns a PSCustomObject with the correct five properties'.
+    #       Test: 'R1 returns exactly ExitCode, StdOut, StdErr, Success and AuthMode'.
     #   R2 Success is false when stdout or stderr holds an RMAN-nnnnn or ORA-nnnnn code.
     #       The exit code does not decide Success.
-    #       Test: 'Returns Success=$false when output contains ORA- error code',
-    #       'Returns Success=$false when output contains RMAN- error code'.
+    #       Test: 'R2 returns Success=$false when output contains ORA- error code (OSAuth)',
+    #       'R2 returns Success=$false when output contains RMAN- error code (OSAuth)',
+    #       'R2 returns Success=$false when output contains ORA- error code (WalletAuth)',
+    #       'R2 returns Success=$false when output contains RMAN- error code (WalletAuth)',
+    #       'R2 returns Success=$false when output contains ORA- error code (NamedCredential)'.
     #   R3 AuthMode is the name of the parameter set that was used.
-    #       Test: 'AuthMode = OSAuth exactly for OS authentication',
-    #       'AuthMode = WalletAuth exactly for wallet authentication',
-    #       'AuthMode = NamedCredential exactly for named credential authentication'.
+    #       Test: 'R3 AuthMode = OSAuth exactly for OS authentication',
+    #       'R3 AuthMode = WalletAuth exactly for wallet authentication',
+    #       'R3 AuthMode = NamedCredential exactly for named credential authentication'.
     #   T1 When RMAN runs past TimeoutSeconds the process is killed and the function throws
     #       'timed out after N seconds and the process was killed'.
     #       Test: 'T1, T2 kills an RMAN process that runs past TimeoutSeconds and throws'.
@@ -187,18 +196,25 @@ function Invoke-RmanProcess {
     # EXECUTION INVARIANTS
     #   L1 Both output streams are read asynchronously before stdin is written, so a full
     #       stderr pipe cannot stall the process.
-    #       Test: 'SEC-04: stderr content written by the RMAN process is captured in StdErr',
-    #       'SEC-04: stdout is captured correctly when the RMAN process also writes to stderr'.
+    #       Test: 'L1 an RMAN process that floods stderr still completes',
+    #       'L1 stderr content written by the RMAN process is captured in StdErr (SEC-04)',
+    #       'L1 stdout is captured correctly when the RMAN process also writes to stderr (SEC-04)'.
     #   L2 EXIT; is written after the script, and stdin is then closed.
     #       Guard: the three StandardInput calls that follow the script write.
+    #       Test: 'L2 writes the script, then EXIT;, then closes stdin'.
     #   L3 The process object is disposed on every path.
     #       Guard: the finally block.
+    #       Static: 'Invoke-RmanProcess L3 disposes the process in a finally block'.
     #   L4 The child PATH starts with OracleHome\bin, built with Join-Path and joined to
     #       the inherited PATH with [System.IO.Path]::PathSeparator.
     #       Test: 'L4 child PATH starts with OracleHome bin and the platform separator'.
-    #   L5 A timeout kills the whole process tree. A failed kill does not replace the
-    #       timeout error, and the killed process is given 5 seconds to exit.
+    #   L5 A timeout kills the whole process tree, so no child of RMAN survives it.
+    #       Guard: Kill($true) in the timeout branch.
+    #       Test: 'L5 a timeout kills the child processes of RMAN as well'.
+    #   L6 After a timeout, a failed kill or a failed wait does not replace the timeout
+    #       error. The killed process is given 5 seconds to exit.
     #       Guard: the try blocks around Kill and WaitForExit in the timeout branch.
+    #       Static: 'Invoke-RmanProcess L6 the timeout branch guards Kill and WaitForExit and ends in the timeout throw'.
     #--------------------------------------------------------------
 
     $process = $null
@@ -284,7 +300,7 @@ function Invoke-RmanProcess {
         $completed = $process.WaitForExit($TimeoutSeconds * 1000)
 
         if (-not $completed) {
-            # T1, L5: kill the whole process tree, so no child keeps a pipe open. The
+            # T1, L5, L6: kill the whole process tree, so no child keeps a pipe open. The
             # process can exit between the timeout and the kill, and Kill() then throws;
             # that must not replace the timeout error. Then allow it a moment to exit.
             try { $process.Kill($true) } catch {

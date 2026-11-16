@@ -77,7 +77,7 @@ writes NUnit XML results to `Tests\TestResults\<tier>.xml`, and exits 1 on any f
 | Tier | Command | Runs |
 |---|---|---|
 | Static | `.\Scripts\Invoke-StaticTest.ps1` | `Tests\Static\` — checks that read source text only; the linters they call are in `Tests\Lint\` |
-| Unit | `.\Scripts\Invoke-UnitTest.ps1` | Builds the module, then `Tests\Unit\` — functions run against mocks, imported from the built module |
+| Unit | `.\Scripts\Invoke-UnitTest.ps1` | Builds the module, then `Tests\Unit\` — functions run against mocks, imported from the built module. Measures coverage per source file and fails below the floor (rule T-12); `-Verbose` lists each missed command by source line |
 
 Run a single test file, after building once:
 ```powershell
@@ -90,6 +90,40 @@ run `Invoke-Pester -Path .\Tests\` to run the unit tests: it recurses into
 `Tests\Static\` and mixes the tiers.
 
 No unit test requires a live Oracle instance. All Oracle service calls are mocked.
+
+### Integration tier (local only)
+
+`.\Scripts\Invoke-IntegrationTest.ps1` runs `Tests\Integration\` against a real Oracle
+database on this machine, with OS authentication. It is never run by the pre-push hook;
+`.\Scripts\Invoke-Gate.ps1 -Integration` runs it after the gate.
+
+The tests take control file backups into a test folder and run `DELETE OBSOLETE`, which
+acts on the whole database. Only use a database that may lose backups.
+
+Setup, once per machine:
+
+1. Copy `Tests\Integration\IntegrationConfig.local.example.ps1` to
+   `IntegrationConfig.local.ps1` in the same folder. It is gitignored. Fill in this
+   host's name, the Oracle home, the SID and the test folder.
+2. Create the test folder by hand.
+3. Your Windows account must be able to connect with `rman target /`, normally through
+   membership of the `ORA_DBA` group.
+
+Before each run, in the same session:
+
+```powershell
+$env:ORACLE_ADMIN_RUN_INTEGRATION = '1'
+.\Scripts\Invoke-IntegrationTest.ps1
+```
+
+Five guards run before any test: the host is on the allowlist, the opt-in variable is
+set, the local configuration is complete, the database name matches no production
+pattern, and the test folder exists. A failed guard fails the run and names the guard.
+
+Each run writes `Tests\Integration\LastRun.json`, the evidence a pull request carries
+(rule T-14). It is evidence only when the run passed on a clean working tree. Commit
+your changes first, run the tier, then commit `LastRun.json` on its own as the last
+commit of the branch.
 
 ## The Gate
 
@@ -105,7 +139,14 @@ fails (decision 28):
 | commits | gitleaks over every commit not yet on a remote |
 | messages | Those commits' messages, through gitleaks and the S-16 patterns |
 
-The unit tier is not part of the gate; run it with `Invoke-UnitTest.ps1`.
+Two switches add the test tiers, after the six checks (decision 31):
+
+| Switch | Check | What it runs |
+|---|---|---|
+| `-Unit` | unit | The unit tier with its coverage floor. CI passes this from Stack 4 |
+| `-Integration` | integration | The integration tier, behind its own guards (see above) |
+
+The pre-push hook passes neither, so a push runs only the six checks.
 
 Turn on the pre-push hook once in each clone, so the gate runs before every push:
 
@@ -116,6 +157,12 @@ git config core.hooksPath .githooks
 `.\Scripts\Test-SeededDefect.ps1` proves the gate works: it plants a lint violation and
 a secret in a temporary copy of the repository and checks that the gate fails on each.
 It takes a few minutes.
+
+`.\Scripts\Test-InvariantMutation.ps1` proves the tests prove the invariants (rule I-10):
+for each mutation in `Tests\Mutation\InvariantMutations.psd1` it breaks one invariant in
+a temporary copy, builds the module and runs the cited tests, which must fail. It refuses
+to run when a security invariant with a cited proof has no mutation. It takes several
+minutes and is not part of the gate. `-Function` limits it to named functions.
 
 ## Execution Policy
 

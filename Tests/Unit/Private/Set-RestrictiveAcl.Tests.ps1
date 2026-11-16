@@ -61,7 +61,7 @@ Describe 'Set-RestrictiveAcl' {
 
     Context 'Parameter validation' {
 
-        It 'Path parameter is mandatory' {
+        It 'P1 Path parameter is mandatory' {
             InModuleScope TACE.Oracle.Admin {
                 $param = (Get-Command Set-RestrictiveAcl).Parameters['Path']
                 $isMandatory = @($param.Attributes |
@@ -70,7 +70,7 @@ Describe 'Set-RestrictiveAcl' {
             }
         }
 
-        It 'Path parameter has ValidateNotNullOrEmpty' {
+        It 'P1 Path parameter has ValidateNotNullOrEmpty' {
             InModuleScope TACE.Oracle.Admin {
                 $param = (Get-Command Set-RestrictiveAcl).Parameters['Path']
                 $hasAttr = @($param.Attributes |
@@ -79,7 +79,30 @@ Describe 'Set-RestrictiveAcl' {
             }
         }
 
-        It 'Throws when Path does not exist on disk' {
+        It 'R1 returns nothing' {
+            $target = Join-Path $TestDrive 'r1_returns_nothing'
+            $null = New-Item -Path $target -ItemType Directory -Force
+            $output = InModuleScope TACE.Oracle.Admin -Parameters @{ P = $target } {
+                param($P)
+                Set-RestrictiveAcl -Path $P
+            }
+            @($output) | Should -HaveCount 0
+        }
+
+        It 'T1 a failure throws with the prefix and the path' {
+            $missing = Join-Path $TestDrive 'no_such_path'
+            $message = $null
+            try {
+                InModuleScope TACE.Oracle.Admin -Parameters @{ P = $missing } {
+                    param($P)
+                    Set-RestrictiveAcl -Path $P
+                }
+            }
+            catch { $message = $PSItem.Exception.Message }
+            $message | Should -BeLike "Failed to apply restrictive ACL to '$missing':*"
+        }
+
+        It 'P2 throws when Path does not exist on disk' {
             InModuleScope TACE.Oracle.Admin {
                 { Set-RestrictiveAcl -Path 'C:\Does\Not\Exist\path' } | Should -Throw
             }
@@ -95,7 +118,7 @@ Describe 'Set-RestrictiveAcl' {
             New-Item -Path $script:dirAclPath -ItemType Directory -Force | Out-Null
         }
 
-        It 'Inheritance is disabled on the directory after the call' {
+        It 'S1 inheritance is disabled on the directory after the call' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ P = $script:dirAclPath } {
                 param($P)
                 Set-RestrictiveAcl -Path $P
@@ -104,7 +127,7 @@ Describe 'Set-RestrictiveAcl' {
             }
         }
 
-        It 'Directory ACEs use ContainerInherit | ObjectInherit (SEC-07)' {
+        It 'S3 directory ACEs use ContainerInherit | ObjectInherit (SEC-07)' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ P = $script:dirAclPath } {
                 param($P)
                 $expectedFlags = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor
@@ -116,7 +139,7 @@ Describe 'Set-RestrictiveAcl' {
             }
         }
 
-        It 'Current user rule is present on directory' {
+        It 'S2 current user rule is present on directory' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ P = $script:dirAclPath } {
                 param($P)
                 $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
@@ -129,7 +152,7 @@ Describe 'Set-RestrictiveAcl' {
             }
         }
 
-        It 'BUILTIN\Administrators rule is present on directory' {
+        It 'S2 BUILTIN\Administrators rule is present on directory' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ P = $script:dirAclPath } {
                 param($P)
                 $acl = Get-Acl -Path $P
@@ -141,7 +164,7 @@ Describe 'Set-RestrictiveAcl' {
             }
         }
 
-        It 'No broad identity (Everyone / BUILTIN\Users) rules are present on directory' {
+        It 'S2 no broad identity (Everyone / BUILTIN\Users) rules are present on directory' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ P = $script:dirAclPath } {
                 param($P)
                 $broadSids = @(
@@ -170,7 +193,7 @@ Describe 'Set-RestrictiveAcl' {
             New-Item -Path $script:fileAclPath -ItemType File -Force | Out-Null
         }
 
-        It 'Inheritance is disabled on the file after the call' {
+        It 'S1 inheritance is disabled on the file after the call' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ P = $script:fileAclPath } {
                 param($P)
                 Set-RestrictiveAcl -Path $P
@@ -179,7 +202,7 @@ Describe 'Set-RestrictiveAcl' {
             }
         }
 
-        It 'File ACEs use InheritanceFlags::None (files have no child objects)' {
+        It 'S3 file ACEs use InheritanceFlags::None (files have no child objects)' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ P = $script:fileAclPath } {
                 param($P)
                 $acl = Get-Acl -Path $P
@@ -258,7 +281,7 @@ Describe 'Set-RestrictiveAcl' {
         # must inherit the restrictive ACEs. This proves ContainerInherit|ObjectInherit
         # is working — with InheritanceFlags::None the child file would have no inherited
         # ACEs from the directory and would use the system default ACL.
-        It 'SEC-07: child file created inside a secured directory inherits the restrictive ACEs' {
+        It 'S3 child file created inside a secured directory inherits the restrictive ACEs (SEC-07)' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin {
                 $securedDir = Join-Path $TestDrive 'sec07_dir'
                 New-Item -Path $securedDir -ItemType Directory -Force | Out-Null
@@ -272,11 +295,17 @@ Describe 'Set-RestrictiveAcl' {
                 $childAcl = Get-Acl -Path $childFile
                 $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 
-                # Child file must have an ACE for the current user (inherited or explicit)
+                # The child's rules for the current user and Administrators must be inherited
+                # from the directory. A new file always gets some rule for its creator from
+                # the default ACL, so "a rule exists" would pass with no inheritance at all.
                 $userAce = @($childAcl.Access | Where-Object {
-                    $PSItem.IdentityReference.Value -eq $currentUser
+                    $PSItem.IdentityReference.Value -eq $currentUser -and $PSItem.IsInherited
                 })
-                $userAce.Count | Should -BeGreaterThan 0
+                $adminAce = @($childAcl.Access | Where-Object {
+                    $PSItem.IdentityReference.Value -eq 'BUILTIN\Administrators' -and $PSItem.IsInherited
+                })
+                $userAce.Count  | Should -BeGreaterThan 0
+                $adminAce.Count | Should -BeGreaterThan 0
             }
         }
 

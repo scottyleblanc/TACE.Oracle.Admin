@@ -1,0 +1,70 @@
+{
+  "SchemaVersion": 1,
+  "Commit": "c53f9076ac905bacdc4bb8dae0a22a5f51e5e386",
+  "WorkingTreeClean": true,
+  "Passed": true,
+  "Evidence": true,
+  "RunAtUtc": "2026-11-16T16:50:55Z",
+  "Database": {
+    "Edition": "XE",
+    "Version": "21.3.0.0.0"
+  },
+  "PowerShell": "7.6.10",
+  "Pester": "5.7.1",
+  "Totals": {
+    "Passed": 12,
+    "Failed": 0,
+    "Skipped": 0,
+    "FailedContainers": 0
+  },
+  "Tests": [
+    {
+      "Name": "Get-RmanBackupStatus integration.Implementation.returns Success with the newest backup, taken by this run",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Get-RmanBackupStatus integration.Implementation.Data.RawLog is the LIST BACKUP SUMMARY output, and lists the test backup",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Get-RmanBackupStatus integration.Implementation.Message names the database",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Get-RmanBackupStatus integration.Security.leaves the session environment unchanged, PATH included",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Get-RmanBackupStatus integration.Security.Message and RawLog hold no credential pattern",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Remove-RmanObsoleteBackup integration.WhatIf.returns a successful preview with Applied false",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Remove-RmanObsoleteBackup integration.WhatIf.deletes nothing: the obsolete backup is still on disk",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Remove-RmanObsoleteBackup integration.Implementation.returns Success with Applied true and a count of deleted pieces",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Remove-RmanObsoleteBackup integration.Implementation.deletes the obsolete first backup from disk",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Remove-RmanObsoleteBackup integration.Implementation.leaves the database with a current backup",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Remove-RmanObsoleteBackup integration.Security.leaves the session environment unchanged, PATH included",
+      "Result": "Passed"
+    },
+    {
+      "Name": "Remove-RmanObsoleteBackup integration.Security.Message and RawLog hold no credential pattern",
+      "Result": "Passed"
+    }
+  ]
+}

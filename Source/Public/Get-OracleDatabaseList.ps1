@@ -36,7 +36,7 @@ function Get-OracleDatabaseList {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.2.2
+        Version : 0.2.3
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -59,33 +59,36 @@ function Get-OracleDatabaseList {
     #       any other OS. Any other value is refused at the call; 'Unsupported' reaches
     #       the final else branch, which returns Success = $false (rule C-07).
     #       Type: ValidateSet('Windows', 'Linux', 'Unsupported').
+    #       Test: 'P1 Platform accepts only Windows, Linux and Unsupported',
+    #       'P1 throws a parameter error for an unknown platform value'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 No Oracle connection is made and no credential is read.
-    #       Static: none yet.
+    #       Static: 'Get-OracleDatabaseList S1 makes no Oracle connection and reads no credential'.
     #   [SEC] S2 The catch block places the raw exception message in Message.
     #       Limitation: not scrubbed. Accepted because nothing in this function
     #       handles a credential.
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws.
-    #       Test: 'Has Success property', 'Has Data property', 'Has Message property'.
+    #       Test: 'R1 returns exactly Success, Data and Message, without throwing, on Windows when <Path>',
+    #       'R1 returns exactly Success, Data and Message, without throwing, on <Platform> when <Path>'.
     #   R2 When no instance is found, Success is true and Data is an empty array.
-    #       Test: 'Returns Success = $true with empty Data'.
+    #       Test: 'R2 returns Success = $true with empty Data'.
     #   R3 Each Data entry has SID, Status, ServiceName, OracleHome and OracleBase.
-    #       Test: 'Data entries have SID property', 'Data entries have Status property',
-    #       'Data entries have ServiceName property', 'Data entries have OracleHome property',
-    #       'Data entries have OracleBase property'.
+    #       Test: 'R3 Data entries have SID property', 'R3 Data entries have Status property',
+    #       'R3 Data entries have ServiceName property', 'R3 Data entries have OracleHome property',
+    #       'R3 Data entries have OracleBase property'.
     #   R4 OracleHome and OracleBase are null when they cannot be derived.
-    #       Test: 'Returns OracleHome as $null when PathName is empty',
-    #       'Returns OracleBase as $null when PathName is empty'.
+    #       Test: 'R4 returns OracleHome as $null when PathName is empty',
+    #       'R4 returns OracleBase as $null when PathName is empty'.
     #   R5 ServiceName is null on Linux.
-    #       Test: 'Returns ServiceName as $null'.
+    #       Test: 'R5 returns ServiceName as $null'.
     #
     # EXECUTION INVARIANTS
     #   L1 Read-only: it reads services, /etc/oratab and the process list, and changes
     #       nothing.
-    #       Static: none yet.
+    #       Static: 'Get-OracleDatabaseList L1 is read-only: every command it calls only reads'.
     #   L2 On Windows any error from the service query, terminating or not, returns
     #       Success = $false. It is never read as no instances found.
     #       Test: 'L2 a non-terminating service query error returns Success false'.

@@ -25,13 +25,40 @@
     Found values are never printed in full: gitleaks runs with --redact, and a pattern
     match shows only its first characters.
 
-    The unit tier is not part of the gate. It runs module code against mocks; the gate
-    holds the checks that read source text.
+    By default the gate holds only the checks that read source text, so the pre-push
+    hook stays fast. Two switches add the test tiers that run module code:
+
+      -Unit         'unit': the unit tier (Scripts\Invoke-UnitTest.ps1), coverage floor
+                    included. Behaviour defects are caught here. CI passes this switch
+      -Integration  'integration': the integration tier
+                    (Scripts\Invoke-IntegrationTest.ps1) against the local Oracle
+                    database. Its own guards decide whether it may run; a failed guard
+                    fails the check
+
+    They run after the six checks above, unit first. The pre-push hook passes neither.
+
+.PARAMETER Unit
+    Also run the unit tier, with its coverage floor.
+
+.PARAMETER Integration
+    Also run the integration tier. Needs the local integration setup and the opt-in
+    variable; see Scripts\Invoke-IntegrationTest.ps1.
 
 .EXAMPLE
     .\Scripts\Invoke-Gate.ps1
 
     Runs the gate from any working directory. Exits 0 when every check passes.
+
+.EXAMPLE
+    .\Scripts\Invoke-Gate.ps1 -Unit
+
+    Runs the gate, then the unit tier. This is what CI runs.
+
+.EXAMPLE
+    $env:ORACLE_ADMIN_RUN_INTEGRATION = '1'
+    .\Scripts\Invoke-Gate.ps1 -Unit -Integration
+
+    Runs the gate, then the unit and integration tiers.
 
 .NOTES
     Copyright © TACE Data Management Inc.
@@ -41,7 +68,13 @@
 #>
 [CmdletBinding()]
 [OutputType([string])]
-param()
+param(
+    [Parameter()]
+    [switch]$Unit,
+
+    [Parameter()]
+    [switch]$Integration
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -193,6 +226,36 @@ else {
     if (-not $gitleaksReady) { $problems.Add("gitleaks $requiredGitleaks is missing, so messages were checked against the S-16 patterns only") }
 
     Add-Result -Name 'messages' -Passed ($problems.Count -eq 0) -Summary "$($unpushed.Count) unpushed commit message(s), $($problems.Count) problem(s)" -Detail @($problems)
+}
+
+# -- 7. unit, only with -Unit ------------------------------------------------
+
+if ($Unit) {
+    $unitScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-UnitTest.ps1'
+    $unitOutput = @(& pwsh -NoProfile -File $unitScript 2>&1 | ForEach-Object { "$PSItem" })
+    $unitExit   = $LASTEXITCODE
+    $unitLast   = @($unitOutput | Where-Object { $PSItem -match '^\[(PASS|FAIL)\] unit' }) | Select-Object -Last 1
+    $coverage   = @($unitOutput | Where-Object { $PSItem -match '^\[(PASS|FAIL)\] coverage' }) | Select-Object -Last 1
+    $unitFailed = @(
+        $unitOutput | Where-Object { $PSItem -match '^\s*\[-\]' } | ForEach-Object { $PSItem.Trim() }
+        if ($coverage -match '^\[FAIL\]') { $coverage }
+        $unitOutput | Where-Object { $PSItem -match '^\[FAIL\] unit: build failed' }
+    )
+    $summary = if ($unitLast) { $unitLast -replace '^\[(PASS|FAIL)\] unit: ', '' -replace '\. Results: .*$', '' } else { "exit $unitExit" }
+    if ($coverage -match 'coverage: (?<percent>[\d.]+%)') { $summary = "$summary; coverage $($Matches['percent'])" }
+    Add-Result -Name 'unit' -Passed ($unitExit -eq 0) -Summary $summary -Detail $unitFailed
+}
+
+# -- 8. integration, only with -Integration ----------------------------------
+
+if ($Integration) {
+    $integrationScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-IntegrationTest.ps1'
+    $integrationOutput = @(& pwsh -NoProfile -File $integrationScript 2>&1 | ForEach-Object { "$PSItem" })
+    $integrationExit   = $LASTEXITCODE
+    $integrationLast   = @($integrationOutput | Where-Object { $PSItem -match '^\[(PASS|FAIL)\] integration' }) | Select-Object -Last 1
+    $integrationFailed = @($integrationOutput | Where-Object { $PSItem -match '^\s*\[-\]' } | ForEach-Object { $PSItem.Trim() })
+    $summary = if ($integrationLast) { $integrationLast -replace '^\[(PASS|FAIL)\] integration: ', '' } else { "exit $integrationExit" }
+    Add-Result -Name 'integration' -Passed ($integrationExit -eq 0) -Summary $summary -Detail $integrationFailed
 }
 
 # -- Summary -----------------------------------------------------------------

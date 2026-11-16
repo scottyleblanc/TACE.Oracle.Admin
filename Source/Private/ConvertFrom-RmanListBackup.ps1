@@ -61,19 +61,20 @@ function ConvertFrom-RmanListBackup {
     # PRE-CONDITIONS
     #   P1 RawLog is a string, and may be empty.
     #       Type: Mandatory and AllowEmptyString.
+    #       Test: 'P1 RawLog is mandatory and accepts an empty string'.
     #   P2 Completion times in RawLog are in the form yyyy-MM-dd HH:mm:ss.
     #       Limitation: the caller's duty, met by Invoke-RmanProcess. Another format gives
     #       a null CompletionTime, not an error.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 It reads RawLog and nothing else: no file, no process, no credential.
-    #       Static: none yet.
+    #       Static: 'ConvertFrom-RmanListBackup S1 reads RawLog only: no command but Write-Verbose, and no file, process, environment or credential access'.
     #
     # POST-CONDITIONS
     #   R1 Returns an array of zero or more records, and does not throw on text it cannot
     #       parse.
     #       Test: 'R1 does not throw on text it cannot parse',
-    #       'R1, P2 gives a null CompletionTime for a completion time in another format, without throwing'.
+    #       'R1 gives a null CompletionTime for a completion time in another format, without throwing'.
     #   R2 Empty input, no separator line, or fewer than ten columns gives an empty array.
     #       Test: 'R2 returns no records for <Case>'.
     #   R3 Each record has Key, Level, Status, DeviceType, CompletionTime, BackupTime,
@@ -89,8 +90,10 @@ function ConvertFrom-RmanListBackup {
     # EXECUTION INVARIANTS
     #   L1 Column positions are taken from the separator line, not hard-coded.
     #       Guard: the column start scan.
+    #       Test: 'L1 reads the column positions from the separator line'.
     #   L2 A row whose Key is not a positive integer is skipped.
     #       Guard: the TryParse check at the start of the row loop.
+    #       Test: 'L2 skips a row whose Key is not a positive integer'.
     #--------------------------------------------------------------
 
     if ([string]::IsNullOrWhiteSpace($RawLog)) {

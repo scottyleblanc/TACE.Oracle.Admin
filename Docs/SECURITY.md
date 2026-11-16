@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.2.2 |
-| Last audit | 2026-11-15 — Stack 2 deterministic checks |
-| Findings resolved | Stack 2: wallet alias validation (`[SEC]`) and the config and ACL skipped under `-WhatIf` fixed; the private identifier check deferred as an accepted limitation |
-| Unit tests | 352 (all passing); 118 static checks; 0 analyzer findings; gitleaks clean |
+| Version | 0.2.3 |
+| Last audit | 2026-11-16 — Stack 3 tests |
+| Findings resolved | Stack 3: 12 security invariants whose cited tests passed with the invariant broken now have tests that fail; every invariant is proven by a test or a static check; no defect in the module's security behaviour was found |
+| Unit tests | 405 (all passing); 160 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
 | Open SEC items | 6 — see Open Items |
 
 The RMAN functions added at Stack 0 (v0.2.0, not on PSGallery) were copied from
@@ -80,8 +80,7 @@ is not Oracle's. A wallet alias is resolved with `tnsping` before RMAN is starte
 **Contract:** `ORACLE_HOME` from configuration or the environment is untrusted
 input and is validated before use in any path or process start.
 
-**Limit:** Oracle does not sign individual executables. On a 21c home every binary
-checked (`rman.exe`, `tnsping.exe`, `sqlplus.exe`, `oracle.exe`) reports `NotSigned`,
+**Limit:** Oracle binaries are not signed. On a 21c home every binary checked (`rman.exe`, `tnsping.exe`, `sqlplus.exe`, `oracle.exe`) reports `NotSigned`,
 so the signature check cannot tell a patched binary from a tampered one, and passes
 both. It catches only a broken signature or a non-Oracle signer. Detecting a replaced
 binary would need a recorded baseline; that is not built.
@@ -201,6 +200,7 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | 2026-03-13 | 0.1.4 | None | Multi-platform discovery review — Linux path reads `/etc/oratab` and checks `ora_pmon` process. No credential handling; no child processes spawned; session-only contract unchanged. |
 | 2026-11-14 | 0.2.1 | 14 (5 `[SEC]`) | Stack 1 invariant review of all 14 functions. `[SEC]`: catalog parameters let caller text into the RMAN script and accepted an unused credential (removed); `-WhatIf` could write the config file and run `tnsping` (gate moved first); an environment variable chose the config file (replaced by a test-only override); `tnsping.exe` is unsigned like every Oracle binary (accepted, documented in section 4). Nine others fixed, among them a `tnsping` that could hang its caller indefinitely and a timeout kill that left child processes running. Details in `CHANGELOG.md` 0.2.1 and `TODO.md` Stack 1. |
 | 2026-11-15 | 0.2.2 | 3 (1 `[SEC]`) | Stack 2 deterministic checks. `[SEC]`: `-WalletAlias` reached the RMAN `CONNECT` line unvalidated (now `ValidatePattern` ending in `\z`). A caller's `-WhatIf` skipped creating the default config and its ACL, so a first run failed (writes pinned `-WhatIf:$false`; rule C-33 checks every such call). No check compares the repository against private identifiers (deferred, Open Items). gitleaks found nothing in the full history or the working tree. Details in `CHANGELOG.md` 0.2.2 and `Docs\audit\stack-2-seeded-defects.md`. |
+| 2026-11-16 | 0.2.3 | 12 (12 `[SEC]`) | Stack 3 tests. Every security invariant's proof was broken on purpose in a copy of the repository: for 12, the cited tests still passed, through tests that compared the session environment with an already-polluted value, credential tests run with no credential, or code the test never reached. All fixed and proven by the mutation script; no defect was in the module's own security behaviour. One behaviour defect, introduced in this stack and not security-related, was found and fixed (`Invoke-OraEnv` with no instance). Integration tests against Oracle Database 21c XE pass. Details in `CHANGELOG.md` 0.2.3 and `Docs\audit\stack-3-*.md`. |
 
 ---
 

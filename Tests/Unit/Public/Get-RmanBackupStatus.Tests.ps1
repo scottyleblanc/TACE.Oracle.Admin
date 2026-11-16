@@ -86,14 +86,14 @@ Recovery Manager complete.
 
     Context 'Parameter validation' {
 
-        It 'DatabaseName is mandatory' {
+        It 'P1 DatabaseName is mandatory' {
             $param = (Get-Command Get-RmanBackupStatus).Parameters['DatabaseName']
             $isMandatory = $param.Attributes |
                 Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] -and $_.Mandatory }
             $isMandatory | Should -Not -BeNullOrEmpty
         }
 
-        It 'DatabaseName has ValidateNotNullOrEmpty' {
+        It 'P1 DatabaseName has ValidateNotNullOrEmpty' {
             $param = (Get-Command Get-RmanBackupStatus).Parameters['DatabaseName']
             $hasAttr = $param.Attributes |
                 Where-Object { $_ -is [System.Management.Automation.ValidateNotNullOrEmptyAttribute] }
@@ -146,13 +146,13 @@ Recovery Manager complete.
             $result.Data | Should -Not -BeNullOrEmpty
         }
 
-        It 'Data should be a single object, not an array' {
+        It 'R2 Data should be a single object, not an array' {
             $result = Get-RmanBackupStatus -DatabaseName 'ORCL'
             # Should not be an array — it is a single PSCustomObject
             ($result.Data -is [array]) | Should -Be $false
         }
 
-        It 'Should select the most recent record by CompletionTime (Key 94 over Key 95)' {
+        It 'R3 should select the most recent record by CompletionTime (Key 94 over Key 95)' {
             $result = Get-RmanBackupStatus -DatabaseName 'ORCL'
             $result.Data.Key | Should -Be 94
         }
@@ -199,7 +199,7 @@ Recovery Manager complete.
             { $d.RawLog }         | Should -Not -Throw
         }
 
-        It 'Should return Success=$false when RMAN output contains no backup records' {
+        It 'R5 should return Success=$false when RMAN output contains no backup records' {
             Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 return [PSCustomObject]@{
                     ExitCode = 0
@@ -214,7 +214,7 @@ Recovery Manager complete.
             $result.Message | Should -Match 'No backup'
         }
 
-        It 'Should return Success=$false when RMAN fails' {
+        It 'R5 should return Success=$false when RMAN fails' {
             Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 return [PSCustomObject]@{ ExitCode = 1; StdOut = 'RMAN-03002: failure'; StdErr = ''; Success = $false }
             }
@@ -223,7 +223,7 @@ Recovery Manager complete.
             $result.Data    | Should -BeNullOrEmpty
         }
 
-        It 'Data.AgeHours should be -1 (sentinel) when CompletionTime is null' {
+        It 'R4 Data.AgeHours should be -1 (sentinel) when CompletionTime is null' {
             # Output with an unparseable CompletionTime — not in YYYY-MM-DD HH24:MI:SS format.
             # CompletionTime will be $null; AgeHours and IsRecentDay fall back to sentinel values.
             $noParseOutput = @"
@@ -246,14 +246,34 @@ Recovery Manager complete.
             $result.Data.IsRecentDay       | Should -Be $false
         }
 
-        It 'Should include LIST BACKUP SUMMARY in the RMAN script' {
+        It 'L1 the only RMAN command sent is LIST BACKUP SUMMARY' {
             $script:capturedScript = $null
             Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 $script:capturedScript = $RmanScript
                 return [PSCustomObject]@{ ExitCode = 0; StdOut = $script:mockOutput; StdErr = ''; Success = $true }
             }
             Get-RmanBackupStatus -DatabaseName 'ORCL' | Out-Null
-            $script:capturedScript | Should -Match 'LIST BACKUP SUMMARY'
+            $script:capturedScript | Should -BeExactly 'LIST BACKUP SUMMARY;'
+        }
+
+        It 'R3 chooses the highest Key when no record has a CompletionTime' {
+            # Completion times in a format the parser does not read give a null CompletionTime.
+            $script:noTimeOutput = @(
+                'Key     TY LV S Device Type Completion Time     #Pieces #Copies Compressed Tag'
+                '------- -- -- - ----------- ------------------- ------- ------- ---------- ---'
+                '     91 B  F  A DISK        2026/02/03 02:00:00  1       1       NO         TAG20260203T020000'
+                '     97 B  1  A DISK        2026/02/01 02:00:00  1       1       NO         TAG20260201T020000'
+                '     95 B  F  X DISK        2026/02/02 03:00:00  1       1       YES        TAG20260202T030000'
+                ''
+                'Recovery Manager complete.'
+            ) -join "`n"
+            Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
+                return [PSCustomObject]@{ ExitCode = 0; StdOut = $script:noTimeOutput; StdErr = ''; Success = $true }
+            }
+            $result = Get-RmanBackupStatus -DatabaseName 'ORCL'
+            $result.Success             | Should -BeTrue
+            $result.Data.CompletionTime | Should -BeNullOrEmpty
+            $result.Data.Key            | Should -Be 97
         }
 
         It 'L3 passes the validated home to RMAN when the config has none' {
@@ -298,21 +318,47 @@ Recovery Manager complete.
             }
         }
 
-        It 'ORACLE_SID should not be set on current session after call' {
-            $before = $env:ORACLE_SID
-            Get-RmanBackupStatus -DatabaseName 'ORCL' | Out-Null
-            $env:ORACLE_SID | Should -Be $before
+        # Sentinels first: a before-and-after read proves nothing when an earlier test has
+        # already left the value the call would set.
+        It 'S1 the session environment is unchanged after the call' -Tag 'SEC' {
+            $sentinel = & (Join-Path $PSScriptRoot '..' 'Set-EnvironmentSentinel.ps1')
+            try {
+                Get-RmanBackupStatus -DatabaseName 'ORCL' | Out-Null
+            }
+            finally {
+                $changed = & (Join-Path $PSScriptRoot '..' 'Compare-EnvironmentSentinel.ps1') -Snapshot $sentinel
+            }
+            ($changed -join ', ') | Should -BeNullOrEmpty
         }
 
-        It 'Message should not contain credential fragments' {
+        It 'S2 Message holds no part of a named credential when RMAN succeeds' -Tag 'SEC' {
+            $password = 'Gr8Backup!Pwd77'
+            $cred     = [PSCredential]::new('backup_user', (ConvertTo-SecureString $password -AsPlainText -Force))
+            $result   = Get-RmanBackupStatus -DatabaseName 'ORCL' -Credential $cred
+            $result.Success | Should -BeTrue
+            $result.Message | Should -Not -Match ([regex]::Escape($password))
+            $result.Message | Should -Not -Match 'backup_user'
+        }
+
+        It 'S5 exception text is scrubbed before it is placed in Message' -Tag 'SEC' {
+            Mock -CommandName Assert-OracleEnvironment -ModuleName TACE.Oracle.Admin -MockWith {
+                throw 'tnsping failed for backup_user/Gr8Backup!Pwd77@ORCL'
+            }
+            $result = Get-RmanBackupStatus -DatabaseName 'ORCL'
+            $result.Success | Should -BeFalse
+            $result.Message | Should -Match 'SCRUBBED'
+            $result.Message | Should -Not -Match 'Gr8Backup!Pwd77'
+        }
+
+        It 'S2 Message should not contain credential fragments' -Tag 'SEC' {
             $result = Get-RmanBackupStatus -DatabaseName 'ORCL'
             $result.Message | Should -Not -Match '\w+/\w+@\w+'
             $result.Message | Should -Not -Match 'password'
         }
 
-        It 'Should return Success=$false and safe Message when binary integrity check fails' {
+        It 'R1 should return Success=$false and safe Message when binary integrity check fails' {
             Mock -CommandName Assert-OracleEnvironment -ModuleName TACE.Oracle.Admin -MockWith {
-                throw 'RMAN binary integrity check failed: Authenticode signature status is NotSigned'
+                throw 'RMAN binary integrity check failed: Authenticode signature status is HashMismatch'
             }
             $result = Get-RmanBackupStatus -DatabaseName 'ORCL'
             $result.Success | Should -Be $false
@@ -346,7 +392,7 @@ Recovery Manager complete.
             $result.Data | Should -Not -BeNullOrEmpty
         }
 
-        It 'Returns Success=$false when both WalletAlias and Credential are specified' {
+        It 'P2 returns Success=$false when both WalletAlias and Credential are specified' {
             $cred = New-Object System.Management.Automation.PSCredential('user', (ConvertTo-SecureString 'pass' -AsPlainText -Force))
             $result = Get-RmanBackupStatus -DatabaseName 'ORCL' -WalletAlias 'CDB1' -Credential $cred
             $result.Success | Should -Be $false
@@ -365,7 +411,7 @@ Recovery Manager complete.
             $result.Data | Should -Not -BeNullOrEmpty
         }
 
-        It '[SEC] Message does not contain credential fragments when WalletAlias is used' {
+        It 'S2 Message does not contain credential fragments when WalletAlias is used' -Tag 'SEC' {
             $result = Get-RmanBackupStatus -DatabaseName 'ORCL' -WalletAlias 'CDB1'
             $result.Message | Should -Not -Match '\w+/\w+@\w+'
             $result.Message | Should -Not -Match 'password'
