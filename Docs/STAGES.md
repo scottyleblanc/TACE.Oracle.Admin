@@ -87,7 +87,7 @@ soak tests run locally against an Oracle database; they do not run in public CI.
 | 0 | Setup and scope | — | Complete (v0.2.0) |
 | 1 | Intent | 1 | Complete (v0.2.1) |
 | 2 | Deterministic checks | 3 | Complete (v0.2.2) |
-| 3 | Tests | 4 | Not started |
+| 3 | Tests | 4 | Complete (v0.2.3) |
 | 4 | Enforced gate | 6 | Not started |
 | 5 | Agent instructions | 2 | Not started |
 | 6 | Independent review | 5 | Not started |

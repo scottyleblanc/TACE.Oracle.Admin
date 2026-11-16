@@ -6,9 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.2.3] - 2026-11-16
 
-Stack 3 of the AI Development Stack — tests. In progress.
+Stack 3 of the AI Development Stack — tests. Not published to PSGallery. Records are in
+`Docs/audit/stack-3-mutation.md`, `stack-3-integration.md` and
+`stack-3-seeded-defect.md`.
 
 ### Added
 

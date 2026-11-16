@@ -99,9 +99,9 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.2.2 |
-| Last audit | 2026-11-15 — Stack 2 deterministic checks: analyzer with custom rules, secret scanning, gate |
-| Tests | 352 unit tests and 118 static checks (all passing); 0 analyzer findings |
+| Version | 0.2.3 |
+| Last audit | 2026-11-16 — Stack 3 tests: every invariant proven, mutation check of every security proof, coverage floor, local integration tier |
+| Tests | 405 unit tests, 160 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
 | Open SEC items | 6 — see the Open Items in SECURITY.md |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.

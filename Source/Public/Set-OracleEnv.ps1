@@ -47,7 +47,7 @@ function Set-OracleEnv {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.2.2
+        Version : 0.2.3
         For the interactive menu use Invoke-OraEnv (aliases oraset, oraenv).
     #>
     [CmdletBinding(SupportsShouldProcess)]
