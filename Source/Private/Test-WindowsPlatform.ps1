@@ -22,6 +22,7 @@ function Test-WindowsPlatform {
 
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
+    $null = @(1) | ForEach-Object { $_ }
 
     #--------------------------------------------------------------
     # INVARIANTS
