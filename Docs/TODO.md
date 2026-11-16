@@ -387,18 +387,24 @@ a local tier tests the code against a real Oracle database.
 every pull request, branch protection requires it to pass, and the workflow holds no
 secrets.
 
-- [ ] Add `.github\workflows\gate.yml` calling only the gate script, with `-Unit`
-      (decision 31), so a behaviour defect is blocked too. Written, with
+- [x] Add `.github\workflows\gate.yml` calling only the gate script, with `-Unit`
+      (decision 31), so a behaviour defect is blocked too. With
       `Scripts\Install-GateTool.ps1` and the gate's `-Base` switch (without it, CI sees
-      no unpushed commits); tick after the first CI run passes
-- [ ] Turn on branch protection: pull request required, checks required
-- [ ] [SEC] Workflow runs with least privilege and no stored secrets
-- [ ] Seeded defects from Stack 2 and Stack 3 are blocked at merge
-- [ ] Integration evidence is current (rule T-14, decision 30): when a pull request
+      no unpushed commits). First run on PR #1 passed all 8 checks
+- [x] Turn on branch protection: pull request required, checks required. Ruleset on
+      `master`, no bypass, required check `gate` from GitHub Actions only, up to date
+      with `master`, merge commits only
+- [x] [SEC] Workflow runs with least privilege and no stored secrets. Read-only token,
+      `pull_request` only, no persisted credentials, SHA-pinned checkout; repository
+      allows only GitHub-owned, SHA-pinned actions; secret scanning and push protection on
+- [x] Seeded defects from Stack 2 and Stack 3 are blocked at merge. PR #2 failed on
+      analyzer, messages, evidence and unit, merge state `BLOCKED`
+      (`Docs\audit\stack-4-enforced-gate.md`)
+- [x] Integration evidence is current (rule T-14, decision 30): when a pull request
       changes `Source\`, `Tests\Integration\LastRun.json` must show `Evidence = true`, and
       nothing but that file may change between the commit it names and the pull request
-      head. Written as the gate's `evidence` check (with `-Base`); seeded cases
-      `evidence current` and `evidence stale` pass
+      head. The gate's `evidence` check (with `-Base`); seeded cases `evidence current`
+      and `evidence stale` pass, and it failed PR #2
 - [ ] Closing tasks
 
 ### Stack 5 — Agent instructions

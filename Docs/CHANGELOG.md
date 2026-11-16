@@ -8,7 +8,8 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-Stack 4 of the AI Development Stack — enforced gate. In progress.
+Stack 4 of the AI Development Stack — enforced gate. In progress. Record in
+`Docs/audit/stack-4-enforced-gate.md`.
 
 ### Added
 
@@ -30,6 +31,11 @@ Stack 4 of the AI Development Stack — enforced gate. In progress.
 - The workflow has a read-only token, no secrets, the `pull_request` trigger only, no
   credentials kept in the checkout, and its one action pinned to a full commit SHA.
 - The gitleaks download in CI is checked against a pinned SHA-256 before it is unpacked.
+- `master` is protected by a ruleset with no bypass: a pull request is required, and the
+  `gate` check from GitHub Actions must pass on a head that is up to date with `master`.
+  Force pushes and deletion are blocked. The repository allows only GitHub-owned actions
+  pinned to a full SHA, and secret scanning with push protection is on. A pull request
+  carrying the seeded defects was blocked.
 
 ## [0.2.3] - 2026-11-16
 

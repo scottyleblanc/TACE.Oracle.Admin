@@ -52,7 +52,9 @@ are complete. The last version on PSGallery stays `0.1.6` until then.
 
 - `master` — stable, tagged releases only
 - `vX.Y.Z-dev` — one branch per version (e.g. `v0.1.4-dev`)
-- Merge to `master` with `--no-ff` to preserve branch history
+- Merge to `master` through a pull request, with GitHub's "Create a merge commit" (the
+  same as `--no-ff`; the only method allowed). A ruleset with no bypass requires the
+  pull request and a passing `gate` check, so a direct push to `master` is refused
 - Tag `master` after each merge using the bare version: `git tag vX.Y.Z`
 
 **Branch and tag names must never be identical.** Using the `-dev` suffix on
