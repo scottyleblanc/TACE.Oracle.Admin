@@ -22,13 +22,13 @@ hold before it runs, while it runs, and after it returns or throws.
 - **I-08** — A change to a function's behaviour updates its block in the same commit.
   Example: adding an authentication mode adds or amends the entries that mode affects. *Review.*
 
-- **I-09** — A `Test:` line gives each test's exact title in single quotes, and the test is in the test file named for the source file.
+- **I-09** — A `Test:` line gives each test's exact title in single quotes, and the test is in the test file named for the source file. No other test in that file has the same title, so the citation names one test.
   Example: `Test: 'S2 RMAN script must contain NOPROMPT'.` in `Source\Public\Remove-RmanObsoleteBackup.ps1`, with the test in `Tests\Unit\Public\Remove-RmanObsoleteBackup.Tests.ps1`. *Linter.*
 - **I-10** — A test is cited only when it would fail if the invariant were broken.
   Example: a test that mocks the function under test proves nothing about that function, and is not cited. *Review.*
 - **I-11** — Every entry except a limitation is proven by a test or a static check. A `Type:` or `Guard:` line is followed by a `Test:` or `Static:` line that names the proof.
   Example: `Guard: the finally block.` followed by `Test: 'S2 zeroes and frees the buffer when the conversion throws'.` *Linter.*
-- **I-12** — A `Static:` line gives each check's exact title in single quotes. The check is in `Tests\Static\SourceInvariants.Tests.ps1`, and its title starts with the function name, then the IDs it proves.
+- **I-12** — A `Static:` line gives each check's exact title in single quotes. The check is in `Tests\Static\SourceInvariants.Tests.ps1`, its title is unique in that file, and it starts with the function name, then the IDs it proves.
   Example: `Static: 'Invoke-RmanProcess S2 extracts the password only inside the stdin write'.` *Linter.*
 
 ## Sections

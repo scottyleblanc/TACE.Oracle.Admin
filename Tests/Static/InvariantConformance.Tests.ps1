@@ -126,6 +126,27 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
         @($result.Data.Defects.Reason) | Should -Match 'Cited test not found'
     }
 
+    It 'I-09 refuses a cited test whose title two tests in the file share' {
+        $result = Invoke-FixtureLint -Name 'shared-title' -UnitTitles @('P1 refuses a missing name', 'P1 refuses a missing name') -Block @(
+            ' PRE-CONDITIONS'
+            '   P1 Name is checked.'
+            '       Guard: the check at the start of the body.'
+            "       Test: 'P1 refuses a missing name'."
+        )
+        $result.Success | Should -BeFalse
+        @($result.Data.Defects.Reason) | Should -Match 'shared by 2 tests'
+    }
+
+    It 'I-12 refuses a cited static check whose title two checks share' {
+        $result = Invoke-FixtureLint -Name 'static-shared' -StaticTitles @('Get-Thing S1 opens no file', 'Get-Thing S1 opens no file') -Block @(
+            ' SECURITY INVARIANTS'
+            '   [SEC] S1 No file is opened.'
+            "       Static: 'Get-Thing S1 opens no file'."
+        )
+        $result.Success | Should -BeFalse
+        @($result.Data.Defects.Reason) | Should -Match 'shared by 2 tests'
+    }
+
     It 'I-12 accepts a cited static check in SourceInvariants.Tests.ps1 named for the function' {
         $result = Invoke-FixtureLint -Name 'static-ok' -StaticTitles @('Get-Thing S1 opens no file') -Block @(
             ' SECURITY INVARIANTS'

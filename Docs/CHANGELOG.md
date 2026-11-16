@@ -78,6 +78,9 @@ Stack 3 of the AI Development Stack — tests. In progress.
 - The invariant linter checks rule T-09: a cited test's title starts with exactly the
   IDs it is cited for, and a test cited for a security invariant carries the `SEC` tag.
   Run against the previous commit it reports the same 95 titles and 26 tags.
+- Rules I-09 and I-12 now also require a cited title to be unique in its file, and the
+  linter refuses one that several tests share, since that citation names no single
+  test. Run before the R2 titles were made unique, it reports exactly those two.
 
 ---
 

@@ -13,7 +13,8 @@
         within a function (rule I-03)
       - an entry with no enforcement line (rule I-05)
       - a security entry without the [SEC] tag (rule I-06)
-      - a cited test that is not in the function's test file (rule I-09)
+      - a cited test that is not in the function's test file, or whose title more than
+        one test in that file carries (rule I-09; I-12 for static checks)
       - a cited test whose title does not start with exactly the IDs it is cited for, or
         that is cited for a security invariant and has no SEC tag (rule T-09)
       - a Type or Guard entry with no Test or Static line under it (rule I-11)
@@ -287,14 +288,16 @@ try {
     $staticRelative = Join-Path -Path 'Tests' -ChildPath 'Static' -AdditionalChildPath 'SourceInvariants.Tests.ps1'
     $titlesByFile   = @{}
 
+    # Title -> how many tests in the file carry it. A citation must name one test only.
     $readTitles = {
         param([string]$Path)
-        $titles = [System.Collections.Generic.HashSet[string]]::new()
+        $titles = [System.Collections.Generic.Dictionary[string, int]]::new([System.StringComparer]::Ordinal)
         if (Test-Path -LiteralPath $Path) {
             $text  = Get-Content -LiteralPath $Path -Raw
             $found = [regex]::Matches($text, '(?m)^\s*It\s+([''"])(?<title>.+?)\1')
             foreach ($match in $found) {
-                $null = $titles.Add($match.Groups['title'].Value)
+                $title = $match.Groups['title'].Value
+                $titles[$title] = if ($titles.ContainsKey($title)) { $titles[$title] + 1 } else { 1 }
             }
         }
         , $titles
@@ -329,10 +332,17 @@ try {
         }
 
         foreach ($title in $item.ProofTitles) {
-            if (-not $knownTitles.Contains($title)) {
+            $kind = if ($item.ProofKind -eq 'Static') { 'check' } else { 'test' }
+            if (-not $knownTitles.ContainsKey($title)) {
                 $defects.Add([PSCustomObject]@{
                         File = $item.File; Function = $item.Function; Line = $item.Line; Id = $item.Id
-                        Reason = "Cited $(if ($item.ProofKind -eq 'Static') { 'check' } else { 'test' }) not found in ${displayPath}: '$title'."
+                        Reason = "Cited $kind not found in ${displayPath}: '$title'."
+                    })
+            }
+            elseif ($knownTitles[$title] -gt 1) {
+                $defects.Add([PSCustomObject]@{
+                        File = $item.File; Function = $item.Function; Line = $item.Line; Id = $item.Id
+                        Reason = "Cited $kind title is shared by $($knownTitles[$title]) tests in ${displayPath}, so the citation does not name one: '$title'."
                     })
             }
             if ($item.ProofKind -eq 'Static' -and -not $title.StartsWith("$($item.Function) ", [System.StringComparison]::Ordinal)) {
