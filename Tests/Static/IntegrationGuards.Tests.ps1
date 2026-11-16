@@ -113,6 +113,27 @@ Describe 'Integration guards' -Tag 'Static' {
             Should -Throw -ExpectedMessage '*Guard 5*rman.exe*'
     }
 
+    It 'the run evidence holds only the agreed fields, and no path or host name' {
+        $file = Join-Path -Path $PSScriptRoot -ChildPath '..' -AdditionalChildPath 'Integration', 'LastRun.json'
+        if (-not (Test-Path -LiteralPath $file)) {
+            Set-ItResult -Skipped -Because 'no integration run has been recorded yet'
+            return
+        }
+        $text     = Get-Content -LiteralPath $file -Raw
+        $evidence = $text | ConvertFrom-Json
+        @($evidence.PSObject.Properties.Name) | Should -Be @('SchemaVersion', 'Commit', 'WorkingTreeClean', 'Passed', 'Evidence', 'RunAtUtc', 'Database', 'PowerShell', 'Pester', 'Totals', 'Tests')
+        @($evidence.Database.PSObject.Properties.Name) | Should -Be @('Edition', 'Version')
+        @($evidence.Totals.PSObject.Properties.Name)   | Should -Be @('Passed', 'Failed', 'Skipped', 'FailedContainers')
+        foreach ($test in @($evidence.Tests)) {
+            @($test.PSObject.Properties.Name) | Should -Be @('Name', 'Result')
+        }
+        $evidence.Commit | Should -Match '\A([0-9a-f]{40}|unknown)\z'
+        $text | Should -Not -Match '[A-Za-z]:\\\\'
+        if (-not [string]::IsNullOrEmpty($env:COMPUTERNAME)) {
+            $text | Should -Not -Match ([regex]::Escape($env:COMPUTERNAME))
+        }
+    }
+
     It 'the committed shared config allows no host and names no database' {
         $shared = Join-Path -Path $PSScriptRoot -ChildPath '..' -AdditionalChildPath 'Integration', 'IntegrationConfig.ps1'
         $text = Get-Content -LiteralPath $shared -Raw

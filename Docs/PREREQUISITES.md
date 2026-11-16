@@ -120,6 +120,11 @@ Five guards run before any test: the host is on the allowlist, the opt-in variab
 set, the local configuration is complete, the database name matches no production
 pattern, and the test folder exists. A failed guard fails the run and names the guard.
 
+Each run writes `Tests\Integration\LastRun.json`, the evidence a pull request carries
+(rule T-14). It is evidence only when the run passed on a clean working tree. Commit
+your changes first, run the tier, then commit `LastRun.json` on its own as the last
+commit of the branch.
+
 ## The Gate
 
 `.\Scripts\Invoke-Gate.ps1` runs every static check in one command and exits 1 if any

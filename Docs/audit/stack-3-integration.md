@@ -50,6 +50,16 @@ no database.
   outside the test folder and without the test tag. Each run leaves the newest one
   behind; the next run's `DELETE OBSOLETE` removes it, so they do not accumulate.
 
+## Evidence for a pull request
+
+From decision 30, each run writes `Tests\Integration\LastRun.json`, committed as the
+last commit of a branch. It is evidence only for a passing run on a clean tree. From
+Stack 4, CI checks that nothing but the file changed after the commit it names.
+
+The file is the author's attestation. A check can prove it current and consistent with
+the branch; it cannot prove the run happened, since the file could be edited by hand.
+Proving that would need the database in CI, which the plan rules out.
+
 ## What this does not cover
 
 - Wallet and named-credential authentication. Neither is set up on this machine.

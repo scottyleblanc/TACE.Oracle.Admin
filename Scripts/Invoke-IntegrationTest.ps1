@@ -22,6 +22,14 @@
     Writes NUnit XML results to Tests\TestResults\integration.xml, replacing the previous
     run. Exits 1 when a guard, a test or a test file fails, and 0 otherwise.
 
+    Also writes the run evidence, Tests\Integration\LastRun.json (rule T-14): the commit
+    the run was made against, whether the working tree was clean, the date, the database
+    edition and version, the PowerShell and Pester versions, the totals, and each test's
+    name and outcome. It holds no host name, path or SID. Evidence is true only for a
+    passing run on a clean tree; changes to LastRun.json itself do not count as unclean.
+    Commit the file as the last commit of a branch, so a reviewer can see the code passed
+    against a real database. No file is written when a guard or the build stops the run.
+
     Setup, once per machine: copy Tests\Integration\IntegrationConfig.local.example.ps1
     to IntegrationConfig.local.ps1 (gitignored) and fill it in, and create the test folder.
     Before each run: $env:ORACLE_ADMIN_RUN_INTEGRATION = '1'.
@@ -79,7 +87,24 @@ if ($testFiles.Count -eq 0) {
 
 $null = New-Item -Path $resultsDir -ItemType Directory -Force
 
-Write-Output "[INFO] integration: database $($config.TestDatabaseName), OS authentication, $($testFiles.Count) test file(s)."
+# -- Evidence inputs, read before the tests run -------------------------------------
+
+$evidenceFile     = Join-Path -Path $integrationRoot -ChildPath 'LastRun.json'
+$evidenceRelative = 'Tests/Integration/LastRun.json'
+
+$commit = (& git -C $repoRoot rev-parse HEAD 2>$null)
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commit)) { $commit = 'unknown' }
+# Untracked files count as changes; ignored files (the local config) do not; nor does
+# the evidence file itself, which every run rewrites.
+$changes = @(& git -C $repoRoot status --porcelain --untracked-files=all 2>$null |
+    Where-Object { $PSItem.Substring(3).Trim('"') -ne $evidenceRelative })
+$treeClean = $commit -ne 'unknown' -and $changes.Count -eq 0
+
+Import-Module (& (Join-Path -Path $testsRoot -ChildPath 'Unit' -AdditionalChildPath 'Get-BuiltModulePath.ps1')) -Force
+$database = Get-IntegrationDatabaseVersion -Config $config
+Remove-Module -Name 'TACE.Oracle.Admin' -Force
+
+Write-Output "[INFO] integration: Oracle $($database.Edition) $($database.Version), OS authentication, $($testFiles.Count) test file(s)."
 
 $pesterConfig = New-PesterConfiguration
 $pesterConfig.Run.Path                = [string[]]$testFiles
@@ -97,6 +122,44 @@ $failed = $result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0
 $label = if ($failed) { '[FAIL]' } else { '[PASS]' }
 Write-Output ('{0} integration: {1} passed, {2} failed, {3} skipped, {4} file(s) failed to run. Results: {5}' -f
     $label, $result.PassedCount, $result.FailedCount, $result.SkippedCount, $result.FailedContainersCount, $resultsFile)
+
+# -- Evidence (rule T-14) ----------------------------------------------------------
+
+# Test names are Describe, Context and It titles only. No host name, path or SID.
+$tests = @($result.Tests | ForEach-Object {
+        [PSCustomObject]@{ Name = $PSItem.ExpandedPath; Result = "$($PSItem.Result)" }
+    })
+$evidence = [PSCustomObject]@{
+    SchemaVersion    = 1
+    Commit           = $commit
+    WorkingTreeClean = $treeClean
+    Passed           = -not $failed
+    Evidence         = $treeClean -and -not $failed
+    RunAtUtc         = [datetime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+    Database         = [PSCustomObject]@{ Edition = $database.Edition; Version = $database.Version }
+    PowerShell       = $PSVersionTable.PSVersion.ToString()
+    Pester           = (Get-Module -Name Pester).Version.ToString()
+    Totals           = [PSCustomObject]@{
+        Passed           = $result.PassedCount
+        Failed           = $result.FailedCount
+        Skipped          = $result.SkippedCount
+        FailedContainers = $result.FailedContainersCount
+    }
+    Tests            = $tests
+}
+$json = (ConvertTo-Json -InputObject $evidence -Depth 5) -replace "`r`n", "`n"
+[System.IO.File]::WriteAllText($evidenceFile, $json + "`n", [System.Text.UTF8Encoding]::new($false))
+
+$shortCommit = if ($commit.Length -ge 7) { $commit.Substring(0, 7) } else { $commit }
+if ($evidence.Evidence) {
+    Write-Output "[INFO] integration: evidence for $shortCommit written to $evidenceRelative. Commit it as the last commit of the branch."
+}
+elseif (-not $treeClean) {
+    Write-Output "[INFO] integration: $evidenceRelative written, but it is not evidence: the working tree had uncommitted changes. Commit them and run again."
+}
+else {
+    Write-Output "[INFO] integration: $evidenceRelative written, but it is not evidence: the run failed."
+}
 
 if ($failed) { exit 1 }
 

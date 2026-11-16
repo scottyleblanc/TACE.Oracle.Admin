@@ -13,6 +13,8 @@
                                         folder, with a fixed tag and a name prefix
       Remove-IntegrationBackup          deletes every backup with the fixed tag, and any
                                         test piece left in the test folder
+      Get-IntegrationDatabaseVersion    reads the database edition and version for the
+                                        run evidence
       Set-IntegrationConfigOverride     points the module's config at a file that holds
                                         only the integration OracleHome
       Clear-IntegrationConfigOverride   undoes that
@@ -234,6 +236,39 @@ function Remove-IntegrationBackup {
     foreach ($piece in @(Get-ChildItem -LiteralPath $Config.TestBackupDestination -Filter 'IT_*' -File)) {
         Remove-Item -LiteralPath $piece.FullName -Force -WhatIf:$false
     }
+}
+
+function Get-IntegrationDatabaseVersion {
+    <#
+    .SYNOPSIS
+        Returns the integration database's edition code and full version, from V$INSTANCE.
+    .DESCRIPTION
+        Recorded in the run evidence. Returns 'unknown' for a value it cannot read rather
+        than throwing, so a failed lookup never hides the test results.
+    .PARAMETER Config
+        The configuration from IntegrationConfig.ps1.
+    .EXAMPLE
+        Get-IntegrationDatabaseVersion -Config $config
+    #>
+    [CmdletBinding()]
+    [OutputType([PSCustomObject])]
+    param(
+        [Parameter(Mandatory)]
+        [ValidateNotNull()]
+        [PSCustomObject]$Config
+    )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    $result  = Invoke-IntegrationRman -Config $Config -Script 'SELECT EDITION, VERSION_FULL FROM V$INSTANCE;' -TimeoutSeconds 120
+    $edition = 'unknown'
+    $version = 'unknown'
+    if ($result.Success -and $result.StdOut -match '(?m)^(?<edition>[A-Z]{2,4})\s+(?<version>\d+(?:\.\d+){4})\s*$') {
+        $edition = $Matches['edition']
+        $version = $Matches['version']
+    }
+    [PSCustomObject]@{ Edition = $edition; Version = $version }
 }
 
 function Set-IntegrationConfigOverride {

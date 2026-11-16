@@ -112,6 +112,13 @@ Stack 3 of the AI Development Stack — tests. In progress.
   control file backups and run a real `DELETE OBSOLETE`. 13 static tests cover the
   guards. First runs against Oracle Database 21c XE: 12 of 12. Record in
   `Docs/audit/stack-3-integration.md`.
+- Integration evidence (decision 30, rule T-14): each run of the integration tier writes
+  `Tests/Integration/LastRun.json` with the commit, whether the working tree was clean,
+  the database edition and version, the PowerShell and Pester versions, the totals and
+  each test's outcome. No host name, path or SID. It counts as evidence only for a
+  passing run on a clean tree, and is committed as the last commit of a branch. A static
+  test holds the file to its agreed fields. Rule T-13 records the integration test rules
+  (decision 29), deferred to Stack 3 at ratification.
 - Signing references in `Assert-OracleEnvironment`, its tests and `Docs/SECURITY.md` now
   state only the fact: Oracle binaries are not signed. The claims that Oracle signs
   distribution archives, and the references to the old design decision, are removed.

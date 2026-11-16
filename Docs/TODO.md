@@ -365,7 +365,11 @@ a local tier tests the code against a real Oracle database.
         A failed guard fails the run instead of skipping it. 13 static tests cover the
         guards. Tests for `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup` take
         control file backups and run a real `DELETE OBSOLETE`, as agreed
-- [ ] Decide how a local integration result is attached to a pull request
+- [x] Decide how a local integration result is attached to a pull request
+      - Scott chose a committed results file (2026-11-16; decision 30, rule T-14). The
+        tier script writes `Tests\Integration\LastRun.json`; it is evidence only for a
+        passing run on a clean tree, and is committed last. The staleness check is a
+        Stack 4 item, below
 - [ ] Seeded defect: one behaviour change that breaks an invariant
 - [ ] Closing tasks
 
@@ -379,6 +383,10 @@ secrets.
 - [ ] Turn on branch protection: pull request required, checks required
 - [ ] [SEC] Workflow runs with least privilege and no stored secrets
 - [ ] Seeded defects from Stack 2 and Stack 3 are blocked at merge
+- [ ] Integration evidence is current (rule T-14, decision 30): when a pull request
+      changes `Source\`, `Tests\Integration\LastRun.json` must show `Evidence = true`, and
+      nothing but that file may change between the commit it names and the pull request
+      head
 - [ ] Closing tasks
 
 ### Stack 5 — Agent instructions
