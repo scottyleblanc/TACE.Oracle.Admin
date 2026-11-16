@@ -16,6 +16,13 @@
       behaviour  Get-RmanBackupStatus picks the      the gate with -Unit fails on 'unit'
                  highest Key, not the latest         only: valid code that every static
                  CompletionTime (breaks its R3)      check passes
+      ci no base a token in a commit message,    the gate passes: nothing is unpushed,
+                 and that commit on a remote     which is why CI must pass -Base
+      ci message the same, gate with -Base       the gate fails on 'messages'
+      evidence   a Source\ change, then          the gate with -Base passes
+      current    LastRun.json naming it
+      evidence   one more Source\ change after   the gate with -Base fails on
+      stale      the evidence commit             'evidence' only (rule T-14)
 
     Each case starts from the clean copy. The planted token is generated at random in
     the GitHub token format, so it is no real credential; it is never printed. This
@@ -29,7 +36,7 @@
 .EXAMPLE
     .\Scripts\Test-SeededDefect.ps1
 
-    Runs the four cases. Exits 0 when every case behaves as expected, 1 otherwise.
+    Runs the nine cases. Exits 0 when every case behaves as expected, 1 otherwise.
 
 .NOTES
     Copyright © TACE Data Management Inc.
@@ -74,10 +81,11 @@ function Invoke-CopyGit {
 # -Unit passes the gate's -Unit switch, adding the unit tier.
 function Invoke-CopyGate {
     [OutputType([PSCustomObject])]
-    param([switch] $Unit)
+    param([switch] $Unit, [string] $Base)
     $gate     = Join-Path -Path $copy -ChildPath 'Scripts' -AdditionalChildPath 'Invoke-Gate.ps1'
     $gateArgs = @('-NoProfile', '-File', $gate)
     if ($Unit) { $gateArgs += '-Unit' }
+    if ($Base) { $gateArgs += @('-Base', $Base) }
     $output = @(& pwsh @gateArgs 2>&1 | ForEach-Object { "$PSItem" })
     $exit   = $LASTEXITCODE
     $failed = @($output | ForEach-Object { if ($PSItem -match '^\[FAIL\] (\w+) :') { $Matches[1] } })
@@ -180,6 +188,36 @@ try {
     [System.IO.File]::WriteAllText($target, $text.Replace($anchor, ''), [System.Text.UTF8Encoding]::new($false))
     Add-Case -Name 'behaviour' -Result (Invoke-CopyGate -Unit) -ExpectFailed @('unit')
     $null = Invoke-CopyGit -Argument @('checkout', '--quiet', '--', 'Source/Public/Get-RmanBackupStatus.ps1')
+
+    # -- CI: every commit is on a remote ---------------------------------------
+    # A token in a commit message, then a remote-tracking ref at HEAD, as in a CI
+    # checkout. Without -Base the gate sees nothing unpushed; with -Base it checks the
+    # pull request's commits and fails.
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--allow-empty', '--message', "fix: rotate token $(Get-FakeToken)")
+    $null = Invoke-CopyGit -Argument @('update-ref', 'refs/remotes/origin/pr', 'HEAD')
+    Add-Case -Name 'ci no base' -Result (Invoke-CopyGate) -ExpectFailed @()
+    Add-Case -Name 'ci message' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('messages')
+    $null = Invoke-CopyGit -Argument @('update-ref', '-d', 'refs/remotes/origin/pr')
+    $null = Invoke-CopyGit -Argument @('reset', '--quiet', '--hard', $baseline)
+
+    # -- evidence: rule T-14 ---------------------------------------------------
+    # A Source\ change, then LastRun.json naming it: current. One more Source\ change
+    # after the evidence commit: stale.
+    $sourceFile = Join-Path -Path $copy -ChildPath 'Source' -AdditionalChildPath 'Private', 'Test-WindowsPlatform.ps1'
+    $evidence   = Join-Path -Path $copy -ChildPath 'Tests' -AdditionalChildPath 'Integration', 'LastRun.json'
+    Assert-InCopy -Path $sourceFile
+    Assert-InCopy -Path $evidence
+    [System.IO.File]::AppendAllText($sourceFile, "# seeded change 1`n", [System.Text.UTF8Encoding]::new($false))
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'fix: a source change')
+    $run = [System.IO.File]::ReadAllText($evidence) | ConvertFrom-Json
+    $run.Commit = (Invoke-CopyGit -Argument @('rev-parse', 'HEAD')) | Select-Object -First 1
+    [System.IO.File]::WriteAllText($evidence, (ConvertTo-Json -InputObject $run -Depth 5) + "`n", [System.Text.UTF8Encoding]::new($false))
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'test: integration evidence')
+    Add-Case -Name 'evidence current' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @()
+    [System.IO.File]::AppendAllText($sourceFile, "# seeded change 2`n", [System.Text.UTF8Encoding]::new($false))
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'fix: a later source change')
+    Add-Case -Name 'evidence stale' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('evidence')
+    $null = Invoke-CopyGit -Argument @('reset', '--quiet', '--hard', $baseline)
 }
 finally {
     if ($KeepCopy) {
@@ -196,7 +234,7 @@ finally {
 }
 
 $failedCases = @($cases | Where-Object { -not $PSItem.Passed })
-if ($failedCases.Count -gt 0 -or $cases.Count -ne 5) {
+if ($failedCases.Count -gt 0 -or $cases.Count -ne 9) {
     Write-Output "[FAIL] seeded defects: $($failedCases.Count) of $($cases.Count) cases did not behave as expected"
     exit 1
 }

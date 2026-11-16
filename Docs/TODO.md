@@ -388,14 +388,17 @@ every pull request, branch protection requires it to pass, and the workflow hold
 secrets.
 
 - [ ] Add `.github\workflows\gate.yml` calling only the gate script, with `-Unit`
-      (decision 31), so a behaviour defect is blocked too
+      (decision 31), so a behaviour defect is blocked too. Written, with
+      `Scripts\Install-GateTool.ps1` and the gate's `-Base` switch (without it, CI sees
+      no unpushed commits); tick after the first CI run passes
 - [ ] Turn on branch protection: pull request required, checks required
 - [ ] [SEC] Workflow runs with least privilege and no stored secrets
 - [ ] Seeded defects from Stack 2 and Stack 3 are blocked at merge
 - [ ] Integration evidence is current (rule T-14, decision 30): when a pull request
       changes `Source\`, `Tests\Integration\LastRun.json` must show `Evidence = true`, and
       nothing but that file may change between the commit it names and the pull request
-      head
+      head. Written as the gate's `evidence` check (with `-Base`); seeded cases
+      `evidence current` and `evidence stale` pass
 - [ ] Closing tasks
 
 ### Stack 5 — Agent instructions

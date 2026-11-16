@@ -148,15 +148,32 @@ Two switches add the test tiers, after the six checks (decision 31):
 
 The pre-push hook passes neither, so a push runs only the six checks.
 
+`-Base <branch>` is for pull requests. In CI every commit is already on a remote, so
+`commits` and `messages` check the commits in `<branch>..HEAD` instead, and one more
+check runs:
+
+| Check | What it runs |
+|---|---|
+| evidence | Rule T-14: when the pull request changes `Source\`, `Tests\Integration\LastRun.json` shows `Evidence = true` for a commit HEAD contains, and only that file changed since |
+
+### CI
+
+`.github\workflows\gate.yml` runs on every pull request into `master`, on a Windows
+runner. It calls `.\Scripts\Install-GateTool.ps1`, which installs the pinned tool
+versions (the gitleaks zip is checked against a pinned SHA-256), then
+`.\Scripts\Invoke-Gate.ps1 -Unit -Base origin/master`. The workflow holds no logic of its
+own and no secrets, and its token is read-only.
+
 Turn on the pre-push hook once in each clone, so the gate runs before every push:
 
 ```powershell
 git config core.hooksPath .githooks
 ```
 
-`.\Scripts\Test-SeededDefect.ps1` proves the gate works: it plants a lint violation and
-a secret in a temporary copy of the repository and checks that the gate fails on each.
-It takes a few minutes.
+`.\Scripts\Test-SeededDefect.ps1` proves the gate works: in a temporary copy of the
+repository it plants a lint violation, secrets, a behaviour defect, a secret in a
+commit message that is already on a remote, and stale integration evidence, and checks
+that the gate fails on each with the expected check. It takes about fifteen minutes.
 
 `.\Scripts\Test-InvariantMutation.ps1` proves the tests prove the invariants (rule I-10):
 for each mutation in `Tests\Mutation\InvariantMutations.psd1` it breaks one invariant in

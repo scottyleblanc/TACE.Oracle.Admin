@@ -6,6 +6,31 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+Stack 4 of the AI Development Stack — enforced gate. In progress.
+
+### Added
+
+- `.github/workflows/gate.yml`: runs the gate on every pull request into `master`, on a
+  Windows runner. It installs the tools and calls `Scripts/Invoke-Gate.ps1 -Unit -Base
+  origin/master`; it holds no logic of its own.
+- `Scripts/Install-GateTool.ps1`: installs PSScriptAnalyzer 1.25.0, Pester 5.7.1 and
+  gitleaks 8.30.1 when missing.
+- `Invoke-Gate.ps1 -Base <branch>`: `commits` and `messages` check the commits in
+  `<branch>..HEAD` rather than those not on a remote, which in CI is none. Adds the
+  `evidence` check, rule T-14: when `Source/` changed, `Tests/Integration/LastRun.json`
+  must be current.
+- `Test-SeededDefect.ps1`: four more cases, nine in all. A secret in a commit message
+  that is already on a remote passes without `-Base` and fails with it; integration
+  evidence passes when current and fails when stale.
+
+### Security
+
+- The workflow has a read-only token, no secrets, the `pull_request` trigger only, no
+  credentials kept in the checkout, and its one action pinned to a full commit SHA.
+- The gitleaks download in CI is checked against a pinned SHA-256 before it is unpacked.
+
 ## [0.2.3] - 2026-11-16
 
 Stack 3 of the AI Development Stack — tests. Not published to PSGallery. Records are in
