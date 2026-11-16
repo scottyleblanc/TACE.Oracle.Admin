@@ -59,11 +59,11 @@ function Remove-RmanObsoleteBackup {
     # PRE-CONDITIONS
     #   P1 DatabaseName is a non-empty string.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
-    #       Test: 'DatabaseName is mandatory',
+    #       Test: 'P1 DatabaseName is mandatory',
     #       'P1 DatabaseName rejects an empty string'.
     #   P2 WalletAlias and Credential are not both supplied.
     #       Guard: the check at the start of the body returns Success = $false.
-    #       Test: 'Returns Success=$false when both WalletAlias and Credential are specified'.
+    #       Test: 'P2 returns Success=$false when both WalletAlias and Credential are specified'.
     #   P3 It runs on Windows. On any other platform it returns Success = $false before
     #       the ShouldProcess gate, the config read or any process (rule C-07).
     #       Test: 'P3 returns Success false on a platform other than Windows'.
@@ -72,20 +72,20 @@ function Remove-RmanObsoleteBackup {
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 Nothing is deleted unless ShouldProcess approves, with ConfirmImpact High.
-    #       Test: 'RMAN must not be invoked on WhatIf — ShouldProcess is the sole gate',
+    #       Test: 'S1 RMAN must not be invoked on WhatIf — ShouldProcess is the sole gate',
     #       'S1 declares ConfirmImpact High, so it asks before deleting at the default preference'.
     #   [SEC] S2 RMAN is run with NOPROMPT, so ShouldProcess is the only confirmation.
-    #       Test: 'RMAN script must contain NOPROMPT'.
+    #       Test: 'S2 RMAN script must contain NOPROMPT'.
     #   [SEC] S3 ORACLE_SID is never set on the current session.
     #       Test: 'S3 the session environment is unchanged after the call'.
     #   [SEC] S4 Message holds no credential when RMAN succeeds.
     #       Test: 'S4, S5 no part of a named credential reaches Message or the RMAN script',
-    #       'Message should not contain credential fragments'.
+    #       'S4 Message should not contain credential fragments'.
     #   [SEC] S8 Exception text is scrubbed before it is placed in Message.
     #       Test: 'S8 exception text is scrubbed before it is placed in Message'.
     #   [SEC] S5 The RMAN script holds no credential.
     #       Test: 'S4, S5 no part of a named credential reaches Message or the RMAN script',
-    #       'RMAN script should not contain credential fragments'.
+    #       'S5 RMAN script should not contain credential fragments'.
     #   [SEC] S9 The RMAN script is fixed text. No parameter value is placed in it, and
     #       there is no catalog parameter. S6 and S7 are retired with those parameters.
     #       Test: 'S9 RMAN script is fixed text and no catalog parameter exists'.
@@ -99,17 +99,17 @@ function Remove-RmanObsoleteBackup {
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws once its
     #       parameters are bound.
-    #       Test: 'Should return Success=$false and safe Message when binary integrity check fails'.
+    #       Test: 'R1 should return Success=$false and safe Message when binary integrity check fails'.
     #   R2 On success Data has DatabaseName, StartTime, EndTime, DurationSec, DeletedCount,
     #       AuthMode, RawLog and Applied = $true.
     #       Test: 'R2 a real run returns the full Data with Applied true'.
     #   R3 When ShouldProcess declines, or under -WhatIf, RMAN is not run and the return
     #       is a preview: Success = $true, Data.Applied = $false, and a Message that
     #       starts with 'WhatIf:' (rule C-27).
-    #       Test: 'Should not invoke RMAN on WhatIf',
+    #       Test: 'R3 should not invoke RMAN on WhatIf',
     #       'R3 WhatIf returns a preview with Applied false'.
     #   R4 DeletedCount is the number of 'deleted backup piece' lines in the RMAN output.
-    #       Test: 'Should count deleted pieces from RMAN output'.
+    #       Test: 'R4 should count deleted pieces from RMAN output'.
     #
     # EXECUTION INVARIANTS
     #   L1 Nothing is read, written or started before the ShouldProcess gate approves:

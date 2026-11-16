@@ -23,7 +23,7 @@ hold before it runs, while it runs, and after it returns or throws.
   Example: adding an authentication mode adds or amends the entries that mode affects. *Review.*
 
 - **I-09** — A `Test:` line gives each test's exact title in single quotes, and the test is in the test file named for the source file.
-  Example: `Test: 'RMAN script must contain NOPROMPT'.` in `Source\Public\Remove-RmanObsoleteBackup.ps1`, with the test in `Tests\Unit\Public\Remove-RmanObsoleteBackup.Tests.ps1`. *Linter.*
+  Example: `Test: 'S2 RMAN script must contain NOPROMPT'.` in `Source\Public\Remove-RmanObsoleteBackup.ps1`, with the test in `Tests\Unit\Public\Remove-RmanObsoleteBackup.Tests.ps1`. *Linter.*
 - **I-10** — A test is cited only when it would fail if the invariant were broken.
   Example: a test that mocks the function under test proves nothing about that function, and is not cited. *Review.*
 - **I-11** — Every entry except a limitation is proven by a test or a static check. A `Type:` or `Guard:` line is followed by a `Test:` or `Static:` line that names the proof.

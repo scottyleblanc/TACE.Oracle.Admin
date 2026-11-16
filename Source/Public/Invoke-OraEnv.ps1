@@ -67,12 +67,12 @@ function Invoke-OraEnv {
     #
     # POST-CONDITIONS
     #   R1 Nothing is written to the pipeline.
-    #       Test: 'Does not write to the pipeline on success'.
+    #       Test: 'R1 does not write to the pipeline on success'.
     #   R2 When Set-OracleEnv fails, one [ERROR] line is written to the host.
-    #       Test: 'Writes [ERROR] to host when Set-OracleEnv returns Success=$false'.
+    #       Test: 'R2 writes [ERROR] to host when Set-OracleEnv returns Success=$false'.
     #   R3 SID and -Verbose are passed through to Set-OracleEnv unchanged.
-    #       Test: 'Calls Set-OracleEnv with the supplied SID',
-    #       'Shows ORACLE_HOME and ORACLE_BASE on host when -Verbose is specified'.
+    #       Test: 'R3 calls Set-OracleEnv with the supplied SID',
+    #       'R3 shows ORACLE_HOME and ORACLE_BASE on host when -Verbose is specified'.
     #   R4 With no SID and more than one instance it shows a numbered menu, reads the
     #       choice with Read-Host, and calls Set-OracleEnv with the chosen SID.
     #       Test: 'R4 several instances: shows a menu and calls Set-OracleEnv with the chosen SID'.

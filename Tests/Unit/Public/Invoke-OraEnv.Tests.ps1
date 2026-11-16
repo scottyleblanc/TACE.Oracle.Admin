@@ -81,7 +81,7 @@ Describe 'Invoke-OraEnv' {
             }
         }
 
-        It 'Calls Set-OracleEnv with the supplied SID' {
+        It 'R3 calls Set-OracleEnv with the supplied SID' {
             Invoke-OraEnv -SID 'ORCL'
             Should -Invoke Set-OracleEnv -ModuleName 'TACE.Oracle.Admin' -Times 1 -Exactly -ParameterFilter { $SID -eq 'ORCL' }
             Should -Invoke Get-OracleDatabaseList -ModuleName 'TACE.Oracle.Admin' -Times 0 -Exactly
@@ -129,7 +129,7 @@ Describe 'Invoke-OraEnv' {
 
         # Set-OracleEnv runs for real, with discovery mocked, to test the whole chain.
 
-        It 'Shows ORACLE_HOME and ORACLE_BASE on host when -Verbose is specified' {
+        It 'R3 shows ORACLE_HOME and ORACLE_BASE on host when -Verbose is specified' {
             Invoke-OraEnv -Verbose 4>&1 | Out-Null
             @($script:hostLines | Where-Object { $PSItem -like 'ORACLE_HOME*' }).Count | Should -Be 1
             @($script:hostLines | Where-Object { $PSItem -like 'ORACLE_BASE*' }).Count | Should -Be 1
@@ -143,7 +143,7 @@ Describe 'Invoke-OraEnv' {
 
     Context 'Implementation - output behaviour' {
 
-        It 'Does not write to the pipeline on success' {
+        It 'R1 does not write to the pipeline on success' {
             Mock Set-OracleEnv {
                 [PSCustomObject]@{ Success = $true; Data = $null; Message = 'ok' }
             } -ModuleName 'TACE.Oracle.Admin'
@@ -156,7 +156,7 @@ Describe 'Invoke-OraEnv' {
             $script:hostLines | Should -Contain "ORACLE_SID set to 'ORCL'."
         }
 
-        It 'Writes [ERROR] to host when Set-OracleEnv returns Success=$false' {
+        It 'R2 writes [ERROR] to host when Set-OracleEnv returns Success=$false' {
             Mock Set-OracleEnv {
                 [PSCustomObject]@{ Success = $false; Data = $null; Message = 'SID not found.' }
             } -ModuleName 'TACE.Oracle.Admin'

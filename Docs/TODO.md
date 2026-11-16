@@ -306,9 +306,11 @@ a local tier tests the code against a real Oracle database.
           not replace the timeout error" part cannot without faking .NET. Scott chose to
           split it (2026-11-16): L5 the tree kill, by a unit test; L6 the failed kill or
           wait, by a static check. One proof per entry, so the format is unchanged
-- [ ] Bring every cited test to rule T-09: rename the cited tests whose title does not
+- [x] Bring every cited test to rule T-09: rename the cited tests whose title does not
       start with the IDs they prove (54 at the end of Stack 1), tag the security ones
       `SEC`, update the citations, and add the linter check
+      - Done 2026-11-16: 95 titles renamed and 26 tags added (the count grew with the
+        Stack 3 proofs). The linter now refuses a title or a missing tag that breaks T-09
 - [x] `Set-OracleEnv` is documented for scripts and automation, but writes to the host
       and can show a `Read-Host` menu (its L1, L2). Move the menu and host output into
       `Invoke-OraEnv`, the interactive wrapper, so `Set-OracleEnv` is silent and needs

@@ -20,35 +20,35 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 ### Assert-OracleEnvironment
 
 - **P1** OracleHome is a string, and may be empty. *(Type; Test)*
-  - Test: 'OracleHome is mandatory'
-  - Test: 'Throws with a clear message when OracleHome is empty and env var is not set'
+  - Test: 'P1 OracleHome is mandatory'
+  - Test: 'P1 throws with a clear message when OracleHome is empty and env var is not set'
 - **P2** Binary is a non-empty file name. It defaults to rman.exe. *(Type; Test)*
-  - Test: 'Binary must not be null or empty'
-  - Test: 'Binary defaults to rman.exe — Get-AuthenticodeSignature called with rman.exe path when Binary is omitted'
+  - Test: 'P2 Binary must not be null or empty'
+  - Test: 'P2 Binary defaults to rman.exe — Get-AuthenticodeSignature called with rman.exe path when Binary is omitted'
 - **P3** An empty or blank WalletAlias means no alias check is made. *(Guard; Test)*
-  - Test: 'Returns binary path when WalletAlias is empty — tnsping not invoked'
-  - Test: 'Treats whitespace-only WalletAlias as empty — tnsping not invoked'
+  - Test: 'P3 returns binary path when WalletAlias is empty — tnsping not invoked'
+  - Test: 'P3 treats whitespace-only WalletAlias as empty — tnsping not invoked'
 - **S1** `[SEC]` OracleHome, from the config or the environment, is checked to exist before it is used in a path. *(Test)*
-  - Test: 'Throws when OracleHome does not exist on disk'
+  - Test: 'S1 throws when OracleHome does not exist on disk'
 - **S2** `[SEC]` The binary is resolved from OracleHome\bin, never from PATH. *(Test)*
-  - Test: 'Returned binary path is rooted under the validated OracleHome — never from PATH'
+  - Test: 'S2 returned binary path is rooted under the validated OracleHome — never from PATH'
 - **S3** `[SEC]` A signature status of HashMismatch or TrustFailure, or a valid signature that is not Oracle's, stops the call. *(Test)*
-  - Test: 'Throws when Authenticode status is HashMismatch'
-  - Test: 'Throws when Authenticode status is TrustFailure'
-  - Test: 'Throws when Authenticode signer subject does not contain Oracle'
+  - Test: 'S3 throws when Authenticode status is HashMismatch'
+  - Test: 'S3 throws when Authenticode status is TrustFailure'
+  - Test: 'S3 throws when Authenticode signer subject does not contain Oracle'
 - **S4** `[SEC]` An unsigned binary is accepted. Oracle does not sign individual executables, so the signature check cannot detect a replaced Oracle binary, whether the replacement came from a patch or from tampering. *(Limitation)*
 - **S5** `[SEC]` No parameter turns the signature check off. *(Test)*
-  - Test: 'No bypass parameter exists — SkipSignatureCheck, Force, and SkipOwnerCheck are absent'
+  - Test: 'S5 no bypass parameter exists — SkipSignatureCheck, Force, and SkipOwnerCheck are absent'
 - **S6** `[SEC]` A WalletAlias is resolved with tnsping before the function returns. *(Test)*
-  - Test: 'Throws when tnsping exits with a non-zero exit code'
-  - Test: 'Throws when tnsping stdout contains a TNS-NNNNN error code'
+  - Test: 'S6 throws when tnsping exits with a non-zero exit code'
+  - Test: 'S6 throws when tnsping stdout contains a TNS-NNNNN error code'
 - **S7** `[SEC]` tnsping output is scrubbed before it is placed in an error message. *(Test)*
   - Test: 'S7 a credential in tnsping stdout or stderr is scrubbed from the error message (<Stream>)'
 - **S8** `[SEC]` The current session environment is not changed. *(Test)*
   - Test: 'S8 the session environment is unchanged when all checks pass'
 - **S9** `[SEC]` tnsping.exe is checked to exist, but its signature is not checked. *(Limitation)*
 - **R1** Returns the full path of the validated binary. *(Test)*
-  - Test: 'Returns the binary path when all checks pass (valid Oracle signature, SYSTEM owner)'
+  - Test: 'R1 returns the binary path when all checks pass (valid Oracle signature, SYSTEM owner)'
 - **T1** Every throw starts with 'Oracle environment validation failed:'. *(Test)*
   - Test: 'T1 every throw starts with the validation prefix (<Case>)'
 - **T2** The error for a missing OracleHome names the two ways to set one: OracleHome in Config\OracleBackup.json, or the ORACLE_HOME environment variable. *(Test)*
@@ -67,7 +67,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Static: 'ConvertFrom-RmanListBackup S1 reads RawLog only: no command but Write-Verbose, and no file, process, environment or credential access'
 - **R1** Returns an array of zero or more records, and does not throw on text it cannot parse. *(Test)*
   - Test: 'R1 does not throw on text it cannot parse'
-  - Test: 'R1, P2 gives a null CompletionTime for a completion time in another format, without throwing'
+  - Test: 'R1 gives a null CompletionTime for a completion time in another format, without throwing'
 - **R2** Empty input, no separator line, or fewer than ten columns gives an empty array. *(Test)*
   - Test: 'R2 returns no records for <Case>'
 - **R3** Each record has Key, Level, Status, DeviceType, CompletionTime, BackupTime, PieceCount, CopyCount, Compressed and Tag. *(Test)*
@@ -88,24 +88,24 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 ### ConvertFrom-SecureStringToPlaintext
 
 - **P1** SecureString is a non-null SecureString. *(Type; Test)*
-  - Test: 'SecureString parameter is mandatory'
-  - Test: 'SecureString parameter is typed as [SecureString]'
+  - Test: 'P1 SecureString parameter is mandatory'
+  - Test: 'P1 SecureString parameter is typed as [SecureString]'
 - **S1** `[SEC]` The return value is plaintext. The caller uses it at a stdin write and never stores it. *(Limitation)*
 - **S2** `[SEC]` The unmanaged buffer is zeroed and freed on every path. *(Guard; Static)*
   - Static: 'ConvertFrom-SecureStringToPlaintext S2 zeroes and frees the buffer in a finally block'
 - **S3** `[SEC]` This is the only place in the module that turns a secure value into plaintext. *(Static)*
   - Static: 'ConvertFrom-SecureStringToPlaintext S3 is the only function that reads plaintext out of a secure value'
 - **S4** `[SEC]` The function is not exported and cannot be called from outside the module. *(Test)*
-  - Test: 'Function is not exported as a public command'
-  - Test: 'Is not callable outside module scope'
+  - Test: 'S4 function is not exported as a public command'
+  - Test: 'S4 is not callable outside module scope'
 - **S5** `[SEC]` A throw does not contain the plaintext. *(Static)*
   - Static: 'ConvertFrom-SecureStringToPlaintext S5 the catch block refers to neither the buffer nor the input'
 - **R1** Returns the exact plaintext, including an empty string and special characters. *(Test)*
-  - Test: 'Returns the correct plaintext for a standard password'
-  - Test: 'Returns an empty string for an empty SecureString'
-  - Test: 'Handles special characters correctly'
+  - Test: 'R1 returns the correct plaintext for a standard password'
+  - Test: 'R1 returns an empty string for an empty SecureString'
+  - Test: 'R1 handles special characters correctly'
 - **T1** Every throw starts with 'Failed to convert SecureString:'. *(Test)*
-  - Test: 'SEC-06: Throws a clean "Failed to convert SecureString" error when conversion fails — not a pointer or memory error'
+  - Test: 'T1 throws a clean "Failed to convert SecureString" error when conversion fails — not a pointer or memory error (SEC-06)'
 
 ## Source/Private/Get-OracleBackupConfigStore.ps1
 
@@ -115,7 +115,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'P1 reads Config\OracleBackup.json under the module folder when no override is set'
   - Test: 'P1 reads the override path when one is set'
 - **S1** `[SEC]` A config file created here is given restricted permissions straight after it is written. *(Guard; Test)*
-  - Test: 'L1 creates the folder, file and ACL even when the caller runs under -WhatIf'
+  - Test: 'S1, L1 creates the folder, file and ACL even when the caller runs under -WhatIf'
 - **S2** `[SEC]` The config holds paths and defaults, never a credential. *(Limitation)*
 - **S3** `[SEC]` OracleHome read from the config is untrusted until checked. *(Limitation)*
 - **S4** `[SEC]` No environment variable or caller input decides where the config is read from or created. Only the module-scoped test override can change the path. *(Test)*
@@ -127,7 +127,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **T1** Every throw starts with 'Failed to load OracleBackup configuration from' and names the path. *(Test)*
   - Test: 'T1 a file it cannot read throws with the prefix and the path'
 - **L1** The first call creates the folder, the file and its ACL even when the caller runs under -WhatIf: creating the default is part of reading the config, not a change being previewed. The writes pin -WhatIf:$false. *(Test)*
-  - Test: 'L1 creates the folder, file and ACL even when the caller runs under -WhatIf'
+  - Test: 'S1, L1 creates the folder, file and ACL even when the caller runs under -WhatIf'
 
 ## Source/Private/Invoke-CredentialScrub.ps1
 
@@ -136,12 +136,12 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **P1** Content is a string, and may be empty. *(Type; Test)*
   - Test: 'P1 Content is a mandatory string that accepts an empty string'
 - **S1** `[SEC]` The password in every user/password@service pattern is replaced with ***SCRUBBED***. The user name and the service name are kept. *(Test)*
-  - Test: 'Invoke-CredentialScrub scrubs credential fragment matching user/pass@service'
+  - Test: 'S1 scrubs credential fragment matching user/pass@service'
 - **S2** `[SEC]` A credential in any other format passes through unchanged. *(Limitation)*
 - **R1** Empty content is returned unchanged. *(Test)*
-  - Test: 'Invoke-CredentialScrub handles empty string without error'
+  - Test: 'R1 handles empty string without error'
 - **R2** Content with no matching pattern is returned unchanged. *(Test)*
-  - Test: 'Invoke-CredentialScrub returns clean content unchanged'
+  - Test: 'R2 returns clean content unchanged'
 
 ## Source/Private/Invoke-RmanProcess.ps1
 
@@ -152,13 +152,13 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **P2** Exactly one authentication mode is chosen: OracleSid (OSAuth), WalletAlias (WalletAuth), or ServiceAlias with Credential (NamedCredential). *(Type; Test)*
   - Test: 'P2 each authentication mode is its own parameter set, with its own mandatory parameters'
   - Test: 'P2 OracleSid and ServiceAlias are mutually exclusive — binding both throws'
-  - Test: 'OracleSid and WalletAlias are mutually exclusive — binding both throws'
-  - Test: 'WalletAlias and ServiceAlias are mutually exclusive — binding both throws'
+  - Test: 'P2 OracleSid and WalletAlias are mutually exclusive — binding both throws'
+  - Test: 'P2 WalletAlias and ServiceAlias are mutually exclusive — binding both throws'
 - **P3** TimeoutSeconds is between 1 and 86400. *(Type; Test)*
-  - Test: 'TimeoutSeconds has ValidateRange with minimum 1'
-  - Test: 'TimeoutSeconds has ValidateRange with maximum 86400'
-  - Test: 'TimeoutSeconds of 0 is rejected (below ValidateRange minimum of 1)'
-  - Test: 'TimeoutSeconds of 86401 is rejected (above ValidateRange maximum of 86400)'
+  - Test: 'P3 TimeoutSeconds has ValidateRange with minimum 1'
+  - Test: 'P3 TimeoutSeconds has ValidateRange with maximum 86400'
+  - Test: 'P3 TimeoutSeconds of 0 is rejected (below ValidateRange minimum of 1)'
+  - Test: 'P3 TimeoutSeconds of 86401 is rejected (above ValidateRange maximum of 86400)'
 - **P4** RmanBinaryPath was validated by Assert-OracleEnvironment before this call. *(Limitation)*
 - **P5** RmanScript holds no password. *(Limitation)*
 - **S1** `[SEC]` No password is placed in the process argument list, in any mode. *(Test)*
@@ -167,7 +167,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Static: 'Invoke-RmanProcess S2 extracts the password only inside the stdin write, never into a variable'
 - **S3** `[SEC]` ORACLE_HOME, ORACLE_SID, PATH and NLS_DATE_FORMAT are set on the child process only. The current session environment is not changed. *(Test)*
   - Test: 'S3 <Mode> leaves the session environment unchanged, PATH included'
-  - Test: 'NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment'
+  - Test: 'S3 NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment'
 - **S4** `[SEC]` Stdout and stderr are scrubbed before they are returned. *(Test)*
   - Test: 'S4 a credential in stdout or stderr is scrubbed before it is returned'
 - **S5** `[SEC]` An exception message is scrubbed before it is re-thrown. *(Test)*
@@ -178,20 +178,23 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **R1** Returns an object with exactly ExitCode, StdOut, StdErr, Success and AuthMode. *(Test)*
   - Test: 'R1 returns exactly ExitCode, StdOut, StdErr, Success and AuthMode'
 - **R2** Success is false when stdout or stderr holds an RMAN-nnnnn or ORA-nnnnn code. The exit code does not decide Success. *(Test)*
-  - Test: 'Returns Success=$false when output contains ORA- error code'
-  - Test: 'Returns Success=$false when output contains RMAN- error code'
+  - Test: 'R2 returns Success=$false when output contains ORA- error code (OSAuth)'
+  - Test: 'R2 returns Success=$false when output contains RMAN- error code (OSAuth)'
+  - Test: 'R2 returns Success=$false when output contains ORA- error code (WalletAuth)'
+  - Test: 'R2 returns Success=$false when output contains RMAN- error code (WalletAuth)'
+  - Test: 'R2 returns Success=$false when output contains ORA- error code (NamedCredential)'
 - **R3** AuthMode is the name of the parameter set that was used. *(Test)*
-  - Test: 'AuthMode = OSAuth exactly for OS authentication'
-  - Test: 'AuthMode = WalletAuth exactly for wallet authentication'
-  - Test: 'AuthMode = NamedCredential exactly for named credential authentication'
+  - Test: 'R3 AuthMode = OSAuth exactly for OS authentication'
+  - Test: 'R3 AuthMode = WalletAuth exactly for wallet authentication'
+  - Test: 'R3 AuthMode = NamedCredential exactly for named credential authentication'
 - **T1** When RMAN runs past TimeoutSeconds the process is killed and the function throws 'timed out after N seconds and the process was killed'. *(Test)*
   - Test: 'T1, T2 kills an RMAN process that runs past TimeoutSeconds and throws'
 - **T2** Every throw starts with 'RMAN process invocation failed:'. *(Test)*
   - Test: 'T1, T2 kills an RMAN process that runs past TimeoutSeconds and throws'
 - **L1** Both output streams are read asynchronously before stdin is written, so a full stderr pipe cannot stall the process. *(Test)*
   - Test: 'L1 an RMAN process that floods stderr still completes'
-  - Test: 'SEC-04: stderr content written by the RMAN process is captured in StdErr'
-  - Test: 'SEC-04: stdout is captured correctly when the RMAN process also writes to stderr'
+  - Test: 'L1 stderr content written by the RMAN process is captured in StdErr (SEC-04)'
+  - Test: 'L1 stdout is captured correctly when the RMAN process also writes to stderr (SEC-04)'
 - **L2** EXIT; is written after the script, and stdin is then closed. *(Guard; Test)*
   - Test: 'L2 writes the script, then EXIT;, then closes stdin'
 - **L3** The process object is disposed on every path. *(Guard; Static)*
@@ -232,22 +235,22 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 ### Set-RestrictiveAcl
 
 - **P1** Path is a non-empty string. *(Type; Test)*
-  - Test: 'Path parameter is mandatory'
-  - Test: 'Path parameter has ValidateNotNullOrEmpty'
+  - Test: 'P1 Path parameter is mandatory'
+  - Test: 'P1 Path parameter has ValidateNotNullOrEmpty'
 - **P2** Path exists on disk. *(Guard; Test)*
-  - Test: 'Throws when Path does not exist on disk'
+  - Test: 'P2 throws when Path does not exist on disk'
 - **P3** Path was created by this module immediately before the call. *(Limitation)*
 - **S1** `[SEC]` On Windows, inheritance is disabled and inherited rules are removed. *(Test)*
-  - Test: 'Inheritance is disabled on the directory after the call'
-  - Test: 'Inheritance is disabled on the file after the call'
+  - Test: 'S1 inheritance is disabled on the directory after the call'
+  - Test: 'S1 inheritance is disabled on the file after the call'
 - **S2** `[SEC]` On Windows, the current user and BUILTIN\Administrators are granted access, and Everyone and BUILTIN\Users are not. *(Test)*
-  - Test: 'Current user rule is present on directory'
-  - Test: 'BUILTIN\Administrators rule is present on directory'
-  - Test: 'No broad identity (Everyone / BUILTIN\Users) rules are present on directory'
+  - Test: 'S2 current user rule is present on directory'
+  - Test: 'S2 BUILTIN\Administrators rule is present on directory'
+  - Test: 'S2 no broad identity (Everyone / BUILTIN\Users) rules are present on directory'
 - **S3** `[SEC]` Rules on a directory are inherited by what is created inside it. Rules on a file are not inheritable. *(Test)*
-  - Test: 'Directory ACEs use ContainerInherit | ObjectInherit (SEC-07)'
-  - Test: 'SEC-07: child file created inside a secured directory inherits the restrictive ACEs'
-  - Test: 'File ACEs use InheritanceFlags::None (files have no child objects)'
+  - Test: 'S3 directory ACEs use ContainerInherit | ObjectInherit (SEC-07)'
+  - Test: 'S3 child file created inside a secured directory inherits the restrictive ACEs (SEC-07)'
+  - Test: 'S3 file ACEs use InheritanceFlags::None (files have no child objects)'
 - **S4** `[SEC]` On a platform other than Windows nothing is changed. *(Limitation)*
 - **R1** Returns nothing. *(Type; Test)*
   - Test: 'R1 returns nothing'
@@ -277,18 +280,18 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, on Windows when <Path>'
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, on <Platform> when <Path>'
 - **R2** When no instance is found, Success is true and Data is an empty array. *(Test)*
-  - Test: 'Returns Success = $true with empty Data'
+  - Test: 'R2 returns Success = $true with empty Data'
 - **R3** Each Data entry has SID, Status, ServiceName, OracleHome and OracleBase. *(Test)*
-  - Test: 'Data entries have SID property'
-  - Test: 'Data entries have Status property'
-  - Test: 'Data entries have ServiceName property'
-  - Test: 'Data entries have OracleHome property'
-  - Test: 'Data entries have OracleBase property'
+  - Test: 'R3 Data entries have SID property'
+  - Test: 'R3 Data entries have Status property'
+  - Test: 'R3 Data entries have ServiceName property'
+  - Test: 'R3 Data entries have OracleHome property'
+  - Test: 'R3 Data entries have OracleBase property'
 - **R4** OracleHome and OracleBase are null when they cannot be derived. *(Test)*
-  - Test: 'Returns OracleHome as $null when PathName is empty'
-  - Test: 'Returns OracleBase as $null when PathName is empty'
+  - Test: 'R4 returns OracleHome as $null when PathName is empty'
+  - Test: 'R4 returns OracleBase as $null when PathName is empty'
 - **R5** ServiceName is null on Linux. *(Test)*
-  - Test: 'Returns ServiceName as $null'
+  - Test: 'R5 returns ServiceName as $null'
 - **L1** Read-only: it reads services, /etc/oratab and the process list, and changes nothing. *(Static)*
   - Static: 'Get-OracleDatabaseList L1 is read-only: every command it calls only reads'
 - **L2** On Windows any error from the service query, terminating or not, returns Success = $false. It is never read as no instances found. *(Test)*
@@ -299,18 +302,18 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 ### Get-RmanBackupStatus
 
 - **P1** DatabaseName is a non-empty string. *(Type; Test)*
-  - Test: 'DatabaseName is mandatory'
-  - Test: 'DatabaseName has ValidateNotNullOrEmpty'
+  - Test: 'P1 DatabaseName is mandatory'
+  - Test: 'P1 DatabaseName has ValidateNotNullOrEmpty'
 - **P2** WalletAlias and Credential are not both supplied. *(Guard; Test)*
-  - Test: 'Returns Success=$false when both WalletAlias and Credential are specified'
+  - Test: 'P2 returns Success=$false when both WalletAlias and Credential are specified'
 - **P3** It runs on Windows. On any other platform it returns Success = $false before it reads the config or starts a process (rule C-07). *(Test)*
   - Test: 'P3 returns Success false on a platform other than Windows'
 - **S1** `[SEC]` ORACLE_SID is never set on the current session. *(Test)*
   - Test: 'S1 the session environment is unchanged after the call'
 - **S2** `[SEC]` Message holds no credential when RMAN succeeds. *(Test)*
   - Test: 'S2 Message holds no part of a named credential when RMAN succeeds'
-  - Test: 'Message should not contain credential fragments'
-  - Test: '[SEC] Message does not contain credential fragments when WalletAlias is used'
+  - Test: 'S2 Message should not contain credential fragments'
+  - Test: 'S2 Message does not contain credential fragments when WalletAlias is used'
 - **S5** `[SEC]` Exception text is scrubbed before it is placed in Message. *(Test)*
   - Test: 'S5 exception text is scrubbed before it is placed in Message'
 - **S3** `[SEC]` Credential is handed to Invoke-RmanProcess and to nothing else. It is never logged or returned. *(Static)*
@@ -320,17 +323,17 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'S6 WalletAlias pattern accepts <Alias>'
   - Test: 'S6 WalletAlias refuses <Case> at the call'
 - **R1** Returns Success, Data and Message on every path, and never throws once its parameters are bound. *(Test)*
-  - Test: 'Should return Success=$false and safe Message when binary integrity check fails'
+  - Test: 'R1 should return Success=$false and safe Message when binary integrity check fails'
 - **R2** On success Data is one record, not an array. *(Test)*
-  - Test: 'Data should be a single object, not an array'
+  - Test: 'R2 Data should be a single object, not an array'
 - **R3** The record chosen has the latest CompletionTime. A record with no CompletionTime is chosen only when none has one, by highest Key. *(Test)*
-  - Test: 'Should select the most recent record by CompletionTime (Key 94 over Key 95)'
+  - Test: 'R3 should select the most recent record by CompletionTime (Key 94 over Key 95)'
   - Test: 'R3 chooses the highest Key when no record has a CompletionTime'
 - **R4** When CompletionTime is null, IsRecentDay is false and AgeHours is -1. *(Test)*
-  - Test: 'Data.AgeHours should be -1 (sentinel) when CompletionTime is null'
+  - Test: 'R4 Data.AgeHours should be -1 (sentinel) when CompletionTime is null'
 - **R5** No backup records, or an RMAN failure, gives Success = $false. *(Test)*
-  - Test: 'Should return Success=$false when RMAN output contains no backup records'
-  - Test: 'Should return Success=$false when RMAN fails'
+  - Test: 'R5 should return Success=$false when RMAN output contains no backup records'
+  - Test: 'R5 should return Success=$false when RMAN fails'
 - **L1** Read-only: the only RMAN command sent is LIST BACKUP SUMMARY. *(Test)*
   - Test: 'L1 the only RMAN command sent is LIST BACKUP SUMMARY'
 - **L2** The first call can create the config file on disk. *(Limitation)*
@@ -346,12 +349,12 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S2** `[SEC]` It writes to the host only the instance menu, the Message returned by Set-OracleEnv, an [ERROR] line, and under -Verbose the ORACLE_HOME and ORACLE_BASE values that were set. S1 (only the Message) is retired: the menu moved here from Set-OracleEnv. *(Test)*
   - Test: 'S2 writes only the menu, the Message and the verbose paths to the host'
 - **R1** Nothing is written to the pipeline. *(Test)*
-  - Test: 'Does not write to the pipeline on success'
+  - Test: 'R1 does not write to the pipeline on success'
 - **R2** When Set-OracleEnv fails, one [ERROR] line is written to the host. *(Test)*
-  - Test: 'Writes [ERROR] to host when Set-OracleEnv returns Success=$false'
+  - Test: 'R2 writes [ERROR] to host when Set-OracleEnv returns Success=$false'
 - **R3** SID and -Verbose are passed through to Set-OracleEnv unchanged. *(Test)*
-  - Test: 'Calls Set-OracleEnv with the supplied SID'
-  - Test: 'Shows ORACLE_HOME and ORACLE_BASE on host when -Verbose is specified'
+  - Test: 'R3 calls Set-OracleEnv with the supplied SID'
+  - Test: 'R3 shows ORACLE_HOME and ORACLE_BASE on host when -Verbose is specified'
 - **R4** With no SID and more than one instance it shows a numbered menu, reads the choice with Read-Host, and calls Set-OracleEnv with the chosen SID. *(Test)*
   - Test: 'R4 several instances: shows a menu and calls Set-OracleEnv with the chosen SID'
 - **R5** An invalid choice writes one [ERROR] line and does not call Set-OracleEnv. *(Test)*
@@ -366,42 +369,42 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 ### Remove-RmanObsoleteBackup
 
 - **P1** DatabaseName is a non-empty string. *(Type; Test)*
-  - Test: 'DatabaseName is mandatory'
+  - Test: 'P1 DatabaseName is mandatory'
   - Test: 'P1 DatabaseName rejects an empty string'
 - **P2** WalletAlias and Credential are not both supplied. *(Guard; Test)*
-  - Test: 'Returns Success=$false when both WalletAlias and Credential are specified'
+  - Test: 'P2 returns Success=$false when both WalletAlias and Credential are specified'
 - **P3** It runs on Windows. On any other platform it returns Success = $false before the ShouldProcess gate, the config read or any process (rule C-07). *(Test)*
   - Test: 'P3 returns Success false on a platform other than Windows'
 - **P4** A crosscheck has been run, so expired pieces are already marked. *(Limitation)*
 - **S1** `[SEC]` Nothing is deleted unless ShouldProcess approves, with ConfirmImpact High. *(Test)*
-  - Test: 'RMAN must not be invoked on WhatIf — ShouldProcess is the sole gate'
+  - Test: 'S1 RMAN must not be invoked on WhatIf — ShouldProcess is the sole gate'
   - Test: 'S1 declares ConfirmImpact High, so it asks before deleting at the default preference'
 - **S2** `[SEC]` RMAN is run with NOPROMPT, so ShouldProcess is the only confirmation. *(Test)*
-  - Test: 'RMAN script must contain NOPROMPT'
+  - Test: 'S2 RMAN script must contain NOPROMPT'
 - **S3** `[SEC]` ORACLE_SID is never set on the current session. *(Test)*
   - Test: 'S3 the session environment is unchanged after the call'
 - **S4** `[SEC]` Message holds no credential when RMAN succeeds. *(Test)*
   - Test: 'S4, S5 no part of a named credential reaches Message or the RMAN script'
-  - Test: 'Message should not contain credential fragments'
+  - Test: 'S4 Message should not contain credential fragments'
 - **S8** `[SEC]` Exception text is scrubbed before it is placed in Message. *(Test)*
   - Test: 'S8 exception text is scrubbed before it is placed in Message'
 - **S5** `[SEC]` The RMAN script holds no credential. *(Test)*
   - Test: 'S4, S5 no part of a named credential reaches Message or the RMAN script'
-  - Test: 'RMAN script should not contain credential fragments'
+  - Test: 'S5 RMAN script should not contain credential fragments'
 - **S9** `[SEC]` The RMAN script is fixed text. No parameter value is placed in it, and there is no catalog parameter. S6 and S7 are retired with those parameters. *(Test)*
   - Test: 'S9 RMAN script is fixed text and no catalog parameter exists'
 - **S10** `[SEC]` WalletAlias holds only letters, digits, _, . and -, so it cannot add a line or a command to the CONNECT text written to RMAN's stdin, or an argument to tnsping. *(Type; Test)*
   - Test: 'S10 WalletAlias pattern accepts <Alias>'
   - Test: 'S10 WalletAlias refuses <Case> at the call'
 - **R1** Returns Success, Data and Message on every path, and never throws once its parameters are bound. *(Test)*
-  - Test: 'Should return Success=$false and safe Message when binary integrity check fails'
+  - Test: 'R1 should return Success=$false and safe Message when binary integrity check fails'
 - **R2** On success Data has DatabaseName, StartTime, EndTime, DurationSec, DeletedCount, AuthMode, RawLog and Applied = $true. *(Test)*
   - Test: 'R2 a real run returns the full Data with Applied true'
 - **R3** When ShouldProcess declines, or under -WhatIf, RMAN is not run and the return is a preview: Success = $true, Data.Applied = $false, and a Message that starts with 'WhatIf:' (rule C-27). *(Test)*
-  - Test: 'Should not invoke RMAN on WhatIf'
+  - Test: 'R3 should not invoke RMAN on WhatIf'
   - Test: 'R3 WhatIf returns a preview with Applied false'
 - **R4** DeletedCount is the number of 'deleted backup piece' lines in the RMAN output. *(Test)*
-  - Test: 'Should count deleted pieces from RMAN output'
+  - Test: 'R4 should count deleted pieces from RMAN output'
 - **L1** Nothing is read, written or started before the ShouldProcess gate approves: under -WhatIf the config store and the environment check are not called. *(Test)*
   - Test: 'L1 WhatIf reads no config and runs no environment check'
 - **L2** Invoke-RmanProcess receives the home that Assert-OracleEnvironment validated, including one found through the ORACLE_HOME fallback when the config has none. *(Test)*
@@ -414,7 +417,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **P1** SID, when supplied, is a non-empty string. *(Type; Test)*
   - Test: 'P1 SID rejects an empty string'
 - **P2** A supplied SID matches an instance discovered on this host. *(Guard; Test)*
-  - Test: 'Message lists valid SIDs'
+  - Test: 'P2 Message lists valid SIDs'
 - **S1** `[SEC]` The list of valid SIDs always comes from live discovery, never from a stored list. *(Guard; Test)*
   - Test: 'S1 every call discovers the instances afresh; nothing is remembered'
 - **S2** `[SEC]` Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are changed. Nothing is written to disk, the registry or another process. *(Static)*
@@ -423,17 +426,17 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **R1** Returns Success, Data and Message on every path, and never throws. *(Test)*
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, when <Path>'
 - **R2** On success Data has SID, OracleHome, OracleBase and Applied. *(Test)*
-  - Test: 'Data.SID is a non-empty string on success'
-  - Test: 'Data.Applied is true when the variables are set'
+  - Test: 'R2 Data.SID is a non-empty string on success'
+  - Test: 'R2 Data.Applied is true when the variables are set'
 - **R3** ORACLE_HOME and ORACLE_BASE are left unset when they cannot be determined, and a warning is written for each. *(Test)*
-  - Test: 'Does not set $env:ORACLE_HOME when OracleHome is null'
-  - Test: 'Does not set $env:ORACLE_BASE when OracleBase is null'
-  - Test: 'Emits warnings when OracleHome and OracleBase are null'
+  - Test: 'R3 does not set $env:ORACLE_HOME when OracleHome is null'
+  - Test: 'R3 does not set $env:ORACLE_BASE when OracleBase is null'
+  - Test: 'R3 emits warnings when OracleHome and OracleBase are null'
 - **R4** A stopped service does not prevent the SID being set. A warning is written. *(Test)*
-  - Test: 'Sets $env:ORACLE_SID despite stopped service'
-  - Test: 'Emits a warning for a stopped service'
+  - Test: 'R4 sets $env:ORACLE_SID despite stopped service'
+  - Test: 'R4 emits a warning for a stopped service'
 - **R5** On a failure path ORACLE_SID is not changed. *(Test)*
-  - Test: 'Does not set $env:ORACLE_SID'
+  - Test: 'R5 does not set $env:ORACLE_SID'
 - **R6** Under -WhatIf, or a declined -Confirm, no variable is set and the return is a preview: Success = $true, Data.Applied = $false, and a Message that starts with 'WhatIf:' (rule C-27). *(Test)*
   - Test: 'R6 WhatIf sets no variable and returns a preview'
 - **R7** With no SID and more than one instance it sets nothing and returns Success = $false, with a Message that names every SID found and asks for -SID. *(Test)*

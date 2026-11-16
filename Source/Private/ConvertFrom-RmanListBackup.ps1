@@ -74,7 +74,7 @@ function ConvertFrom-RmanListBackup {
     #   R1 Returns an array of zero or more records, and does not throw on text it cannot
     #       parse.
     #       Test: 'R1 does not throw on text it cannot parse',
-    #       'R1, P2 gives a null CompletionTime for a completion time in another format, without throwing'.
+    #       'R1 gives a null CompletionTime for a completion time in another format, without throwing'.
     #   R2 Empty input, no separator line, or fewer than ten columns gives an empty array.
     #       Test: 'R2 returns no records for <Case>'.
     #   R3 Each record has Key, Level, Status, DeviceType, CompletionTime, BackupTime,

@@ -70,7 +70,7 @@ function Set-OracleEnv {
     #       Test: 'P1 SID rejects an empty string'.
     #   P2 A supplied SID matches an instance discovered on this host.
     #       Guard: the match check returns Success = $false when there is none.
-    #       Test: 'Message lists valid SIDs'.
+    #       Test: 'P2 Message lists valid SIDs'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 The list of valid SIDs always comes from live discovery, never from a
@@ -88,18 +88,18 @@ function Set-OracleEnv {
     #   R1 Returns Success, Data and Message on every path, and never throws.
     #       Test: 'R1 returns exactly Success, Data and Message, without throwing, when <Path>'.
     #   R2 On success Data has SID, OracleHome, OracleBase and Applied.
-    #       Test: 'Data.SID is a non-empty string on success',
-    #       'Data.Applied is true when the variables are set'.
+    #       Test: 'R2 Data.SID is a non-empty string on success',
+    #       'R2 Data.Applied is true when the variables are set'.
     #   R3 ORACLE_HOME and ORACLE_BASE are left unset when they cannot be determined, and
     #       a warning is written for each.
-    #       Test: 'Does not set $env:ORACLE_HOME when OracleHome is null',
-    #       'Does not set $env:ORACLE_BASE when OracleBase is null',
-    #       'Emits warnings when OracleHome and OracleBase are null'.
+    #       Test: 'R3 does not set $env:ORACLE_HOME when OracleHome is null',
+    #       'R3 does not set $env:ORACLE_BASE when OracleBase is null',
+    #       'R3 emits warnings when OracleHome and OracleBase are null'.
     #   R4 A stopped service does not prevent the SID being set. A warning is written.
-    #       Test: 'Sets $env:ORACLE_SID despite stopped service',
-    #       'Emits a warning for a stopped service'.
+    #       Test: 'R4 sets $env:ORACLE_SID despite stopped service',
+    #       'R4 emits a warning for a stopped service'.
     #   R5 On a failure path ORACLE_SID is not changed.
-    #       Test: 'Does not set $env:ORACLE_SID'.
+    #       Test: 'R5 does not set $env:ORACLE_SID'.
     #   R6 Under -WhatIf, or a declined -Confirm, no variable is set and the return is a
     #       preview: Success = $true, Data.Applied = $false, and a Message that starts
     #       with 'WhatIf:' (rule C-27).

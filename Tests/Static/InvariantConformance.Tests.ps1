@@ -48,7 +48,7 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
         # Builds a one-function repository under TestDrive and lints it. $Block is the
         # INVARIANTS entry lines, without the leading '    #'.
         function Invoke-FixtureLint {
-            param([string]$Name, [string[]]$Block, [string[]]$UnitTitles = @(), [string[]]$StaticTitles = @())
+            param([string]$Name, [string[]]$Block, [string[]]$UnitTitles = @(), [string[]]$StaticTitles = @(), [string[]]$UnitLines = @())
 
             $root = Join-Path -Path $TestDrive -ChildPath $Name
             $null = New-Item -ItemType Directory -Path (Join-Path -Path $root -ChildPath 'Source' -AdditionalChildPath 'Public') -Force
@@ -70,7 +70,8 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             ) -join "`n"
             Set-Content -LiteralPath (Join-Path -Path $root -ChildPath 'Source' -AdditionalChildPath 'Public', 'Get-Thing.ps1') -Value $source -Encoding UTF8
 
-            $unit = @($UnitTitles | ForEach-Object { "It '$PSItem' { }" }) -join "`n"
+            # $UnitLines are whole It lines, for tests that need tags or -ForEach.
+            $unit = @(@($UnitTitles | ForEach-Object { "It '$PSItem' { }" }) + $UnitLines) -join "`n"
             Set-Content -LiteralPath (Join-Path -Path $root -ChildPath 'Tests' -AdditionalChildPath 'Unit', 'Public', 'Get-Thing.Tests.ps1') -Value $unit -Encoding UTF8
 
             if ($StaticTitles.Count -gt 0) {
@@ -153,5 +154,61 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
         )
         $result.Success | Should -BeFalse
         @($result.Data.Defects.Reason) | Should -Match 'Cited check not found'
+    }
+
+    It 'T-09 refuses a cited test whose title does not start with its ID' {
+        $result = Invoke-FixtureLint -Name 't09-no-id' -UnitTitles @('refuses a missing name') -Block @(
+            ' PRE-CONDITIONS'
+            '   P1 Name is checked.'
+            '       Guard: the check at the start of the body.'
+            "       Test: 'refuses a missing name'."
+        )
+        $result.Success | Should -BeFalse
+        @($result.Data.Defects.Reason) | Should -Match 'rule T-09'
+    }
+
+    It 'T-09 refuses a cited test whose title names an ID it is not cited for' {
+        $result = Invoke-FixtureLint -Name 't09-extra-id' -UnitTitles @('P1, P2 refuses a missing name') -Block @(
+            ' PRE-CONDITIONS'
+            '   P1 Name is checked.'
+            '       Guard: the check at the start of the body.'
+            "       Test: 'P1, P2 refuses a missing name'."
+        )
+        $result.Success | Should -BeFalse
+        @($result.Data.Defects.Reason) | Should -Match 'rule T-09'
+    }
+
+    It 'T-09 accepts a test cited by two entries when its title names both' {
+        $result = Invoke-FixtureLint -Name 't09-two-ids' -UnitTitles @('P1, R1 refuses a missing name') -Block @(
+            ' PRE-CONDITIONS'
+            '   P1 Name is checked.'
+            '       Guard: the check at the start of the body.'
+            "       Test: 'P1, R1 refuses a missing name'."
+            ' POST-CONDITIONS'
+            '   R1 A missing name returns Success = $false.'
+            "       Test: 'P1, R1 refuses a missing name'."
+        )
+        $result.Success | Should -BeTrue -Because $result.Message
+    }
+
+    It 'T-09 refuses a test cited for a security invariant that has no SEC tag' {
+        $result = Invoke-FixtureLint -Name 't09-untagged' -UnitTitles @('S1 opens no file') -Block @(
+            ' SECURITY INVARIANTS'
+            '   [SEC] S1 No file is opened.'
+            '       Guard: no file command in the body.'
+            "       Test: 'S1 opens no file'."
+        )
+        $result.Success | Should -BeFalse
+        @($result.Data.Defects.Reason) | Should -Match 'no SEC tag'
+    }
+
+    It 'T-09 accepts a security test tagged SEC, with -ForEach before the tag' {
+        $result = Invoke-FixtureLint -Name 't09-tagged' -UnitLines @("It 'S1 opens no file (<Case>)' -ForEach @(@{ Case = 'a' }) -Tag 'SEC' { }") -Block @(
+            ' SECURITY INVARIANTS'
+            '   [SEC] S1 No file is opened.'
+            '       Guard: no file command in the body.'
+            "       Test: 'S1 opens no file (<Case>)'."
+        )
+        $result.Success | Should -BeTrue -Because $result.Message
     }
 }

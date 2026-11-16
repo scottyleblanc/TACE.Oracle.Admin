@@ -14,6 +14,8 @@
       - an entry with no enforcement line (rule I-05)
       - a security entry without the [SEC] tag (rule I-06)
       - a cited test that is not in the function's test file (rule I-09)
+      - a cited test whose title does not start with exactly the IDs it is cited for, or
+        that is cited for a security invariant and has no SEC tag (rule T-09)
       - a Type or Guard entry with no Test or Static line under it (rule I-11)
       - a cited static check that is not in Tests\Static\SourceInvariants.Tests.ps1, or
         whose title does not start with the function name (rule I-12)
@@ -337,6 +339,104 @@ try {
                 $defects.Add([PSCustomObject]@{
                         File = $item.File; Function = $item.Function; Line = $item.Line; Id = $item.Id
                         Reason = "Cited static check does not start with the function name (rule I-12): '$title'."
+                    })
+            }
+        }
+    }
+
+    # --- Check cited test titles and tags (rule T-09) -----------------------------------
+
+    # A cited unit test's title starts with the ID of each invariant it is cited for, and
+    # nothing else, comma-separated. A test cited for a security invariant carries the
+    # Pester tag SEC. One test can be cited by several entries, so the IDs are collected
+    # per test file and title first.
+    $itsByFile = @{}
+    $readIts = {
+        param([string]$Path)
+        $its = [System.Collections.Generic.List[PSCustomObject]]::new()
+        if (Test-Path -LiteralPath $Path) {
+            $testTokens = $null
+            $testErrors = $null
+            $testAst = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$testTokens, [ref]$testErrors)
+            $commands = $testAst.FindAll({
+                    param([System.Management.Automation.Language.Ast]$node)
+                    $node -is [System.Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'It'
+                }, $true)
+            foreach ($command in $commands) {
+                $title = $null
+                $tags  = [System.Collections.Generic.List[string]]::new()
+                $elements = $command.CommandElements
+                for ($i = 1; $i -lt $elements.Count; $i++) {
+                    $element = $elements[$i]
+                    if ($element -is [System.Management.Automation.Language.CommandParameterAst]) {
+                        if ($element.ParameterName -eq 'Tag') {
+                            $argument = if ($null -ne $element.Argument) { $element.Argument } elseif ($i + 1 -lt $elements.Count) { $i++; $elements[$i] } else { $null }
+                            if ($null -ne $argument) {
+                                foreach ($value in $argument.FindAll({ param([System.Management.Automation.Language.Ast]$node) $node -is [System.Management.Automation.Language.StringConstantExpressionAst] }, $true)) {
+                                    $tags.Add($value.Value)
+                                }
+                            }
+                        }
+                        elseif ($null -eq $element.Argument -and $element.ParameterName -ne 'Skip' -and $i + 1 -lt $elements.Count -and
+                            $elements[$i + 1] -isnot [System.Management.Automation.Language.CommandParameterAst]) {
+                            $i++
+                        }
+                        continue
+                    }
+                    if ($null -eq $title -and $element -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
+                        $title = $element.Value
+                    }
+                    elseif ($null -eq $title -and $element -is [System.Management.Automation.Language.ExpandableStringExpressionAst]) {
+                        $title = $element.Value
+                    }
+                }
+                if ($null -ne $title) { $its.Add([PSCustomObject]@{ Title = $title; Tags = @($tags) }) }
+            }
+        }
+        , $its
+    }
+
+    $citedTests = [ordered]@{}
+    foreach ($item in $catalog) {
+        if ($item.State -ne 'Proven' -or $item.ProofKind -ne 'Test') { continue }
+        $sourceName   = [System.IO.Path]::GetFileNameWithoutExtension($item.File)
+        $sourceFolder = Split-Path -Path (Split-Path -Path $item.File -Parent) -Leaf
+        $fileKey      = "$sourceFolder/$sourceName"
+        foreach ($title in $item.ProofTitles) {
+            $key = "$fileKey|$title"
+            if (-not $citedTests.Contains($key)) {
+                $citedTests[$key] = [PSCustomObject]@{
+                    FileKey = $fileKey; Folder = $sourceFolder; Name = $sourceName; Title = $title; First = $item
+                    Ids = [System.Collections.Generic.List[string]]::new(); Sec = $false
+                }
+            }
+            if (-not $citedTests[$key].Ids.Contains($item.Id)) { $citedTests[$key].Ids.Add($item.Id) }
+            if ($item.Sec) { $citedTests[$key].Sec = $true }
+        }
+    }
+
+    foreach ($cited in $citedTests.Values) {
+        $first = $cited.First
+        $want  = @($cited.Ids | Sort-Object)
+        $have  = @(if ($cited.Title -cmatch '^(?<ids>[PSRTL]\d+(?:, [PSRTL]\d+)*) ') { $Matches['ids'] -split ', ' })
+        $haveUnique = @($have | Sort-Object -Unique)
+        if (($want -join ',') -ne ($haveUnique -join ',') -or $have.Count -ne $haveUnique.Count) {
+            $defects.Add([PSCustomObject]@{
+                    File = $first.File; Function = $first.Function; Line = $first.Line; Id = $first.Id
+                    Reason = "Cited test does not start with exactly the IDs it is cited for, $($want -join ', ') (rule T-09): '$($cited.Title)'."
+                })
+        }
+
+        if ($cited.Sec) {
+            if (-not $itsByFile.ContainsKey($cited.FileKey)) {
+                $testFile = Join-Path -Path $testsPath -ChildPath $cited.Folder -AdditionalChildPath "$($cited.Name).Tests.ps1"
+                $itsByFile[$cited.FileKey] = & $readIts $testFile
+            }
+            $untagged = @($itsByFile[$cited.FileKey] | Where-Object { $PSItem.Title -ceq $cited.Title -and $PSItem.Tags -notcontains 'SEC' })
+            if ($untagged.Count -gt 0) {
+                $defects.Add([PSCustomObject]@{
+                        File = $first.File; Function = $first.Function; Line = $first.Line; Id = $first.Id
+                        Reason = "Cited test for a security invariant has no SEC tag (rule T-09): '$($cited.Title)'."
                     })
             }
         }

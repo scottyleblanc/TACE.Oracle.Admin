@@ -54,16 +54,16 @@ function Invoke-CredentialScrub {
     # SECURITY INVARIANTS
     #   [SEC] S1 The password in every user/password@service pattern is replaced with
     #       ***SCRUBBED***. The user name and the service name are kept.
-    #       Test: 'Invoke-CredentialScrub scrubs credential fragment matching user/pass@service'.
+    #       Test: 'S1 scrubs credential fragment matching user/pass@service'.
     #   [SEC] S2 A credential in any other format passes through unchanged.
     #       Limitation: one pattern only. The main defence is that a credential is never
     #       placed where it could be echoed.
     #
     # POST-CONDITIONS
     #   R1 Empty content is returned unchanged.
-    #       Test: 'Invoke-CredentialScrub handles empty string without error'.
+    #       Test: 'R1 handles empty string without error'.
     #   R2 Content with no matching pattern is returned unchanged.
-    #       Test: 'Invoke-CredentialScrub returns clean content unchanged'.
+    #       Test: 'R2 returns clean content unchanged'.
     #--------------------------------------------------------------
 
     if ([string]::IsNullOrEmpty($Content)) { return $Content }

@@ -74,16 +74,16 @@ function Get-OracleDatabaseList {
     #       Test: 'R1 returns exactly Success, Data and Message, without throwing, on Windows when <Path>',
     #       'R1 returns exactly Success, Data and Message, without throwing, on <Platform> when <Path>'.
     #   R2 When no instance is found, Success is true and Data is an empty array.
-    #       Test: 'Returns Success = $true with empty Data'.
+    #       Test: 'R2 returns Success = $true with empty Data'.
     #   R3 Each Data entry has SID, Status, ServiceName, OracleHome and OracleBase.
-    #       Test: 'Data entries have SID property', 'Data entries have Status property',
-    #       'Data entries have ServiceName property', 'Data entries have OracleHome property',
-    #       'Data entries have OracleBase property'.
+    #       Test: 'R3 Data entries have SID property', 'R3 Data entries have Status property',
+    #       'R3 Data entries have ServiceName property', 'R3 Data entries have OracleHome property',
+    #       'R3 Data entries have OracleBase property'.
     #   R4 OracleHome and OracleBase are null when they cannot be derived.
-    #       Test: 'Returns OracleHome as $null when PathName is empty',
-    #       'Returns OracleBase as $null when PathName is empty'.
+    #       Test: 'R4 returns OracleHome as $null when PathName is empty',
+    #       'R4 returns OracleBase as $null when PathName is empty'.
     #   R5 ServiceName is null on Linux.
-    #       Test: 'Returns ServiceName as $null'.
+    #       Test: 'R5 returns ServiceName as $null'.
     #
     # EXECUTION INVARIANTS
     #   L1 Read-only: it reads services, /etc/oratab and the process list, and changes

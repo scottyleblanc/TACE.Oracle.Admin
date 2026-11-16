@@ -134,7 +134,7 @@ Describe 'Get-OracleBackupConfigStore' {
             }
         }
 
-        It 'L1 creates the folder, file and ACL even when the caller runs under -WhatIf' {
+        It 'S1, L1 creates the folder, file and ACL even when the caller runs under -WhatIf' -Tag 'SEC' {
             $target = Join-Path $TestDrive 'l1' 'Config' 'OracleBackup.json'
             InModuleScope TACE.Oracle.Admin -Parameters @{ Path = $target } {
                 $script:ConfigPathOverride = $Path

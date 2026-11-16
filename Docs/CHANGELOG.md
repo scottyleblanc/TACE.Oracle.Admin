@@ -67,6 +67,17 @@ Stack 3 of the AI Development Stack — tests. In progress.
 - The 35 `Type:` and `Guard:` entries carry a proof line: 17 cite an existing test, 18
   are `Test: none yet.` Unproven invariants rise from 17 to 35 (15 security) because
   they are now counted, not because anything regressed.
+- Every cited unit test follows rule T-09. 95 titles now start with the IDs they are
+  cited for, and 26 tests cited for a security invariant gained the Pester tag `SEC`.
+  Citations in the source blocks are updated to match; no test body changed. A leading
+  `[SEC] ` in a title is dropped in favour of the tag, and a `SEC-NN:` prefix moves to
+  the end as `(SEC-NN)`. One stale ID is removed: `ConvertFrom-RmanListBackup`'s title
+  `R1, P2 ...` named P2, a limitation that cites no test. The two `Invoke-RmanProcess`
+  R2 titles shared by tests in several authentication modes now end with the mode, so
+  each citation names one test.
+- The invariant linter checks rule T-09: a cited test's title starts with exactly the
+  IDs it is cited for, and a test cited for a security invariant carries the `SEC` tag.
+  Run against the previous commit it reports the same 95 titles and 26 tags.
 
 ---
 

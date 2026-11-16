@@ -53,7 +53,7 @@ function Get-OracleBackupConfigStore {
     #   [SEC] S1 A config file created here is given restricted permissions straight
     #       after it is written.
     #       Guard: the Set-RestrictiveAcl call that follows the write.
-    #       Test: 'L1 creates the folder, file and ACL even when the caller runs under -WhatIf'.
+    #       Test: 'S1, L1 creates the folder, file and ACL even when the caller runs under -WhatIf'.
     #   [SEC] S2 The config holds paths and defaults, never a credential.
     #       Limitation: nothing checks what the file contains.
     #   [SEC] S3 OracleHome read from the config is untrusted until checked.
@@ -77,7 +77,7 @@ function Get-OracleBackupConfigStore {
     #   L1 The first call creates the folder, the file and its ACL even when the caller
     #       runs under -WhatIf: creating the default is part of reading the config, not a
     #       change being previewed. The writes pin -WhatIf:$false.
-    #       Test: 'L1 creates the folder, file and ACL even when the caller runs under -WhatIf'.
+    #       Test: 'S1, L1 creates the folder, file and ACL even when the caller runs under -WhatIf'.
     #--------------------------------------------------------------
 
     # [SEC] S4 — fixed path under the module folder. Only the module-scoped test

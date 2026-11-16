@@ -86,38 +86,38 @@ function Assert-OracleEnvironment {
     # PRE-CONDITIONS
     #   P1 OracleHome is a string, and may be empty.
     #       Type: Mandatory and AllowEmptyString.
-    #       Test: 'OracleHome is mandatory',
-    #       'Throws with a clear message when OracleHome is empty and env var is not set'.
+    #       Test: 'P1 OracleHome is mandatory',
+    #       'P1 throws with a clear message when OracleHome is empty and env var is not set'.
     #   P2 Binary is a non-empty file name. It defaults to rman.exe.
     #       Type: ValidateNotNullOrEmpty.
-    #       Test: 'Binary must not be null or empty',
-    #       'Binary defaults to rman.exe — Get-AuthenticodeSignature called with rman.exe path when Binary is omitted'.
+    #       Test: 'P2 Binary must not be null or empty',
+    #       'P2 Binary defaults to rman.exe — Get-AuthenticodeSignature called with rman.exe path when Binary is omitted'.
     #   P3 An empty or blank WalletAlias means no alias check is made.
     #       Guard: the IsNullOrWhiteSpace check before the tnsping step.
-    #       Test: 'Returns binary path when WalletAlias is empty — tnsping not invoked',
-    #       'Treats whitespace-only WalletAlias as empty — tnsping not invoked'.
+    #       Test: 'P3 returns binary path when WalletAlias is empty — tnsping not invoked',
+    #       'P3 treats whitespace-only WalletAlias as empty — tnsping not invoked'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 OracleHome, from the config or the environment, is checked to exist
     #       before it is used in a path.
-    #       Test: 'Throws when OracleHome does not exist on disk'.
+    #       Test: 'S1 throws when OracleHome does not exist on disk'.
     #   [SEC] S2 The binary is resolved from OracleHome\bin, never from PATH.
-    #       Test: 'Returned binary path is rooted under the validated OracleHome — never from PATH'.
+    #       Test: 'S2 returned binary path is rooted under the validated OracleHome — never from PATH'.
     #   [SEC] S3 A signature status of HashMismatch or TrustFailure, or a valid signature
     #       that is not Oracle's, stops the call.
-    #       Test: 'Throws when Authenticode status is HashMismatch',
-    #       'Throws when Authenticode status is TrustFailure',
-    #       'Throws when Authenticode signer subject does not contain Oracle'.
+    #       Test: 'S3 throws when Authenticode status is HashMismatch',
+    #       'S3 throws when Authenticode status is TrustFailure',
+    #       'S3 throws when Authenticode signer subject does not contain Oracle'.
     #   [SEC] S4 An unsigned binary is accepted. Oracle does not sign individual
     #       executables, so the signature check cannot detect a replaced Oracle binary,
     #       whether the replacement came from a patch or from tampering.
     #       Limitation: accepted. Detecting replacement needs a recorded baseline, which
     #       is outside this module's current scope.
     #   [SEC] S5 No parameter turns the signature check off.
-    #       Test: 'No bypass parameter exists — SkipSignatureCheck, Force, and SkipOwnerCheck are absent'.
+    #       Test: 'S5 no bypass parameter exists — SkipSignatureCheck, Force, and SkipOwnerCheck are absent'.
     #   [SEC] S6 A WalletAlias is resolved with tnsping before the function returns.
-    #       Test: 'Throws when tnsping exits with a non-zero exit code',
-    #       'Throws when tnsping stdout contains a TNS-NNNNN error code'.
+    #       Test: 'S6 throws when tnsping exits with a non-zero exit code',
+    #       'S6 throws when tnsping stdout contains a TNS-NNNNN error code'.
     #   [SEC] S7 tnsping output is scrubbed before it is placed in an error message.
     #       Test: 'S7 a credential in tnsping stdout or stderr is scrubbed from the error message (<Stream>)'.
     #   [SEC] S8 The current session environment is not changed.
@@ -128,7 +128,7 @@ function Assert-OracleEnvironment {
     #
     # POST-CONDITIONS
     #   R1 Returns the full path of the validated binary.
-    #       Test: 'Returns the binary path when all checks pass (valid Oracle signature, SYSTEM owner)'.
+    #       Test: 'R1 returns the binary path when all checks pass (valid Oracle signature, SYSTEM owner)'.
     #   T1 Every throw starts with 'Oracle environment validation failed:'.
     #       Test: 'T1 every throw starts with the validation prefix (<Case>)'.
     #   T2 The error for a missing OracleHome names the two ways to set one: OracleHome in

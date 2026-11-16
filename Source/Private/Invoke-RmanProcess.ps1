@@ -139,14 +139,14 @@ function Invoke-RmanProcess {
     #       Type: parameter sets.
     #       Test: 'P2 each authentication mode is its own parameter set, with its own mandatory parameters',
     #       'P2 OracleSid and ServiceAlias are mutually exclusive — binding both throws',
-    #       'OracleSid and WalletAlias are mutually exclusive — binding both throws',
-    #       'WalletAlias and ServiceAlias are mutually exclusive — binding both throws'.
+    #       'P2 OracleSid and WalletAlias are mutually exclusive — binding both throws',
+    #       'P2 WalletAlias and ServiceAlias are mutually exclusive — binding both throws'.
     #   P3 TimeoutSeconds is between 1 and 86400.
     #       Type: ValidateRange.
-    #       Test: 'TimeoutSeconds has ValidateRange with minimum 1',
-    #       'TimeoutSeconds has ValidateRange with maximum 86400',
-    #       'TimeoutSeconds of 0 is rejected (below ValidateRange minimum of 1)',
-    #       'TimeoutSeconds of 86401 is rejected (above ValidateRange maximum of 86400)'.
+    #       Test: 'P3 TimeoutSeconds has ValidateRange with minimum 1',
+    #       'P3 TimeoutSeconds has ValidateRange with maximum 86400',
+    #       'P3 TimeoutSeconds of 0 is rejected (below ValidateRange minimum of 1)',
+    #       'P3 TimeoutSeconds of 86401 is rejected (above ValidateRange maximum of 86400)'.
     #   P4 RmanBinaryPath was validated by Assert-OracleEnvironment before this call.
     #       Limitation: the caller's duty. This function does not check the path again.
     #   P5 RmanScript holds no password.
@@ -161,7 +161,7 @@ function Invoke-RmanProcess {
     #   [SEC] S3 ORACLE_HOME, ORACLE_SID, PATH and NLS_DATE_FORMAT are set on the child
     #       process only. The current session environment is not changed.
     #       Test: 'S3 <Mode> leaves the session environment unchanged, PATH included',
-    #       'NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment'.
+    #       'S3 NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment'.
     #   [SEC] S4 Stdout and stderr are scrubbed before they are returned.
     #       Test: 'S4 a credential in stdout or stderr is scrubbed before it is returned'.
     #   [SEC] S5 An exception message is scrubbed before it is re-thrown.
@@ -178,12 +178,15 @@ function Invoke-RmanProcess {
     #       Test: 'R1 returns exactly ExitCode, StdOut, StdErr, Success and AuthMode'.
     #   R2 Success is false when stdout or stderr holds an RMAN-nnnnn or ORA-nnnnn code.
     #       The exit code does not decide Success.
-    #       Test: 'Returns Success=$false when output contains ORA- error code',
-    #       'Returns Success=$false when output contains RMAN- error code'.
+    #       Test: 'R2 returns Success=$false when output contains ORA- error code (OSAuth)',
+    #       'R2 returns Success=$false when output contains RMAN- error code (OSAuth)',
+    #       'R2 returns Success=$false when output contains ORA- error code (WalletAuth)',
+    #       'R2 returns Success=$false when output contains RMAN- error code (WalletAuth)',
+    #       'R2 returns Success=$false when output contains ORA- error code (NamedCredential)'.
     #   R3 AuthMode is the name of the parameter set that was used.
-    #       Test: 'AuthMode = OSAuth exactly for OS authentication',
-    #       'AuthMode = WalletAuth exactly for wallet authentication',
-    #       'AuthMode = NamedCredential exactly for named credential authentication'.
+    #       Test: 'R3 AuthMode = OSAuth exactly for OS authentication',
+    #       'R3 AuthMode = WalletAuth exactly for wallet authentication',
+    #       'R3 AuthMode = NamedCredential exactly for named credential authentication'.
     #   T1 When RMAN runs past TimeoutSeconds the process is killed and the function throws
     #       'timed out after N seconds and the process was killed'.
     #       Test: 'T1, T2 kills an RMAN process that runs past TimeoutSeconds and throws'.
@@ -194,8 +197,8 @@ function Invoke-RmanProcess {
     #   L1 Both output streams are read asynchronously before stdin is written, so a full
     #       stderr pipe cannot stall the process.
     #       Test: 'L1 an RMAN process that floods stderr still completes',
-    #       'SEC-04: stderr content written by the RMAN process is captured in StdErr',
-    #       'SEC-04: stdout is captured correctly when the RMAN process also writes to stderr'.
+    #       'L1 stderr content written by the RMAN process is captured in StdErr (SEC-04)',
+    #       'L1 stdout is captured correctly when the RMAN process also writes to stderr (SEC-04)'.
     #   L2 EXIT; is written after the script, and stdin is then closed.
     #       Guard: the three StandardInput calls that follow the script write.
     #       Test: 'L2 writes the script, then EXIT;, then closes stdin'.

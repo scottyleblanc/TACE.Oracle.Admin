@@ -133,7 +133,7 @@ Describe 'Set-OracleEnv' {
             $result.Success | Should -BeTrue
         }
 
-        It 'Sets $env:ORACLE_SID despite stopped service' {
+        It 'R4 sets $env:ORACLE_SID despite stopped service' {
             Set-OracleEnv -SID 'CDB1' -WarningAction SilentlyContinue | Out-Null
             $env:ORACLE_SID | Should -Be 'CDB1'
         }
@@ -148,7 +148,7 @@ Describe 'Set-OracleEnv' {
             $env:ORACLE_BASE | Should -Be 'C:\app\oracle'
         }
 
-        It 'Emits a warning for a stopped service' {
+        It 'R4 emits a warning for a stopped service' {
             Set-OracleEnv -SID 'CDB1' -WarningVariable w 3>&1 | Out-Null
             $w | Should -Not -BeNullOrEmpty
         }
@@ -187,17 +187,17 @@ Describe 'Set-OracleEnv' {
             $env:ORACLE_SID | Should -Be 'ORCL'
         }
 
-        It 'Does not set $env:ORACLE_HOME when OracleHome is null' {
+        It 'R3 does not set $env:ORACLE_HOME when OracleHome is null' {
             Set-OracleEnv -SID 'ORCL' -WarningAction SilentlyContinue | Out-Null
             $env:ORACLE_HOME | Should -BeNullOrEmpty
         }
 
-        It 'Does not set $env:ORACLE_BASE when OracleBase is null' {
+        It 'R3 does not set $env:ORACLE_BASE when OracleBase is null' {
             Set-OracleEnv -SID 'ORCL' -WarningAction SilentlyContinue | Out-Null
             $env:ORACLE_BASE | Should -BeNullOrEmpty
         }
 
-        It 'Emits warnings when OracleHome and OracleBase are null' {
+        It 'R3 emits warnings when OracleHome and OracleBase are null' {
             Set-OracleEnv -SID 'ORCL' -WarningVariable w 3>&1 | Out-Null
             @($w).Count | Should -Be 2
         }
@@ -233,13 +233,13 @@ Describe 'Set-OracleEnv' {
             $result.Success | Should -BeFalse
         }
 
-        It 'Does not set $env:ORACLE_SID' {
+        It 'R5 does not set $env:ORACLE_SID' {
             $env:ORACLE_SID = $null
             Set-OracleEnv -SID 'BOGUS' | Out-Null
             $env:ORACLE_SID | Should -BeNullOrEmpty
         }
 
-        It 'Message lists valid SIDs' {
+        It 'P2 Message lists valid SIDs' {
             $result = Set-OracleEnv -SID 'BOGUS'
             $result.Message | Should -Match 'ORCL'
             $result.Message | Should -Match 'CDB1'
@@ -422,13 +422,13 @@ Describe 'Set-OracleEnv' {
             $result.Message | Should -BeOfType [string]
         }
 
-        It 'Data.SID is a non-empty string on success' {
+        It 'R2 Data.SID is a non-empty string on success' {
             $result = Set-OracleEnv
             $result.Data.SID | Should -BeOfType [string]
             $result.Data.SID | Should -Not -BeNullOrEmpty
         }
 
-        It 'Data.Applied is true when the variables are set' {
+        It 'R2 Data.Applied is true when the variables are set' {
             $result = Set-OracleEnv
             $result.Data.Applied | Should -BeTrue
             $result.Message      | Should -Not -BeLike 'WhatIf:*'

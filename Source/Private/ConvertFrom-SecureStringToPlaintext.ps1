@@ -55,8 +55,8 @@ function ConvertFrom-SecureStringToPlaintext {
     # PRE-CONDITIONS
     #   P1 SecureString is a non-null SecureString.
     #       Type: Mandatory and the SecureString type.
-    #       Test: 'SecureString parameter is mandatory',
-    #       'SecureString parameter is typed as [SecureString]'.
+    #       Test: 'P1 SecureString parameter is mandatory',
+    #       'P1 SecureString parameter is typed as [SecureString]'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 The return value is plaintext. The caller uses it at a stdin write and
@@ -69,18 +69,18 @@ function ConvertFrom-SecureStringToPlaintext {
     #       plaintext.
     #       Static: 'ConvertFrom-SecureStringToPlaintext S3 is the only function that reads plaintext out of a secure value'.
     #   [SEC] S4 The function is not exported and cannot be called from outside the module.
-    #       Test: 'Function is not exported as a public command',
-    #       'Is not callable outside module scope'.
+    #       Test: 'S4 function is not exported as a public command',
+    #       'S4 is not callable outside module scope'.
     #   [SEC] S5 A throw does not contain the plaintext.
     #       Static: 'ConvertFrom-SecureStringToPlaintext S5 the catch block refers to neither the buffer nor the input'.
     #
     # POST-CONDITIONS
     #   R1 Returns the exact plaintext, including an empty string and special characters.
-    #       Test: 'Returns the correct plaintext for a standard password',
-    #       'Returns an empty string for an empty SecureString',
-    #       'Handles special characters correctly'.
+    #       Test: 'R1 returns the correct plaintext for a standard password',
+    #       'R1 returns an empty string for an empty SecureString',
+    #       'R1 handles special characters correctly'.
     #   T1 Every throw starts with 'Failed to convert SecureString:'.
-    #       Test: 'SEC-06: Throws a clean "Failed to convert SecureString" error when conversion fails — not a pointer or memory error'.
+    #       Test: 'T1 throws a clean "Failed to convert SecureString" error when conversion fails — not a pointer or memory error (SEC-06)'.
     #--------------------------------------------------------------
 
     # [SEC-06] Pre-initialize to [IntPtr]::Zero so the finally guard is reliable

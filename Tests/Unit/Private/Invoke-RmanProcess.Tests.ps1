@@ -184,7 +184,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'TimeoutSeconds has ValidateRange with minimum 1' {
+        It 'P3 TimeoutSeconds has ValidateRange with minimum 1' {
             InModuleScope TACE.Oracle.Admin {
                 $param = (Get-Command Invoke-RmanProcess).Parameters['TimeoutSeconds']
                 $rangeAttr = $param.Attributes |
@@ -194,7 +194,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'TimeoutSeconds has ValidateRange with maximum 86400' {
+        It 'P3 TimeoutSeconds has ValidateRange with maximum 86400' {
             InModuleScope TACE.Oracle.Admin {
                 $param = (Get-Command Invoke-RmanProcess).Parameters['TimeoutSeconds']
                 $rangeAttr = $param.Attributes |
@@ -204,7 +204,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'OracleSid and WalletAlias are mutually exclusive — binding both throws' {
+        It 'P2 OracleSid and WalletAlias are mutually exclusive — binding both throws' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 {
@@ -218,7 +218,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'WalletAlias and ServiceAlias are mutually exclusive — binding both throws' {
+        It 'P2 WalletAlias and ServiceAlias are mutually exclusive — binding both throws' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
                 FakeCmd  = $script:fakeRmanCmd
                 FakeHome = $script:fakeOracleHome
@@ -393,7 +393,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'Returns Success=$false when output contains ORA- error code' {
+        It 'R2 returns Success=$false when output contains ORA- error code (OSAuth)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanErrorCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -405,7 +405,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'Returns Success=$false when output contains RMAN- error code' {
+        It 'R2 returns Success=$false when output contains RMAN- error code (OSAuth)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanRmanErrorCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -481,7 +481,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'TimeoutSeconds of 0 is rejected (below ValidateRange minimum of 1)' {
+        It 'P3 TimeoutSeconds of 0 is rejected (below ValidateRange minimum of 1)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 {
@@ -495,7 +495,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'TimeoutSeconds of 86401 is rejected (above ValidateRange maximum of 86400)' {
+        It 'P3 TimeoutSeconds of 86401 is rejected (above ValidateRange maximum of 86400)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 {
@@ -580,7 +580,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'Returns Success=$false when output contains ORA- error code' {
+        It 'R2 returns Success=$false when output contains ORA- error code (WalletAuth)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanErrorCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -592,7 +592,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'Returns Success=$false when output contains RMAN- error code' {
+        It 'R2 returns Success=$false when output contains RMAN- error code (WalletAuth)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanRmanErrorCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -737,7 +737,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'Returns Success=$false when output contains ORA- error code' {
+        It 'R2 returns Success=$false when output contains ORA- error code (NamedCredential)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
                 FakeCmd    = $script:fakeRmanErrorCmd
                 FakeHome   = $script:fakeOracleHome
@@ -845,7 +845,7 @@ Describe 'Invoke-RmanProcess' {
         }
 
         # AD-029: NLS_DATE_FORMAT is set on the child process — ensures consistent date output
-        It 'NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment' {
+        It 'S3 NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanNlsCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -1081,7 +1081,7 @@ Describe 'Invoke-RmanProcess' {
         }
 
         # [SEC] AuthMode values are the expected audit strings
-        It 'AuthMode = OSAuth exactly for OS authentication' {
+        It 'R3 AuthMode = OSAuth exactly for OS authentication' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -1093,7 +1093,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'AuthMode = WalletAuth exactly for wallet authentication' {
+        It 'R3 AuthMode = WalletAuth exactly for wallet authentication' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -1105,7 +1105,7 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        It 'AuthMode = NamedCredential exactly for named credential authentication' {
+        It 'R3 AuthMode = NamedCredential exactly for named credential authentication' {
             InModuleScope TACE.Oracle.Admin -Parameters @{
                 FakeCmd    = $script:fakeRmanCmd
                 FakeHome   = $script:fakeOracleHome
@@ -1181,7 +1181,7 @@ Describe 'Invoke-RmanProcess' {
         # Validates that BeginErrorReadLine is active — sequential ReadToEnd() on stdout
         # followed by ReadToEnd() on stderr would deadlock if stderr filled the pipe buffer
         # before stdout closed. This test confirms the async path captures stderr correctly.
-        It 'SEC-04: stderr content written by the RMAN process is captured in StdErr' {
+        It 'L1 stderr content written by the RMAN process is captured in StdErr (SEC-04)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanStderrCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -1196,7 +1196,7 @@ Describe 'Invoke-RmanProcess' {
         # [SEC-04] Async reads: stdout is still captured when stderr also has content.
         # Confirms both async readers operate concurrently — the stdout success trailer
         # must appear even though the fake binary also wrote to stderr.
-        It 'SEC-04: stdout is captured correctly when the RMAN process also writes to stderr' {
+        It 'L1 stdout is captured correctly when the RMAN process also writes to stderr (SEC-04)' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanStderrCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `

@@ -116,7 +116,7 @@ Describe 'ConvertFrom-RmanListBackup' {
             (Invoke-Parse -RawLog (New-RmanListing -Row $row))[0].BackupTime | Should -BeNullOrEmpty
         }
 
-        It 'R1, P2 gives a null CompletionTime for a completion time in another format, without throwing' {
+        It 'R1 gives a null CompletionTime for a completion time in another format, without throwing' {
             $row = '     99 B  F  A DISK        01-MAR-26            1       1       NO         CUSTOMTAG_NODATE'
             $records = Invoke-Parse -RawLog (New-RmanListing -Row $row)
             $records                   | Should -HaveCount 1

@@ -65,7 +65,7 @@ Describe 'Remove-RmanObsoleteBackup' {
 
     Context 'Parameter validation' {
 
-        It 'DatabaseName is mandatory' {
+        It 'P1 DatabaseName is mandatory' {
             $param = (Get-Command Remove-RmanObsoleteBackup).Parameters['DatabaseName']
             $isMandatory = $param.Attributes |
                 Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] -and $_.Mandatory }
@@ -126,7 +126,7 @@ Describe 'Remove-RmanObsoleteBackup' {
             $result.Success | Should -Be $false
         }
 
-        It 'Should count deleted pieces from RMAN output' {
+        It 'R4 should count deleted pieces from RMAN output' {
             Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 return [PSCustomObject]@{
                     ExitCode = 0
@@ -139,7 +139,7 @@ Describe 'Remove-RmanObsoleteBackup' {
             $result.Data.DeletedCount | Should -Be 3
         }
 
-        It 'Should not invoke RMAN on WhatIf' {
+        It 'R3 should not invoke RMAN on WhatIf' {
             $script:rmanCalled = $false
             Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 $script:rmanCalled = $true
@@ -207,7 +207,7 @@ Describe 'Remove-RmanObsoleteBackup' {
 
     Context 'Security' {
 
-        It 'RMAN script must contain NOPROMPT' {
+        It 'S2 RMAN script must contain NOPROMPT' -Tag 'SEC' {
             $script:capturedScript = $null
             Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 $script:capturedScript = $RmanScript
@@ -217,7 +217,7 @@ Describe 'Remove-RmanObsoleteBackup' {
             $script:capturedScript | Should -Match 'NOPROMPT'
         }
 
-        It 'RMAN must not be invoked on WhatIf — ShouldProcess is the sole gate' {
+        It 'S1 RMAN must not be invoked on WhatIf — ShouldProcess is the sole gate' -Tag 'SEC' {
             $script:rmanCalled = $false
             Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 $script:rmanCalled = $true
@@ -264,7 +264,7 @@ Describe 'Remove-RmanObsoleteBackup' {
             $script:capturedScript  | Should -Not -Match 'backup_user'
         }
 
-        It 'RMAN script should not contain credential fragments' {
+        It 'S5 RMAN script should not contain credential fragments' -Tag 'SEC' {
             $script:capturedScript = $null
             Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 $script:capturedScript = $RmanScript
@@ -299,7 +299,7 @@ Describe 'Remove-RmanObsoleteBackup' {
             $result.Message | Should -Not -Match 'Gr8Backup!Pwd77'
         }
 
-        It 'Message should not contain credential fragments' {
+        It 'S4 Message should not contain credential fragments' -Tag 'SEC' {
             Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 return [PSCustomObject]@{ ExitCode = 0; StdOut = 'deleted backup piece'; StdErr = ''; Success = $true }
             }
@@ -308,7 +308,7 @@ Describe 'Remove-RmanObsoleteBackup' {
             $result.Message | Should -Not -Match 'password'
         }
 
-        It 'Should return Success=$false and safe Message when binary integrity check fails' {
+        It 'R1 should return Success=$false and safe Message when binary integrity check fails' {
             Mock -CommandName Assert-OracleEnvironment -ModuleName TACE.Oracle.Admin -MockWith {
                 throw 'RMAN binary integrity check failed: Authenticode signature status is NotSigned'
             }
@@ -344,7 +344,7 @@ Describe 'Remove-RmanObsoleteBackup' {
             $result.Data.AuthMode | Should -Be 'WalletAuth'
         }
 
-        It 'Returns Success=$false when both WalletAlias and Credential are specified' {
+        It 'P2 returns Success=$false when both WalletAlias and Credential are specified' {
             $cred = New-Object System.Management.Automation.PSCredential('user', (ConvertTo-SecureString 'pass' -AsPlainText -Force))
             $result = Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -WalletAlias 'CDB1' -Credential $cred -Confirm:$false
             $result.Success | Should -Be $false

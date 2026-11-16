@@ -35,7 +35,7 @@ Describe 'Invoke-CredentialScrub' {
 
     Context 'Implementation' {
 
-        It 'Invoke-CredentialScrub returns clean content unchanged' {
+        It 'R2 returns clean content unchanged' {
             InModuleScope TACE.Oracle.Admin {
                 $clean = 'Recovery Manager: Release 19.0.0.0.0 - Production'
                 $result = Invoke-CredentialScrub -Content $clean
@@ -43,7 +43,7 @@ Describe 'Invoke-CredentialScrub' {
             }
         }
 
-        It 'Invoke-CredentialScrub handles empty string without error' {
+        It 'R1 handles empty string without error' {
             InModuleScope TACE.Oracle.Admin {
                 $result = Invoke-CredentialScrub -Content ''
                 $result | Should -BeOfType [string]
@@ -54,7 +54,7 @@ Describe 'Invoke-CredentialScrub' {
 
     Context 'Security' {
 
-        It 'Invoke-CredentialScrub scrubs credential fragment matching user/pass@service' -Tag 'SEC' {
+        It 'S1 scrubs credential fragment matching user/pass@service' -Tag 'SEC' {
             InModuleScope TACE.Oracle.Admin {
                 $raw = 'CONNECT TARGET backup_user/S3cr3tP@ss!@ORCL_SVC; BACKUP DATABASE;'
                 $scrubbed = Invoke-CredentialScrub -Content $raw

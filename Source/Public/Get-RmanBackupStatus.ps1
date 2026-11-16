@@ -67,11 +67,11 @@ function Get-RmanBackupStatus {
     # PRE-CONDITIONS
     #   P1 DatabaseName is a non-empty string.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
-    #       Test: 'DatabaseName is mandatory',
-    #       'DatabaseName has ValidateNotNullOrEmpty'.
+    #       Test: 'P1 DatabaseName is mandatory',
+    #       'P1 DatabaseName has ValidateNotNullOrEmpty'.
     #   P2 WalletAlias and Credential are not both supplied.
     #       Guard: the check at the start of the body returns Success = $false.
-    #       Test: 'Returns Success=$false when both WalletAlias and Credential are specified'.
+    #       Test: 'P2 returns Success=$false when both WalletAlias and Credential are specified'.
     #   P3 It runs on Windows. On any other platform it returns Success = $false before
     #       it reads the config or starts a process (rule C-07).
     #       Test: 'P3 returns Success false on a platform other than Windows'.
@@ -81,8 +81,8 @@ function Get-RmanBackupStatus {
     #       Test: 'S1 the session environment is unchanged after the call'.
     #   [SEC] S2 Message holds no credential when RMAN succeeds.
     #       Test: 'S2 Message holds no part of a named credential when RMAN succeeds',
-    #       'Message should not contain credential fragments',
-    #       '[SEC] Message does not contain credential fragments when WalletAlias is used'.
+    #       'S2 Message should not contain credential fragments',
+    #       'S2 Message does not contain credential fragments when WalletAlias is used'.
     #   [SEC] S5 Exception text is scrubbed before it is placed in Message.
     #       Test: 'S5 exception text is scrubbed before it is placed in Message'.
     #   [SEC] S3 Credential is handed to Invoke-RmanProcess and to nothing else. It is
@@ -100,18 +100,18 @@ function Get-RmanBackupStatus {
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws once its
     #       parameters are bound.
-    #       Test: 'Should return Success=$false and safe Message when binary integrity check fails'.
+    #       Test: 'R1 should return Success=$false and safe Message when binary integrity check fails'.
     #   R2 On success Data is one record, not an array.
-    #       Test: 'Data should be a single object, not an array'.
+    #       Test: 'R2 Data should be a single object, not an array'.
     #   R3 The record chosen has the latest CompletionTime. A record with no
     #       CompletionTime is chosen only when none has one, by highest Key.
-    #       Test: 'Should select the most recent record by CompletionTime (Key 94 over Key 95)',
+    #       Test: 'R3 should select the most recent record by CompletionTime (Key 94 over Key 95)',
     #       'R3 chooses the highest Key when no record has a CompletionTime'.
     #   R4 When CompletionTime is null, IsRecentDay is false and AgeHours is -1.
-    #       Test: 'Data.AgeHours should be -1 (sentinel) when CompletionTime is null'.
+    #       Test: 'R4 Data.AgeHours should be -1 (sentinel) when CompletionTime is null'.
     #   R5 No backup records, or an RMAN failure, gives Success = $false.
-    #       Test: 'Should return Success=$false when RMAN output contains no backup records',
-    #       'Should return Success=$false when RMAN fails'.
+    #       Test: 'R5 should return Success=$false when RMAN output contains no backup records',
+    #       'R5 should return Success=$false when RMAN fails'.
     #
     # EXECUTION INVARIANTS
     #   L1 Read-only: the only RMAN command sent is LIST BACKUP SUMMARY.

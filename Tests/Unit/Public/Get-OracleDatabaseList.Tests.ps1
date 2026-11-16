@@ -133,12 +133,12 @@ Describe 'Get-OracleDatabaseList' {
             } -ModuleName 'TACE.Oracle.Admin'
         }
 
-        It 'Returns OracleHome as $null when PathName is empty' {
+        It 'R4 returns OracleHome as $null when PathName is empty' {
             ($result = Get-OracleDatabaseList -Platform Windows)
             ($result.Data | Where-Object SID -EQ 'ORCL').OracleHome | Should -BeNullOrEmpty
         }
 
-        It 'Returns OracleBase as $null when PathName is empty' {
+        It 'R4 returns OracleBase as $null when PathName is empty' {
             $result = Get-OracleDatabaseList -Platform Windows
             ($result.Data | Where-Object SID -EQ 'ORCL').OracleBase | Should -BeNullOrEmpty
         }
@@ -150,7 +150,7 @@ Describe 'Get-OracleDatabaseList' {
             Mock Get-CimInstance { @() } -ModuleName 'TACE.Oracle.Admin'
         }
 
-        It 'Returns Success = $true with empty Data' {
+        It 'R2 returns Success = $true with empty Data' {
             $result = Get-OracleDatabaseList -Platform Windows
             $result.Success | Should -BeTrue
             @($result.Data).Count | Should -Be 0
@@ -242,7 +242,7 @@ Describe 'Get-OracleDatabaseList' {
             ($result.Data | Where-Object SID -EQ 'CDB1').Status | Should -Be 'Stopped'
         }
 
-        It 'Returns ServiceName as $null' {
+        It 'R5 returns ServiceName as $null' {
             $result = Get-OracleDatabaseList -Platform Linux
             ($result.Data | Where-Object SID -EQ 'ORCL').ServiceName | Should -BeNullOrEmpty
             ($result.Data | Where-Object SID -EQ 'CDB1').ServiceName | Should -BeNullOrEmpty
@@ -463,23 +463,23 @@ Describe 'Get-OracleDatabaseList' {
             } -ModuleName 'TACE.Oracle.Admin'
         }
 
-        It 'Data entries have SID property' {
+        It 'R3 Data entries have SID property' {
             (Get-OracleDatabaseList -Platform Windows).Data[0].PSObject.Properties.Name | Should -Contain 'SID'
         }
 
-        It 'Data entries have Status property' {
+        It 'R3 Data entries have Status property' {
             (Get-OracleDatabaseList -Platform Windows).Data[0].PSObject.Properties.Name | Should -Contain 'Status'
         }
 
-        It 'Data entries have ServiceName property' {
+        It 'R3 Data entries have ServiceName property' {
             (Get-OracleDatabaseList -Platform Windows).Data[0].PSObject.Properties.Name | Should -Contain 'ServiceName'
         }
 
-        It 'Data entries have OracleHome property' {
+        It 'R3 Data entries have OracleHome property' {
             (Get-OracleDatabaseList -Platform Windows).Data[0].PSObject.Properties.Name | Should -Contain 'OracleHome'
         }
 
-        It 'Data entries have OracleBase property' {
+        It 'R3 Data entries have OracleBase property' {
             (Get-OracleDatabaseList -Platform Windows).Data[0].PSObject.Properties.Name | Should -Contain 'OracleBase'
         }
     }
