@@ -28,10 +28,25 @@
     The unit tier is not part of the gate. It runs module code against mocks; the gate
     holds the checks that read source text.
 
+    With -Integration, a seventh check runs the integration tier
+    (Scripts\Invoke-IntegrationTest.ps1) against the local Oracle database, after the six
+    above. Its own guards decide whether it may run; a failed guard fails the check. The
+    pre-push hook never passes -Integration.
+
+.PARAMETER Integration
+    Also run the integration tier. Needs the local integration setup and the opt-in
+    variable; see Scripts\Invoke-IntegrationTest.ps1.
+
 .EXAMPLE
     .\Scripts\Invoke-Gate.ps1
 
     Runs the gate from any working directory. Exits 0 when every check passes.
+
+.EXAMPLE
+    $env:ORACLE_ADMIN_RUN_INTEGRATION = '1'
+    .\Scripts\Invoke-Gate.ps1 -Integration
+
+    Runs the gate, then the integration tier.
 
 .NOTES
     Copyright © TACE Data Management Inc.
@@ -41,7 +56,10 @@
 #>
 [CmdletBinding()]
 [OutputType([string])]
-param()
+param(
+    [Parameter()]
+    [switch]$Integration
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -193,6 +211,18 @@ else {
     if (-not $gitleaksReady) { $problems.Add("gitleaks $requiredGitleaks is missing, so messages were checked against the S-16 patterns only") }
 
     Add-Result -Name 'messages' -Passed ($problems.Count -eq 0) -Summary "$($unpushed.Count) unpushed commit message(s), $($problems.Count) problem(s)" -Detail @($problems)
+}
+
+# -- 7. integration, only with -Integration ----------------------------------
+
+if ($Integration) {
+    $integrationScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-IntegrationTest.ps1'
+    $integrationOutput = @(& pwsh -NoProfile -File $integrationScript 2>&1 | ForEach-Object { "$PSItem" })
+    $integrationExit   = $LASTEXITCODE
+    $integrationLast   = @($integrationOutput | Where-Object { $PSItem -match '^\[(PASS|FAIL)\] integration' }) | Select-Object -Last 1
+    $integrationFailed = @($integrationOutput | Where-Object { $PSItem -match '^\s*\[-\]' } | ForEach-Object { $PSItem.Trim() })
+    $summary = if ($integrationLast) { $integrationLast -replace '^\[(PASS|FAIL)\] integration: ', '' } else { "exit $integrationExit" }
+    Add-Result -Name 'integration' -Passed ($integrationExit -eq 0) -Summary $summary -Detail $integrationFailed
 }
 
 # -- Summary -----------------------------------------------------------------

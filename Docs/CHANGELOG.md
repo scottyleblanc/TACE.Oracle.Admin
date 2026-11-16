@@ -101,6 +101,17 @@ Stack 3 of the AI Development Stack — tests. In progress.
   discovery fails, finds nothing, or `Set-OracleEnv` returns nothing, and an RMAN row
   that ends before its last columns. The 17 commands left are recorded in `Docs/TODO.md`
   by reason.
+- The integration tier: `Scripts/Invoke-IntegrationTest.ps1` runs `Tests/Integration/`
+  against a local Oracle database with OS authentication, and `Invoke-Gate.ps1
+  -Integration` runs it after the gate. The pre-push hook never does. Five guards, from
+  OracleBackup's AD-020, run first: host allowlist, opt-in variable
+  (`ORACLE_ADMIN_RUN_INTEGRATION`), complete local config, database-name denylist, and
+  an existing test folder. A failed guard fails the run. The local config,
+  `Tests/Integration/IntegrationConfig.local.ps1`, is gitignored; an example is
+  committed. Tests for `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup` take
+  control file backups and run a real `DELETE OBSOLETE`. 13 static tests cover the
+  guards. First runs against Oracle Database 21c XE: 12 of 12. Record in
+  `Docs/audit/stack-3-integration.md`.
 - Signing references in `Assert-OracleEnvironment`, its tests and `Docs/SECURITY.md` now
   state only the fact: Oracle binaries are not signed. The claims that Oracle signs
   distribution archives, and the references to the old design decision, are removed.

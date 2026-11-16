@@ -91,6 +91,35 @@ run `Invoke-Pester -Path .\Tests\` to run the unit tests: it recurses into
 
 No unit test requires a live Oracle instance. All Oracle service calls are mocked.
 
+### Integration tier (local only)
+
+`.\Scripts\Invoke-IntegrationTest.ps1` runs `Tests\Integration\` against a real Oracle
+database on this machine, with OS authentication. It is never run by the pre-push hook;
+`.\Scripts\Invoke-Gate.ps1 -Integration` runs it after the gate.
+
+The tests take control file backups into a test folder and run `DELETE OBSOLETE`, which
+acts on the whole database. Only use a database that may lose backups.
+
+Setup, once per machine:
+
+1. Copy `Tests\Integration\IntegrationConfig.local.example.ps1` to
+   `IntegrationConfig.local.ps1` in the same folder. It is gitignored. Fill in this
+   host's name, the Oracle home, the SID and the test folder.
+2. Create the test folder by hand.
+3. Your Windows account must be able to connect with `rman target /`, normally through
+   membership of the `ORA_DBA` group.
+
+Before each run, in the same session:
+
+```powershell
+$env:ORACLE_ADMIN_RUN_INTEGRATION = '1'
+.\Scripts\Invoke-IntegrationTest.ps1
+```
+
+Five guards run before any test: the host is on the allowlist, the opt-in variable is
+set, the local configuration is complete, the database name matches no production
+pattern, and the test folder exists. A failed guard fails the run and names the guard.
+
 ## The Gate
 
 `.\Scripts\Invoke-Gate.ps1` runs every static check in one command and exits 1 if any

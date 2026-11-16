@@ -7,7 +7,7 @@
     Builds the module first (Scripts\Build-Module.ps1), then runs every *.Tests.ps1 file
     under Tests\Unit\, searching its subfolders (Public\, Private\, Module\). The tests
     import the built module from Output\, so they never run against a stale build. The
-    static tier (Tests\Static\) and, from Stack 3, the integration tier
+    static tier (Tests\Static\) and the integration tier
     (Tests\Integration\) are outside Tests\Unit\ and are not run here. Rule T-10.
 
     A failed build stops the run before any test starts, and exits 1.

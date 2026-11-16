@@ -352,8 +352,19 @@ a local tier tests the code against a real Oracle database.
 - Unit tests on Linux: moved out of Stack 3 to Post-Project Notes (Scott, 2026-11-16).
   Linux support was put out of scope in Stack 1; running the unit suite on Linux is the
   same work
-- [ ] Install the Oracle database chosen in Stack 0; confirm version and edition
-- [ ] Add the local-only integration and soak tier behind a gate-script switch
+- [x] Install the Oracle database chosen in Stack 0; confirm version and edition
+      - Oracle Database 21c Express Edition, RMAN reports 21.3.0.0.0 (2026-11-16).
+        NOARCHIVELOG, RMAN retention REDUNDANCY 1, control file autobackup on
+- [x] Add the local-only integration and soak tier behind a gate-script switch
+      - Soak dropped from Stack 3 (Scott, 2026-11-16). OS authentication only
+      - First runs 2026-11-16: 12 of 12 through the tier script and through the gate
+        with `-Integration`. Record in `Docs\audit\stack-3-integration.md`
+      - Built: `Scripts\Invoke-IntegrationTest.ps1`, `Invoke-Gate.ps1 -Integration`, and
+        `Tests\Integration\` with the five guards of OracleBackup's AD-020 (host
+        allowlist, opt-in variable, complete config, database denylist, test folder).
+        A failed guard fails the run instead of skipping it. 13 static tests cover the
+        guards. Tests for `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup` take
+        control file backups and run a real `DELETE OBSOLETE`, as agreed
 - [ ] Decide how a local integration result is attached to a pull request
 - [ ] Seeded defect: one behaviour change that breaks an invariant
 - [ ] Closing tasks
