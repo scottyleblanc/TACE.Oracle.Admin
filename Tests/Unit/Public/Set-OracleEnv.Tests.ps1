@@ -246,6 +246,19 @@ Describe 'Set-OracleEnv' {
         }
     }
 
+    Context 'Implementation - unexpected error' {
+
+        It 'returns Success = $false with the error in the Message instead of throwing' {
+            Mock Get-OracleDatabaseList { throw 'discovery broke' } -ModuleName 'TACE.Oracle.Admin'
+            $env:ORACLE_SID = $null
+            $result = Set-OracleEnv -SID 'ORCL'
+            $result.Success | Should -BeFalse
+            $result.Data    | Should -BeNullOrEmpty
+            $result.Message | Should -BeExactly 'Set-OracleEnv failed: discovery broke'
+            $env:ORACLE_SID | Should -BeNullOrEmpty
+        }
+    }
+
     Context 'Implementation - no SID supplied, single instance' {
 
         BeforeEach {

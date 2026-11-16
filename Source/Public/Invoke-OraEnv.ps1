@@ -94,7 +94,9 @@ function Invoke-OraEnv {
     }
     else {
         $list = Get-OracleDatabaseList
-        $instances = if ($list.Success) { @($list.Data) } else { @() }
+        # @() outside the if: an if statement returns an empty array as $null, and
+        # .Count on $null throws under StrictMode.
+        $instances = @(if ($list.Success) { $list.Data })
         if ($instances.Count -gt 1) {
             Write-Host '[Invoke-OraEnv] Oracle instances on this host:'
             for ($i = 0; $i -lt $instances.Count; $i++) {

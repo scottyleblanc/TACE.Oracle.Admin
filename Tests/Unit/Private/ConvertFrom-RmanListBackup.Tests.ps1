@@ -123,6 +123,18 @@ Describe 'ConvertFrom-RmanListBackup' {
             $records[0].CompletionTime | Should -BeNullOrEmpty
         }
 
+        It 'a row that ends before its last columns gives them empty values, without throwing' {
+            # Trailing blanks are trimmed from some RMAN output, so a row with no tag can
+            # end before the Tag column starts.
+            $row = '     97 B  F  A DISK        2026-02-05 02:00:00  1       1       NO'
+            $records = Invoke-Parse -RawLog (New-RmanListing -Row $row)
+            $records               | Should -HaveCount 1
+            $records[0].Key        | Should -Be 97
+            $records[0].Compressed | Should -BeFalse
+            $records[0].Tag        | Should -BeExactly ''
+            $records[0].BackupTime | Should -BeNullOrEmpty
+        }
+
         It 'L1 reads the column positions from the separator line' {
             # The Key column is three characters wider than the usual layout, so every
             # later column starts three characters further right. Fixed positions would

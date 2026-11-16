@@ -329,9 +329,26 @@ a local tier tests the code against a real Oracle database.
         by unit tests, 8 by static checks, and 13 are accepted limitations. 20 of the
         cited unit tests stay in the context whose setup they use; the `Security`
         context keeps the leak checks of rule T-08
-- [ ] Measure coverage; set a floor in the gate script. The tests import the merged
+- [x] Measure coverage; set a floor in the gate script. The tests import the merged
       `.psm1`, so coverage is reported against `Output\` lines; map it back to `Source\`
       files through the `#region Source\...` markers the build writes
+      - Done 2026-11-16 as agreed by Scott. The floor is in `Scripts\Invoke-UnitTest.ps1`,
+        not the gate: the gate holds only checks that read source text. Rule T-12.
+        Measured 96.7%; five tests added for reachable gaps; now 97.7% (734 of 751
+        commands). Floor 95%. Coverage adds about 4 seconds to the unit run
+      - One of the new tests found a defect, fixed: `Invoke-OraEnv` with no SID threw
+        under StrictMode when discovery failed or found no instance. It came from the
+        `Set-OracleEnv` split earlier in this stack
+      - The 17 commands left uncovered, by reason:
+        - Unreachable from a unit test (13): the logging after a failed kill or wait in
+          both process wrappers (8; proven statically, L6); the empty-`PATH` branch in
+          both, since .NET always fills the child `PATH` (2); the `$null` fallbacks in
+          `Get-OracleDatabaseList` for a path with no parent (2); and one line in
+          `ConvertFrom-RmanListBackup` (153) that cannot run at all: once line 150 has
+          passed, the length it checks is at least 1. Left in place; removing it is a
+          code change, not a test task
+        - Linux only (4): the non-Windows skip in `Set-RestrictiveAcl` and three branches
+          of the `/etc/oratab` parser. For the Linux task below
 - [ ] Unit tests pass on Windows and Linux
 - [ ] Install the Oracle database chosen in Stack 0; confirm version and edition
 - [ ] Add the local-only integration and soak tier behind a gate-script switch

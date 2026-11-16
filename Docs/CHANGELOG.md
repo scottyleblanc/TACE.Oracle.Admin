@@ -46,6 +46,11 @@ Stack 3 of the AI Development Stack — tests. In progress.
 
 ### Fixed
 
+- `Invoke-OraEnv` (`oraset`) with no SID threw when discovery failed or found no Oracle
+  instance: an empty list became `$null`, and `.Count` on it throws under StrictMode.
+  It now passes on to `Set-OracleEnv`, which returns the Message to show. The defect
+  came from the `Set-OracleEnv` split earlier in this stack, and was found by a
+  coverage test.
 - Twelve security invariants cited tests that passed with the invariant broken. The
   environment tests compared with a value earlier tests had already polluted; the
   credential tests ran with no credential; the tnsping scrub test never reached the
@@ -88,6 +93,14 @@ Stack 3 of the AI Development Stack — tests. In progress.
   its setup; the `SEC` tag marks it as a security test. The Stack 3 item "every
   security invariant has a test in a `Security` context" is met through the tag rather
   than by moving 20 tests out of the contexts whose setup they use.
+- Rule T-12 and a coverage floor: `Scripts/Invoke-UnitTest.ps1` measures coverage of
+  the built module, maps it back to each file in `Source/`, prints a per-file table and
+  fails below 95%. `-Verbose` lists every missed command by source line. JaCoCo XML goes
+  to `Tests/TestResults/coverage.xml`. Coverage is 97.7% (734 of 751 commands) after
+  five tests for reachable gaps: the `Set-OracleEnv` catch block, `Invoke-OraEnv` when
+  discovery fails, finds nothing, or `Set-OracleEnv` returns nothing, and an RMAN row
+  that ends before its last columns. The 17 commands left are recorded in `Docs/TODO.md`
+  by reason.
 
 ---
 

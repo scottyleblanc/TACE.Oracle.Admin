@@ -77,7 +77,7 @@ writes NUnit XML results to `Tests\TestResults\<tier>.xml`, and exits 1 on any f
 | Tier | Command | Runs |
 |---|---|---|
 | Static | `.\Scripts\Invoke-StaticTest.ps1` | `Tests\Static\` — checks that read source text only; the linters they call are in `Tests\Lint\` |
-| Unit | `.\Scripts\Invoke-UnitTest.ps1` | Builds the module, then `Tests\Unit\` — functions run against mocks, imported from the built module |
+| Unit | `.\Scripts\Invoke-UnitTest.ps1` | Builds the module, then `Tests\Unit\` — functions run against mocks, imported from the built module. Measures coverage per source file and fails below the floor (rule T-12); `-Verbose` lists each missed command by source line |
 
 Run a single test file, after building once:
 ```powershell

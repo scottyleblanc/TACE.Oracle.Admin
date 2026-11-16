@@ -144,7 +144,8 @@ violation and a seeded secret both fail it.
 
 **Goal:** every invariant is proven by a test, and coverage is measured.
 
-**Deliverables:** an invariant-to-test map; a coverage floor in the gate script;
+**Deliverables:** an invariant-to-test map; a coverage floor that fails the unit tier
+(not the gate script, which holds only checks that read source text);
 unit tests passing on Windows and Linux; a local-only integration and soak tier
 behind a separate gate-script switch.
 

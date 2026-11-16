@@ -164,6 +164,27 @@ Describe 'Invoke-OraEnv' {
             @($script:hostLines | Where-Object { $PSItem -like '`[ERROR`]*' }) | Should -Be @('[ERROR] SID not found.')
         }
 
+        It 'writes [ERROR] when Set-OracleEnv returns nothing' {
+            Mock Set-OracleEnv { } -ModuleName 'TACE.Oracle.Admin'
+            Invoke-OraEnv
+            @($script:hostLines | Where-Object { $PSItem -like '`[ERROR`]*' }) | Should -Be @('[ERROR] Set-OracleEnv returned nothing.')
+        }
+
+        It '<Case> shows no menu and leaves the Message to Set-OracleEnv' -ForEach @(
+            @{ Case = 'a failed discovery'; Discovery = [PSCustomObject]@{ Success = $false; Data = $null; Message = 'Discovery failed.' } }
+            @{ Case = 'a host with no instance'; Discovery = [PSCustomObject]@{ Success = $true; Data = @(); Message = 'No Oracle database services found on this host.' } }
+        ) {
+            $script:discovery = $Discovery
+            Mock Get-OracleDatabaseList { $script:discovery } -ModuleName 'TACE.Oracle.Admin'
+            Mock Read-Host { throw 'no prompt expected' } -ModuleName 'TACE.Oracle.Admin'
+            Mock Set-OracleEnv {
+                [PSCustomObject]@{ Success = $false; Data = $null; Message = 'No Oracle instance found.' }
+            } -ModuleName 'TACE.Oracle.Admin'
+            Invoke-OraEnv
+            Should -Invoke Set-OracleEnv -ModuleName 'TACE.Oracle.Admin' -Times 1 -Exactly -ParameterFilter { -not $PSBoundParameters.ContainsKey('SID') }
+            $script:hostLines | Should -Be @('[ERROR] No Oracle instance found.')
+        }
+
         It 'Does not write [ERROR] to host when Set-OracleEnv returns Success=$true' {
             Mock Set-OracleEnv {
                 [PSCustomObject]@{ Success = $true; Data = $null; Message = 'ok' }
