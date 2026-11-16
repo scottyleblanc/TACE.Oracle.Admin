@@ -28,7 +28,7 @@ hold before it runs, while it runs, and after it returns or throws.
   Example: a test that mocks the function under test proves nothing about that function, and is not cited. *Review.*
 - **I-11** — Every entry except a limitation is proven by a test or a static check. A `Type:` or `Guard:` line is followed by a `Test:` or `Static:` line that names the proof.
   Example: `Guard: the finally block.` followed by `Test: 'S2 zeroes and frees the buffer when the conversion throws'.` *Linter.*
-- **I-12** — A `Static:` line gives each check's exact title in single quotes. The check is in `Tests\Static\SourceInvariants.Tests.ps1`, its title is unique in that file, and it starts with the function name, then the IDs it proves.
+- **I-12** — A `Static:` line gives each check's exact title in single quotes. The check is in `Tests\Static\SourceInvariants.Tests.ps1`, its title is unique in that file, and it starts with the function name, then the IDs it proves. A check cited for a security invariant carries the Pester tag `SEC`.
   Example: `Static: 'Invoke-RmanProcess S2 extracts the password only inside the stdin write'.` *Linter.*
 
 ## Sections

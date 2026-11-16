@@ -18,8 +18,9 @@
       - a cited test whose title does not start with exactly the IDs it is cited for, or
         that is cited for a security invariant and has no SEC tag (rule T-09)
       - a Type or Guard entry with no Test or Static line under it (rule I-11)
-      - a cited static check that is not in Tests\Static\SourceInvariants.Tests.ps1, or
-        whose title does not start with the function name (rule I-12)
+      - a cited static check that is not in Tests\Static\SourceInvariants.Tests.ps1, whose
+        title does not start with the function name, or that is cited for a security
+        invariant and has no SEC tag (rule I-12)
       - a line inside a block that it cannot read
 
     It reads source text only. It does not import the module or run any function.
@@ -407,16 +408,26 @@ try {
     }
 
     $citedTests = [ordered]@{}
+    # Static checks are collected too: a static check cited for a security invariant
+    # carries the SEC tag as well (rule I-12). Their titles start with the function name,
+    # so the ID-prefix part of T-09 applies to unit tests only.
     foreach ($item in $catalog) {
-        if ($item.State -ne 'Proven' -or $item.ProofKind -ne 'Test') { continue }
-        $sourceName   = [System.IO.Path]::GetFileNameWithoutExtension($item.File)
-        $sourceFolder = Split-Path -Path (Split-Path -Path $item.File -Parent) -Leaf
-        $fileKey      = "$sourceFolder/$sourceName"
+        if ($item.State -ne 'Proven' -or $item.ProofKind -notin @('Test', 'Static')) { continue }
+        if ($item.ProofKind -eq 'Static') {
+            $fileKey  = 'static'
+            $testFile = $staticFile
+        }
+        else {
+            $sourceName   = [System.IO.Path]::GetFileNameWithoutExtension($item.File)
+            $sourceFolder = Split-Path -Path (Split-Path -Path $item.File -Parent) -Leaf
+            $fileKey      = "$sourceFolder/$sourceName"
+            $testFile     = Join-Path -Path $testsPath -ChildPath $sourceFolder -AdditionalChildPath "$sourceName.Tests.ps1"
+        }
         foreach ($title in $item.ProofTitles) {
             $key = "$fileKey|$title"
             if (-not $citedTests.Contains($key)) {
                 $citedTests[$key] = [PSCustomObject]@{
-                    FileKey = $fileKey; Folder = $sourceFolder; Name = $sourceName; Title = $title; First = $item
+                    FileKey = $fileKey; TestFile = $testFile; Kind = $item.ProofKind; Title = $title; First = $item
                     Ids = [System.Collections.Generic.List[string]]::new(); Sec = $false
                 }
             }
@@ -430,7 +441,7 @@ try {
         $want  = @($cited.Ids | Sort-Object)
         $have  = @(if ($cited.Title -cmatch '^(?<ids>[PSRTL]\d+(?:, [PSRTL]\d+)*) ') { $Matches['ids'] -split ', ' })
         $haveUnique = @($have | Sort-Object -Unique)
-        if (($want -join ',') -ne ($haveUnique -join ',') -or $have.Count -ne $haveUnique.Count) {
+        if ($cited.Kind -eq 'Test' -and (($want -join ',') -ne ($haveUnique -join ',') -or $have.Count -ne $haveUnique.Count)) {
             $defects.Add([PSCustomObject]@{
                     File = $first.File; Function = $first.Function; Line = $first.Line; Id = $first.Id
                     Reason = "Cited test does not start with exactly the IDs it is cited for, $($want -join ', ') (rule T-09): '$($cited.Title)'."
@@ -439,14 +450,15 @@ try {
 
         if ($cited.Sec) {
             if (-not $itsByFile.ContainsKey($cited.FileKey)) {
-                $testFile = Join-Path -Path $testsPath -ChildPath $cited.Folder -AdditionalChildPath "$($cited.Name).Tests.ps1"
-                $itsByFile[$cited.FileKey] = & $readIts $testFile
+                $itsByFile[$cited.FileKey] = & $readIts $cited.TestFile
             }
             $untagged = @($itsByFile[$cited.FileKey] | Where-Object { $PSItem.Title -ceq $cited.Title -and $PSItem.Tags -notcontains 'SEC' })
             if ($untagged.Count -gt 0) {
+                $what = if ($cited.Kind -eq 'Static') { 'static check' } else { 'test' }
+                $rule = if ($cited.Kind -eq 'Static') { 'I-12' } else { 'T-09' }
                 $defects.Add([PSCustomObject]@{
                         File = $first.File; Function = $first.Function; Line = $first.Line; Id = $first.Id
-                        Reason = "Cited test for a security invariant has no SEC tag (rule T-09): '$($cited.Title)'."
+                        Reason = "Cited $what for a security invariant has no SEC tag (rule $rule): '$($cited.Title)'."
                     })
             }
         }

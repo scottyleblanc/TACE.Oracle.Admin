@@ -81,6 +81,13 @@ Stack 3 of the AI Development Stack — tests. In progress.
 - Rules I-09 and I-12 now also require a cited title to be unique in its file, and the
   linter refuses one that several tests share, since that citation names no single
   test. Run before the R2 titles were made unique, it reports exactly those two.
+- A static check cited for a security invariant must carry the `SEC` tag (rule I-12),
+  and the linter refuses one without it, as it already did for unit tests. All 8 such
+  checks already carry it.
+- Rule T-03: a test that proves a security invariant may sit in the context that holds
+  its setup; the `SEC` tag marks it as a security test. The Stack 3 item "every
+  security invariant has a test in a `Security` context" is met through the tag rather
+  than by moving 20 tests out of the contexts whose setup they use.
 
 ---
 

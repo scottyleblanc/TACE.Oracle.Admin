@@ -4,7 +4,7 @@
   Example: `Import-Module Pester -MinimumVersion 5.0`. *Linter.*
 - **T-02** — Every function, public or private, has its own test file, named for the function, in the folder under `Tests\Unit\` that mirrors its source folder.
   Example: `Tests\Unit\Private\Set-RestrictiveAcl.Tests.ps1` for the private helper `Source\Private\Set-RestrictiveAcl.ps1`. *Linter.*
-- **T-03** — A test file groups its tests under these contexts: `Parameter Validation`, `Implementation`, `Return object contract`, `Security`, and `WhatIf support` where the function supports `ShouldProcess`.
+- **T-03** — A test file groups its tests under these contexts: `Parameter Validation`, `Implementation`, `Return object contract`, `Security`, and `WhatIf support` where the function supports `ShouldProcess`. A test that proves a security invariant may sit in whichever context holds the setup it needs; the `SEC` tag (T-09), not the context, marks it as a security test.
   Example: `Context 'Security' { It 'Message contains no credential fragment' { ... } }`. *Linter.*
 - **T-04** — A unit test touches the filesystem only under `TestDrive:\`.
   Example: `$configPath = Join-Path -Path $TestDrive -ChildPath 'config.json'`. *Review.*

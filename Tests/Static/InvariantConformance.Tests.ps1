@@ -48,7 +48,7 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
         # Builds a one-function repository under TestDrive and lints it. $Block is the
         # INVARIANTS entry lines, without the leading '    #'.
         function Invoke-FixtureLint {
-            param([string]$Name, [string[]]$Block, [string[]]$UnitTitles = @(), [string[]]$StaticTitles = @(), [string[]]$UnitLines = @())
+            param([string]$Name, [string[]]$Block, [string[]]$UnitTitles = @(), [string[]]$StaticTitles = @(), [string[]]$UnitLines = @(), [string[]]$StaticLines = @())
 
             $root = Join-Path -Path $TestDrive -ChildPath $Name
             $null = New-Item -ItemType Directory -Path (Join-Path -Path $root -ChildPath 'Source' -AdditionalChildPath 'Public') -Force
@@ -74,8 +74,8 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             $unit = @(@($UnitTitles | ForEach-Object { "It '$PSItem' { }" }) + $UnitLines) -join "`n"
             Set-Content -LiteralPath (Join-Path -Path $root -ChildPath 'Tests' -AdditionalChildPath 'Unit', 'Public', 'Get-Thing.Tests.ps1') -Value $unit -Encoding UTF8
 
-            if ($StaticTitles.Count -gt 0) {
-                $static = @($StaticTitles | ForEach-Object { "It '$PSItem' { }" }) -join "`n"
+            if ($StaticTitles.Count + $StaticLines.Count -gt 0) {
+                $static = @(@($StaticTitles | ForEach-Object { "It '$PSItem' { }" }) + $StaticLines) -join "`n"
                 Set-Content -LiteralPath (Join-Path -Path $root -ChildPath 'Tests' -AdditionalChildPath 'Static', 'SourceInvariants.Tests.ps1') -Value $static -Encoding UTF8
             }
 
@@ -90,7 +90,7 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             '       Type: ValidateNotNullOrEmpty.'
         )
         $result.Success | Should -BeFalse
-        @($result.Data.Defects.Reason) | Should -Match 'rule I-11'
+        ($result.Data.Defects.Reason -join "`n") | Should -Match 'rule I-11'
     }
 
     It 'I-11 accepts a Guard entry with a cited test and counts it as proven' {
@@ -123,7 +123,7 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             "       Test: 'P1 a test nobody wrote'."
         )
         $result.Success | Should -BeFalse
-        @($result.Data.Defects.Reason) | Should -Match 'Cited test not found'
+        ($result.Data.Defects.Reason -join "`n") | Should -Match 'Cited test not found'
     }
 
     It 'I-09 refuses a cited test whose title two tests in the file share' {
@@ -134,7 +134,7 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             "       Test: 'P1 refuses a missing name'."
         )
         $result.Success | Should -BeFalse
-        @($result.Data.Defects.Reason) | Should -Match 'shared by 2 tests'
+        ($result.Data.Defects.Reason -join "`n") | Should -Match 'shared by 2 tests'
     }
 
     It 'I-12 refuses a cited static check whose title two checks share' {
@@ -144,11 +144,21 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             "       Static: 'Get-Thing S1 opens no file'."
         )
         $result.Success | Should -BeFalse
-        @($result.Data.Defects.Reason) | Should -Match 'shared by 2 tests'
+        ($result.Data.Defects.Reason -join "`n") | Should -Match 'shared by 2 tests'
+    }
+
+    It 'I-12 refuses a static check cited for a security invariant that has no SEC tag' {
+        $result = Invoke-FixtureLint -Name 'static-untagged' -StaticTitles @('Get-Thing S1 opens no file') -Block @(
+            ' SECURITY INVARIANTS'
+            '   [SEC] S1 No file is opened.'
+            "       Static: 'Get-Thing S1 opens no file'."
+        )
+        $result.Success | Should -BeFalse
+        ($result.Data.Defects.Reason -join "`n") | Should -Match 'no SEC tag \(rule I-12\)'
     }
 
     It 'I-12 accepts a cited static check in SourceInvariants.Tests.ps1 named for the function' {
-        $result = Invoke-FixtureLint -Name 'static-ok' -StaticTitles @('Get-Thing S1 opens no file') -Block @(
+        $result = Invoke-FixtureLint -Name 'static-ok' -StaticLines @("It 'Get-Thing S1 opens no file' -Tag 'SEC' { }") -Block @(
             ' SECURITY INVARIANTS'
             '   [SEC] S1 No file is opened.'
             "       Static: 'Get-Thing S1 opens no file'."
@@ -164,7 +174,7 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             "       Static: 'S1 opens no file'."
         )
         $result.Success | Should -BeFalse
-        @($result.Data.Defects.Reason) | Should -Match 'rule I-12'
+        ($result.Data.Defects.Reason -join "`n") | Should -Match 'rule I-12'
     }
 
     It 'I-12 refuses a cited static check that is not in SourceInvariants.Tests.ps1' {
@@ -174,7 +184,7 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             "       Static: 'Get-Thing S1 opens no file'."
         )
         $result.Success | Should -BeFalse
-        @($result.Data.Defects.Reason) | Should -Match 'Cited check not found'
+        ($result.Data.Defects.Reason -join "`n") | Should -Match 'Cited check not found'
     }
 
     It 'T-09 refuses a cited test whose title does not start with its ID' {
@@ -185,7 +195,7 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             "       Test: 'refuses a missing name'."
         )
         $result.Success | Should -BeFalse
-        @($result.Data.Defects.Reason) | Should -Match 'rule T-09'
+        ($result.Data.Defects.Reason -join "`n") | Should -Match 'rule T-09'
     }
 
     It 'T-09 refuses a cited test whose title names an ID it is not cited for' {
@@ -196,7 +206,7 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             "       Test: 'P1, P2 refuses a missing name'."
         )
         $result.Success | Should -BeFalse
-        @($result.Data.Defects.Reason) | Should -Match 'rule T-09'
+        ($result.Data.Defects.Reason -join "`n") | Should -Match 'rule T-09'
     }
 
     It 'T-09 accepts a test cited by two entries when its title names both' {
@@ -220,7 +230,7 @@ Describe 'Invariant linter proof rules' -Tag 'Static' {
             "       Test: 'S1 opens no file'."
         )
         $result.Success | Should -BeFalse
-        @($result.Data.Defects.Reason) | Should -Match 'no SEC tag'
+        ($result.Data.Defects.Reason -join "`n") | Should -Match 'no SEC tag'
     }
 
     It 'T-09 accepts a security test tagged SEC, with -ForEach before the tag' {

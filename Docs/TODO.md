@@ -320,7 +320,15 @@ a local tier tests the code against a real Oracle database.
         new L3 (no `Read-Host`, no `Write-Host`) is proven statically with the other
         static rules. `Invoke-OraEnv` owns the menu and host output (R4 to R6, S2
         replacing S1)
-- [ ] [SEC] Every security invariant has a test in a `Security` context
+- [x] [SEC] Every security invariant has a test in a `Security` context
+      - Closed by the tag, not by moving tests (Scott, 2026-11-16). The item predates
+        the `SEC` tag. Its aim, that every security invariant is proven and its proof
+        can be found, is met by rules T-09 and I-12: each one proven by a unit test or a
+        static check cites one tagged `SEC`, the linter refuses one without the tag, and
+        `Invoke-Pester -Tag SEC` runs them all. Of 55 security invariants, 34 are proven
+        by unit tests, 8 by static checks, and 13 are accepted limitations. 20 of the
+        cited unit tests stay in the context whose setup they use; the `Security`
+        context keeps the leak checks of rule T-08
 - [ ] Measure coverage; set a floor in the gate script. The tests import the merged
       `.psm1`, so coverage is reported against `Output\` lines; map it back to `Source\`
       files through the `#region Source\...` markers the build writes
