@@ -139,7 +139,14 @@ fails (decision 28):
 | commits | gitleaks over every commit not yet on a remote |
 | messages | Those commits' messages, through gitleaks and the S-16 patterns |
 
-The unit tier is not part of the gate; run it with `Invoke-UnitTest.ps1`.
+Two switches add the test tiers, after the six checks (decision 31):
+
+| Switch | Check | What it runs |
+|---|---|---|
+| `-Unit` | unit | The unit tier with its coverage floor. CI passes this from Stack 4 |
+| `-Integration` | integration | The integration tier, behind its own guards (see above) |
+
+The pre-push hook passes neither, so a push runs only the six checks.
 
 Turn on the pre-push hook once in each clone, so the gate runs before every push:
 

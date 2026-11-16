@@ -25,13 +25,20 @@
     Found values are never printed in full: gitleaks runs with --redact, and a pattern
     match shows only its first characters.
 
-    The unit tier is not part of the gate. It runs module code against mocks; the gate
-    holds the checks that read source text.
+    By default the gate holds only the checks that read source text, so the pre-push
+    hook stays fast. Two switches add the test tiers that run module code:
 
-    With -Integration, a seventh check runs the integration tier
-    (Scripts\Invoke-IntegrationTest.ps1) against the local Oracle database, after the six
-    above. Its own guards decide whether it may run; a failed guard fails the check. The
-    pre-push hook never passes -Integration.
+      -Unit         'unit': the unit tier (Scripts\Invoke-UnitTest.ps1), coverage floor
+                    included. Behaviour defects are caught here. CI passes this switch
+      -Integration  'integration': the integration tier
+                    (Scripts\Invoke-IntegrationTest.ps1) against the local Oracle
+                    database. Its own guards decide whether it may run; a failed guard
+                    fails the check
+
+    They run after the six checks above, unit first. The pre-push hook passes neither.
+
+.PARAMETER Unit
+    Also run the unit tier, with its coverage floor.
 
 .PARAMETER Integration
     Also run the integration tier. Needs the local integration setup and the opt-in
@@ -43,10 +50,15 @@
     Runs the gate from any working directory. Exits 0 when every check passes.
 
 .EXAMPLE
-    $env:ORACLE_ADMIN_RUN_INTEGRATION = '1'
-    .\Scripts\Invoke-Gate.ps1 -Integration
+    .\Scripts\Invoke-Gate.ps1 -Unit
 
-    Runs the gate, then the integration tier.
+    Runs the gate, then the unit tier. This is what CI runs.
+
+.EXAMPLE
+    $env:ORACLE_ADMIN_RUN_INTEGRATION = '1'
+    .\Scripts\Invoke-Gate.ps1 -Unit -Integration
+
+    Runs the gate, then the unit and integration tiers.
 
 .NOTES
     Copyright © TACE Data Management Inc.
@@ -57,6 +69,9 @@
 [CmdletBinding()]
 [OutputType([string])]
 param(
+    [Parameter()]
+    [switch]$Unit,
+
     [Parameter()]
     [switch]$Integration
 )
@@ -213,7 +228,25 @@ else {
     Add-Result -Name 'messages' -Passed ($problems.Count -eq 0) -Summary "$($unpushed.Count) unpushed commit message(s), $($problems.Count) problem(s)" -Detail @($problems)
 }
 
-# -- 7. integration, only with -Integration ----------------------------------
+# -- 7. unit, only with -Unit ------------------------------------------------
+
+if ($Unit) {
+    $unitScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-UnitTest.ps1'
+    $unitOutput = @(& pwsh -NoProfile -File $unitScript 2>&1 | ForEach-Object { "$PSItem" })
+    $unitExit   = $LASTEXITCODE
+    $unitLast   = @($unitOutput | Where-Object { $PSItem -match '^\[(PASS|FAIL)\] unit' }) | Select-Object -Last 1
+    $coverage   = @($unitOutput | Where-Object { $PSItem -match '^\[(PASS|FAIL)\] coverage' }) | Select-Object -Last 1
+    $unitFailed = @(
+        $unitOutput | Where-Object { $PSItem -match '^\s*\[-\]' } | ForEach-Object { $PSItem.Trim() }
+        if ($coverage -match '^\[FAIL\]') { $coverage }
+        $unitOutput | Where-Object { $PSItem -match '^\[FAIL\] unit: build failed' }
+    )
+    $summary = if ($unitLast) { $unitLast -replace '^\[(PASS|FAIL)\] unit: ', '' -replace '\. Results: .*$', '' } else { "exit $unitExit" }
+    if ($coverage -match 'coverage: (?<percent>[\d.]+%)') { $summary = "$summary; coverage $($Matches['percent'])" }
+    Add-Result -Name 'unit' -Passed ($unitExit -eq 0) -Summary $summary -Detail $unitFailed
+}
+
+# -- 8. integration, only with -Integration ----------------------------------
 
 if ($Integration) {
     $integrationScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-IntegrationTest.ps1'

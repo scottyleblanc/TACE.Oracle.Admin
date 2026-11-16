@@ -370,7 +370,11 @@ a local tier tests the code against a real Oracle database.
         tier script writes `Tests\Integration\LastRun.json`; it is evidence only for a
         passing run on a clean tree, and is committed last. The staleness check is a
         Stack 4 item, below
-- [ ] Seeded defect: one behaviour change that breaks an invariant
+- [x] Seeded defect: one behaviour change that breaks an invariant
+      - `Get-RmanBackupStatus` loses its CompletionTime sort (breaks R3). The gate with
+        the new `-Unit` switch (Scott's choice, decision 31) fails on `unit` alone; the
+        one test that fails is the one R3 cites. Added to `Scripts\Test-SeededDefect.ps1`
+        as a fifth case; all five pass. Record in `Docs\audit\stack-3-seeded-defect.md`
 - [ ] Closing tasks
 
 ### Stack 4 — Enforced gate
@@ -379,7 +383,8 @@ a local tier tests the code against a real Oracle database.
 every pull request, branch protection requires it to pass, and the workflow holds no
 secrets.
 
-- [ ] Add `.github\workflows\gate.yml` calling only the gate script
+- [ ] Add `.github\workflows\gate.yml` calling only the gate script, with `-Unit`
+      (decision 31), so a behaviour defect is blocked too
 - [ ] Turn on branch protection: pull request required, checks required
 - [ ] [SEC] Workflow runs with least privilege and no stored secrets
 - [ ] Seeded defects from Stack 2 and Stack 3 are blocked at merge
@@ -446,11 +451,14 @@ docs and tests alone are shown to be enough to find and fix a planted defect.
 ### Stack 10 — Wrap-up
 
 **Goal:** the gate script, settings, templates and CI wrapper work as a reusable
-template, proven by producing a working gate on a fresh, empty repo, and the project is
-written up.
+template, proven by producing a working gate on a fresh, empty repo and on an existing
+repo, and the project is written up.
 
 - [ ] Lift the gate script, settings, templates and CI wrapper into a template
 - [ ] Prove the template on a fresh, empty repo
+- [ ] Prove the template on a file copy of an existing private module repo (a class, its
+      own packaging step, a host other than GitHub); refresh the copy after that repo's
+      source-layout move lands
 - [ ] Write-up: final project page and summary post
 
 ---

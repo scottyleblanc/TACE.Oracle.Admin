@@ -112,6 +112,12 @@ Stack 3 of the AI Development Stack — tests. In progress.
   control file backups and run a real `DELETE OBSOLETE`. 13 static tests cover the
   guards. First runs against Oracle Database 21c XE: 12 of 12. Record in
   `Docs/audit/stack-3-integration.md`.
+- `Invoke-Gate.ps1 -Unit` adds the unit tier, coverage floor included, as a seventh
+  check (decision 31). The pre-push hook does not pass it; CI will from Stack 4.
+  `Scripts/Test-SeededDefect.ps1` gains a fifth case, a behaviour defect: dropping
+  `Get-RmanBackupStatus`'s CompletionTime sort (breaking R3) fails the gate with `-Unit`
+  on `unit` alone, through the one test R3 cites. The control case now runs with
+  `-Unit`. Record in `Docs/audit/stack-3-seeded-defect.md`.
 - Integration evidence (decision 30, rule T-14): each run of the integration tier writes
   `Tests/Integration/LastRun.json` with the commit, whether the working tree was clean,
   the database edition and version, the PowerShell and Pester versions, the totals and
