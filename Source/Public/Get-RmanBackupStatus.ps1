@@ -197,7 +197,6 @@ function Get-RmanBackupStatus {
         $mostRecent = $allRecords |
             Sort-Object -Property @(
                 @{ Expression = { if ($null -ne $PSItem.CompletionTime) { 1 } else { 0 } }; Descending = $true },
-                @{ Expression = { $PSItem.CompletionTime }; Descending = $true },
                 @{ Expression = { $PSItem.Key            }; Descending = $true }
             ) |
             Select-Object -First 1
