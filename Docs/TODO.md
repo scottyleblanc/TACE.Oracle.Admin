@@ -273,7 +273,7 @@ planted lint violation and a planted secret.
 ### Stack 3 — Tests
 
 **Goal:** every invariant is proven by a test that fails when the invariant is broken,
-coverage cannot fall below a set floor, the unit suite passes on Windows and Linux, and
+coverage cannot fall below a set floor, and
 a local tier tests the code against a real Oracle database.
 
 - [ ] Map every invariant to at least one Pester test; fill the gaps
@@ -348,8 +348,10 @@ a local tier tests the code against a real Oracle database.
           passed, the length it checks is at least 1. Left in place; removing it is a
           code change, not a test task
         - Linux only (4): the non-Windows skip in `Set-RestrictiveAcl` and three branches
-          of the `/etc/oratab` parser. For the Linux task below
-- [ ] Unit tests pass on Windows and Linux
+          of the `/etc/oratab` parser. Left for the Linux work in Post-Project Notes
+- Unit tests on Linux: moved out of Stack 3 to Post-Project Notes (Scott, 2026-11-16).
+  Linux support was put out of scope in Stack 1; running the unit suite on Linux is the
+  same work
 - [ ] Install the Oracle database chosen in Stack 0; confirm version and edition
 - [ ] Add the local-only integration and soak tier behind a gate-script switch
 - [ ] Decide how a local integration result is attached to a pull request
@@ -498,3 +500,6 @@ this work.
 - Default paths: the config defaults are under `C:\app\oracle`. Linux needs its own, for
   example under `/u01/app/oracle`
 - Remove the C-07 guard from each function as it is ported, with a Linux test tier
+- Unit tests on Linux (moved here from Stack 3). Every test that starts a fake RMAN or
+  tnsping writes a `.cmd` file, so those tests are Windows only; they need a shell-script
+  equivalent. The 4 Linux-only commands left uncovered (rule T-12) are covered then

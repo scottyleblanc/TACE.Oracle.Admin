@@ -146,7 +146,7 @@ violation and a seeded secret both fail it.
 
 **Deliverables:** an invariant-to-test map; a coverage floor that fails the unit tier
 (not the gate script, which holds only checks that read source text);
-unit tests passing on Windows and Linux; a local-only integration and soak tier
+a local-only integration and soak tier
 behind a separate gate-script switch.
 
 **Done when:** the map is complete; a seeded behaviour defect fails the gate;

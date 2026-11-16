@@ -97,4 +97,4 @@ function's 5 mutations are all caught.
 - The script runs locally and takes about 20 minutes for all mutations. It is not part
   of the gate.
 - Every unit test that starts a fake RMAN or tnsping uses a `.cmd` file, so these runs
-  are Windows only. Linux is a later Stack 3 task.
+  are Windows only. Linux is out of scope for now (TODO, Post-Project Notes).
