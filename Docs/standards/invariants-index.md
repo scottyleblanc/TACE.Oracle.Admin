@@ -10,9 +10,9 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 | Functions | 14 |
 | Invariants | 159 |
 | Security invariants | 55 |
-| Proven (a cited test or static check) | 126 |
-| Unproven (test or static check not written yet) | 12 |
-| Unproven security invariants | 7 |
+| Proven (a cited test or static check) | 137 |
+| Unproven (test or static check not written yet) | 1 |
+| Unproven security invariants | 0 |
 | Accepted limitations | 21 |
 
 ## Source/Private/Assert-OracleEnvironment.ps1
@@ -63,7 +63,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **P1** RawLog is a string, and may be empty. *(Type; Test)*
   - Test: 'P1 RawLog is mandatory and accepts an empty string'
 - **P2** Completion times in RawLog are in the form yyyy-MM-dd HH:mm:ss. *(Limitation)*
-- **S1** `[SEC]` It reads RawLog and nothing else: no file, no process, no credential. *(Static, none yet)*
+- **S1** `[SEC]` It reads RawLog and nothing else: no file, no process, no credential. *(Static)*
+  - Static: 'ConvertFrom-RmanListBackup S1 reads RawLog only: no command but Write-Verbose, and no file, process, environment or credential access'
 - **R1** Returns an array of zero or more records, and does not throw on text it cannot parse. *(Test)*
   - Test: 'R1 does not throw on text it cannot parse'
   - Test: 'R1, P2 gives a null CompletionTime for a completion time in another format, without throwing'
@@ -90,8 +91,10 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'SecureString parameter is mandatory'
   - Test: 'SecureString parameter is typed as [SecureString]'
 - **S1** `[SEC]` The return value is plaintext. The caller uses it at a stdin write and never stores it. *(Limitation)*
-- **S2** `[SEC]` The unmanaged buffer is zeroed and freed on every path. *(Guard; Test, none yet)*
-- **S3** `[SEC]` This is the only place in the module that turns a secure value into plaintext. *(Static, none yet)*
+- **S2** `[SEC]` The unmanaged buffer is zeroed and freed on every path. *(Guard; Static)*
+  - Static: 'ConvertFrom-SecureStringToPlaintext S2 zeroes and frees the buffer in a finally block'
+- **S3** `[SEC]` This is the only place in the module that turns a secure value into plaintext. *(Static)*
+  - Static: 'ConvertFrom-SecureStringToPlaintext S3 is the only function that reads plaintext out of a secure value'
 - **S4** `[SEC]` The function is not exported and cannot be called from outside the module. *(Test)*
   - Test: 'Function is not exported as a public command'
   - Test: 'Is not callable outside module scope'
@@ -160,7 +163,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **P5** RmanScript holds no password. *(Limitation)*
 - **S1** `[SEC]` No password is placed in the process argument list, in any mode. *(Test)*
   - Test: 'S1 no password reaches the process argument list (<Mode>)'
-- **S2** `[SEC]` In NamedCredential mode the password is extracted inline at the stdin write and is never assigned to a variable. *(Static, none yet)*
+- **S2** `[SEC]` In NamedCredential mode the password is extracted inline at the stdin write and is never assigned to a variable. *(Static)*
+  - Static: 'Invoke-RmanProcess S2 extracts the password only inside the stdin write, never into a variable'
 - **S3** `[SEC]` ORACLE_HOME, ORACLE_SID, PATH and NLS_DATE_FORMAT are set on the child process only. The current session environment is not changed. *(Test)*
   - Test: 'S3 <Mode> leaves the session environment unchanged, PATH included'
   - Test: 'NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment'
@@ -190,7 +194,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'SEC-04: stdout is captured correctly when the RMAN process also writes to stderr'
 - **L2** EXIT; is written after the script, and stdin is then closed. *(Guard; Test)*
   - Test: 'L2 writes the script, then EXIT;, then closes stdin'
-- **L3** The process object is disposed on every path. *(Guard; Test, none yet)*
+- **L3** The process object is disposed on every path. *(Guard; Static)*
+  - Static: 'Invoke-RmanProcess L3 disposes the process in a finally block'
 - **L4** The child PATH starts with OracleHome\bin, built with Join-Path and joined to the inherited PATH with [System.IO.Path]::PathSeparator. *(Test)*
   - Test: 'L4 child PATH starts with OracleHome bin and the platform separator'
 - **L5** A timeout kills the whole process tree. A failed kill does not replace the timeout error, and the killed process is given 5 seconds to exit. *(Guard; Test, none yet)*
@@ -214,7 +219,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'L1 a tnsping that floods stderr still completes'
 - **L2** The wait is bounded by TimeoutSeconds. A tnsping still running then has its whole process tree killed, and the function throws 'timed out after N seconds and the process was killed'. A failed kill does not replace that error. *(Test)*
   - Test: 'S1, L2 kills a tnsping that runs past TimeoutSeconds and throws'
-- **L3** The process object is disposed on every path. *(Guard; Test, none yet)*
+- **L3** The process object is disposed on every path. *(Guard; Static)*
+  - Static: 'Invoke-TnspingProcess L3 disposes the process in a finally block'
 - **L4** The child PATH starts with OracleHome\bin, built with Join-Path and joined to the inherited PATH with [System.IO.Path]::PathSeparator. *(Test)*
   - Test: 'L4 child PATH starts with OracleHome bin and the platform separator'
 
@@ -261,7 +267,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **P1** Platform is 'Windows', 'Linux' or 'Unsupported', the value detection gives on any other OS. Any other value is refused at the call; 'Unsupported' reaches the final else branch, which returns Success = $false (rule C-07). *(Type; Test)*
   - Test: 'P1 Platform accepts only Windows, Linux and Unsupported'
   - Test: 'P1 throws a parameter error for an unknown platform value'
-- **S1** `[SEC]` No Oracle connection is made and no credential is read. *(Static, none yet)*
+- **S1** `[SEC]` No Oracle connection is made and no credential is read. *(Static)*
+  - Static: 'Get-OracleDatabaseList S1 makes no Oracle connection and reads no credential'
 - **S2** `[SEC]` The catch block places the raw exception message in Message. *(Limitation)*
 - **R1** Returns Success, Data and Message on every path, and never throws. *(Test)*
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, on Windows when <Path>'
@@ -279,7 +286,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'Returns OracleBase as $null when PathName is empty'
 - **R5** ServiceName is null on Linux. *(Test)*
   - Test: 'Returns ServiceName as $null'
-- **L1** Read-only: it reads services, /etc/oratab and the process list, and changes nothing. *(Static, none yet)*
+- **L1** Read-only: it reads services, /etc/oratab and the process list, and changes nothing. *(Static)*
+  - Static: 'Get-OracleDatabaseList L1 is read-only: every command it calls only reads'
 - **L2** On Windows any error from the service query, terminating or not, returns Success = $false. It is never read as no instances found. *(Test)*
   - Test: 'L2 a non-terminating service query error returns Success false'
 
@@ -302,7 +310,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: '[SEC] Message does not contain credential fragments when WalletAlias is used'
 - **S5** `[SEC]` Exception text is scrubbed before it is placed in Message. *(Test)*
   - Test: 'S5 exception text is scrubbed before it is placed in Message'
-- **S3** `[SEC]` Credential is handed to Invoke-RmanProcess and to nothing else. It is never logged or returned. *(Static, none yet)*
+- **S3** `[SEC]` Credential is handed to Invoke-RmanProcess and to nothing else. It is never logged or returned. *(Static)*
+  - Static: 'Get-RmanBackupStatus S3 hands Credential to Invoke-RmanProcess and to nothing else'
 - **S4** `[SEC]` Data.RawLog holds RMAN output as scrubbed by Invoke-RmanProcess. *(Limitation)*
 - **S6** `[SEC]` WalletAlias holds only letters, digits, _, . and -, so it cannot add a line or a command to the CONNECT text written to RMAN's stdin, or an argument to tnsping. *(Type; Test)*
   - Test: 'S6 WalletAlias pattern accepts <Alias>'
@@ -405,7 +414,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'Message lists valid SIDs'
 - **S1** `[SEC]` The list of valid SIDs always comes from live discovery, never from a stored list. *(Guard; Test)*
   - Test: 'S1 every call discovers the instances afresh; nothing is remembered'
-- **S2** `[SEC]` Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are changed. Nothing is written to disk, the registry or another process. *(Static, none yet)*
+- **S2** `[SEC]` Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are changed. Nothing is written to disk, the registry or another process. *(Static)*
+  - Static: 'Set-OracleEnv S2 changes only ORACLE_SID, ORACLE_HOME and ORACLE_BASE, and writes nothing to disk, the registry or another process'
 - **S3** `[SEC]` The catch block places the raw exception message in Message. *(Limitation)*
 - **R1** Returns Success, Data and Message on every path, and never throws. *(Test)*
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, when <Path>'
@@ -425,4 +435,5 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'R6 WhatIf sets no variable and returns a preview'
 - **R7** With no SID and more than one instance it sets nothing and returns Success = $false, with a Message that names every SID found and asks for -SID. *(Test)*
   - Test: 'R7 several instances and no SID set nothing and list every SID'
-- **L3** It never prompts and never writes to the host: no Read-Host, no Write-Host. L1 (the Read-Host menu) and L2 (host output) are retired; both moved to Invoke-OraEnv. *(Static, none yet)*
+- **L3** It never prompts and never writes to the host: no Read-Host, no Write-Host. L1 (the Read-Host menu) and L2 (host output) are retired; both moved to Invoke-OraEnv. *(Static)*
+  - Static: 'Set-OracleEnv L3 calls neither Read-Host nor Write-Host'

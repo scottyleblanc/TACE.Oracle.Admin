@@ -64,7 +64,7 @@ function Get-OracleDatabaseList {
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 No Oracle connection is made and no credential is read.
-    #       Static: none yet.
+    #       Static: 'Get-OracleDatabaseList S1 makes no Oracle connection and reads no credential'.
     #   [SEC] S2 The catch block places the raw exception message in Message.
     #       Limitation: not scrubbed. Accepted because nothing in this function
     #       handles a credential.
@@ -88,7 +88,7 @@ function Get-OracleDatabaseList {
     # EXECUTION INVARIANTS
     #   L1 Read-only: it reads services, /etc/oratab and the process list, and changes
     #       nothing.
-    #       Static: none yet.
+    #       Static: 'Get-OracleDatabaseList L1 is read-only: every command it calls only reads'.
     #   L2 On Windows any error from the service query, terminating or not, returns
     #       Success = $false. It is never read as no instances found.
     #       Test: 'L2 a non-terminating service query error returns Success false'.

@@ -297,9 +297,11 @@ a local tier tests the code against a real Oracle database.
           parameter checks, the throw prefixes, the ORACLE_HOME fallback, column
           positions, the default config path, and in `Invoke-RmanProcess` the argument
           list, output and exception scrubbing, verbose output and the stdin sequence
-    - [ ] The static checks (8 entries), plus three guards a unit test cannot observe:
+    - [x] The static checks (8 entries), plus three guards a unit test cannot observe:
           the buffer zeroing in `ConvertFrom-SecureStringToPlaintext` (S2) and the
-          dispose in `finally` in both process wrappers (L3)
+          dispose in `finally` in both process wrappers (L3). Twelve checks in
+          `Tests\Static\SourceInvariants.Tests.ps1`, each reading the syntax tree, each
+          with a mutation. Built at Scott's request (2026-11-15) for review after the fact
     - [ ] `Invoke-RmanProcess` L5: the tree kill can be tested, the "failed kill does
           not replace the timeout error" part cannot without faking .NET. Needs a
           decision: split the entry, or let one entry carry both a test and a static check

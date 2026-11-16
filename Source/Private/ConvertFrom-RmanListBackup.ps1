@@ -68,7 +68,7 @@ function ConvertFrom-RmanListBackup {
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 It reads RawLog and nothing else: no file, no process, no credential.
-    #       Static: none yet.
+    #       Static: 'ConvertFrom-RmanListBackup S1 reads RawLog only: no command but Write-Verbose, and no file, process, environment or credential access'.
     #
     # POST-CONDITIONS
     #   R1 Returns an array of zero or more records, and does not throw on text it cannot

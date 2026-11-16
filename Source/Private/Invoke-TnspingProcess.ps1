@@ -83,7 +83,7 @@
     #       Test: 'S1, L2 kills a tnsping that runs past TimeoutSeconds and throws'.
     #   L3 The process object is disposed on every path.
     #       Guard: the finally block.
-    #       Test: none yet.
+    #       Static: 'Invoke-TnspingProcess L3 disposes the process in a finally block'.
     #   L4 The child PATH starts with OracleHome\bin, built with Join-Path and joined to
     #       the inherited PATH with [System.IO.Path]::PathSeparator.
     #       Test: 'L4 child PATH starts with OracleHome bin and the platform separator'.

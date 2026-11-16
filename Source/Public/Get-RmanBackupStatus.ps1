@@ -87,7 +87,7 @@ function Get-RmanBackupStatus {
     #       Test: 'S5 exception text is scrubbed before it is placed in Message'.
     #   [SEC] S3 Credential is handed to Invoke-RmanProcess and to nothing else. It is
     #       never logged or returned.
-    #       Static: none yet.
+    #       Static: 'Get-RmanBackupStatus S3 hands Credential to Invoke-RmanProcess and to nothing else'.
     #   [SEC] S4 Data.RawLog holds RMAN output as scrubbed by Invoke-RmanProcess.
     #       Limitation: it is only as clean as that scrub. See Invoke-CredentialScrub S2.
     #   [SEC] S6 WalletAlias holds only letters, digits, _, . and -, so it cannot add a

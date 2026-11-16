@@ -273,5 +273,51 @@
             File = 'Source/Public/Set-OracleEnv.ps1'
             Find = 'if ($serviceWarning)    { Write-Warning $serviceWarning }'
             Replace = 'if ($serviceWarning)    { $null = $serviceWarning }' }
+
+        # --- Static proofs (Tests\Static\SourceInvariants.Tests.ps1) -------------------
+        @{ Function = 'ConvertFrom-RmanListBackup'; Id = 'S1'; Label = 'a file check added'
+            File = 'Source/Private/ConvertFrom-RmanListBackup.ps1'
+            Find = '$lines = $RawLog -split ''\r?\n'''
+            Replace = '$null = [System.IO.File]::Exists(''C:\x''); $lines = $RawLog -split ''\r?\n''' }
+        @{ Function = 'ConvertFrom-SecureStringToPlaintext'; Id = 'S2'; Label = 'buffer freed without zeroing'
+            File = 'Source/Private/ConvertFrom-SecureStringToPlaintext.ps1'
+            Find = '[System.Runtime.InteropServices.Marshal]::ZeroFreeGlobalAllocUnicode($ptr)'
+            Replace = '[System.Runtime.InteropServices.Marshal]::FreeHGlobal($ptr)' }
+        @{ Function = 'ConvertFrom-SecureStringToPlaintext'; Id = 'S3'; Label = 'a second plaintext extraction elsewhere'
+            File = 'Source/Private/Invoke-CredentialScrub.ps1'
+            Find = 'if ([string]::IsNullOrEmpty($Content)) { return $Content }'
+            Replace = '$null = [System.Net.NetworkCredential]::new('''', ''x'').Password; if ([string]::IsNullOrEmpty($Content)) { return $Content }' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'S2'; Label = 'password assigned to a variable'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = 'if ($authMode -eq ''NamedCredential'') {'
+            Replace = 'if ($authMode -eq ''NamedCredential'') { $plain = ConvertFrom-SecureStringToPlaintext -SecureString $Credential.Password; $null = $plain' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'L3'; Label = 'process not disposed'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = '            $process.Dispose()'
+            Replace = '            $null = $process' }
+        @{ Function = 'Invoke-TnspingProcess'; Id = 'L3'; Label = 'process not disposed'
+            File = 'Source/Private/Invoke-TnspingProcess.ps1'
+            Find = 'if ($null -ne $proc) { $proc.Dispose() }'
+            Replace = 'if ($null -ne $proc) { $null = $proc }' }
+        @{ Function = 'Get-OracleDatabaseList'; Id = 'S1'; Label = 'a tnsping call added'
+            File = 'Source/Public/Get-OracleDatabaseList.ps1'
+            Find = '$databases = @()'
+            Replace = '$databases = @(); if ($false) { $null = Invoke-TnspingProcess -TnspingPath ''x'' -WalletAlias ''x'' -OracleHome ''x'' }' }
+        @{ Function = 'Get-OracleDatabaseList'; Id = 'L1'; Label = 'a file write added'
+            File = 'Source/Public/Get-OracleDatabaseList.ps1'
+            Find = '$databases = @()'
+            Replace = '$databases = @(); if ($false) { Set-Content -Path ''x'' -Value ''x'' -WhatIf:$false }' }
+        @{ Function = 'Get-RmanBackupStatus'; Id = 'S3'; Label = 'user name placed in a verbose line'
+            File = 'Source/Public/Get-RmanBackupStatus.ps1'
+            Find = '(AuthMode: $authMode)"'
+            Replace = '(AuthMode: $authMode, user $($Credential.UserName))"' }
+        @{ Function = 'Set-OracleEnv'; Id = 'S2'; Label = 'another environment variable set'
+            File = 'Source/Public/Set-OracleEnv.ps1'
+            Find = '$env:ORACLE_SID = $SID'
+            Replace = '$env:ORACLE_SID = $SID; $env:TNS_ADMIN = ''x''' }
+        @{ Function = 'Set-OracleEnv'; Id = 'L3'; Label = 'a host line added'
+            File = 'Source/Public/Set-OracleEnv.ps1'
+            Find = 'Write-Verbose "[Set-OracleEnv] One instance found. Using SID ''$SID''."'
+            Replace = 'Write-Host "[Set-OracleEnv] One instance found. Using SID ''$SID''."' }
     )
 }

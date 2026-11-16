@@ -78,6 +78,13 @@ first final run stalled on this mutation and had to be stopped.
 |---|--:|--:|
 | The `Set-OracleEnv` split (`Invoke-OraEnv` S2, `Set-OracleEnv` R7) | 3, those two functions only | 3 |
 | Tests for 23 unproven invariants, 7 of them security | 60, all | 60 |
+| Static checks for 11 invariants | 71, all | 70; the 71st after a fix, below |
+
+The static run's control failed on one check: `ConvertFrom-SecureStringToPlaintext` S5
+passed in the static tier but threw under the StrictMode the script's child process sets.
+A helper returned one catch clause as a scalar rather than an array, and `.Count` on it
+throws under StrictMode. Wrapped in `@()`; the file passes under StrictMode too, and the
+function's 5 mutations are all caught.
 
 ## What this does not cover
 

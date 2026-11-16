@@ -79,7 +79,7 @@ function Set-OracleEnv {
     #       Test: 'S1 every call discovers the instances afresh; nothing is remembered'.
     #   [SEC] S2 Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are
     #       changed. Nothing is written to disk, the registry or another process.
-    #       Static: none yet.
+    #       Static: 'Set-OracleEnv S2 changes only ORACLE_SID, ORACLE_HOME and ORACLE_BASE, and writes nothing to disk, the registry or another process'.
     #   [SEC] S3 The catch block places the raw exception message in Message.
     #       Limitation: not scrubbed. Accepted because nothing in this function
     #       handles a credential.
@@ -112,7 +112,7 @@ function Set-OracleEnv {
     #   L3 It never prompts and never writes to the host: no Read-Host, no Write-Host.
     #       L1 (the Read-Host menu) and L2 (host output) are retired; both moved to
     #       Invoke-OraEnv.
-    #       Static: none yet.
+    #       Static: 'Set-OracleEnv L3 calls neither Read-Host nor Write-Host'.
     #--------------------------------------------------------------
 
     try {

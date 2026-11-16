@@ -64,10 +64,10 @@ function ConvertFrom-SecureStringToPlaintext {
     #       Limitation: the caller's duty. See Invoke-RmanProcess S2.
     #   [SEC] S2 The unmanaged buffer is zeroed and freed on every path.
     #       Guard: the finally block.
-    #       Test: none yet.
+    #       Static: 'ConvertFrom-SecureStringToPlaintext S2 zeroes and frees the buffer in a finally block'.
     #   [SEC] S3 This is the only place in the module that turns a secure value into
     #       plaintext.
-    #       Static: none yet.
+    #       Static: 'ConvertFrom-SecureStringToPlaintext S3 is the only function that reads plaintext out of a secure value'.
     #   [SEC] S4 The function is not exported and cannot be called from outside the module.
     #       Test: 'Function is not exported as a public command',
     #       'Is not callable outside module scope'.

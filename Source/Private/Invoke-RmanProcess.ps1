@@ -157,7 +157,7 @@ function Invoke-RmanProcess {
     #       Test: 'S1 no password reaches the process argument list (<Mode>)'.
     #   [SEC] S2 In NamedCredential mode the password is extracted inline at the stdin
     #       write and is never assigned to a variable.
-    #       Static: none yet.
+    #       Static: 'Invoke-RmanProcess S2 extracts the password only inside the stdin write, never into a variable'.
     #   [SEC] S3 ORACLE_HOME, ORACLE_SID, PATH and NLS_DATE_FORMAT are set on the child
     #       process only. The current session environment is not changed.
     #       Test: 'S3 <Mode> leaves the session environment unchanged, PATH included',
@@ -201,7 +201,7 @@ function Invoke-RmanProcess {
     #       Test: 'L2 writes the script, then EXIT;, then closes stdin'.
     #   L3 The process object is disposed on every path.
     #       Guard: the finally block.
-    #       Test: none yet.
+    #       Static: 'Invoke-RmanProcess L3 disposes the process in a finally block'.
     #   L4 The child PATH starts with OracleHome\bin, built with Join-Path and joined to
     #       the inherited PATH with [System.IO.Path]::PathSeparator.
     #       Test: 'L4 child PATH starts with OracleHome bin and the platform separator'.

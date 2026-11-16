@@ -30,6 +30,15 @@ Stack 3 of the AI Development Stack — tests. In progress.
   fake RMAN writes, since stdout is scrubbed), S4, S5, S6; `Get-RmanBackupStatus` S5;
   `Remove-RmanObsoleteBackup` S8; `Set-OracleEnv` S1 (no remembered instance list).
   Unproven invariants fall from 35 to 12.
+- Static checks for 11 invariants in `Tests/Static/SourceInvariants.Tests.ps1`, read from
+  the syntax tree: only `ConvertFrom-SecureStringToPlaintext` turns a secure value into
+  plaintext (S3), and it zeroes the buffer in a `finally` (S2); the password is extracted
+  only inside the stdin write (`Invoke-RmanProcess` S2); `ConvertFrom-RmanListBackup`
+  reads only its input (S1); `Get-OracleDatabaseList` connects to nothing and changes
+  nothing (S1, L1); `Get-RmanBackupStatus` hands Credential only to
+  `Invoke-RmanProcess` (S3); `Set-OracleEnv` changes only the three Oracle variables
+  and never prompts or writes to the host (S2, L3); both process wrappers dispose in a
+  `finally` (L3). One invariant remains unproven: `Invoke-RmanProcess` L5.
 
 ### Fixed
 
