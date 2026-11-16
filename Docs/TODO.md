@@ -405,7 +405,10 @@ secrets.
       nothing but that file may change between the commit it names and the pull request
       head. The gate's `evidence` check (with `-Base`); seeded cases `evidence current`
       and `evidence stale` pass, and it failed PR #2
-- [ ] Closing tasks
+- [x] Closing tasks
+      - [x] Record: `Docs\audit\stack-4-enforced-gate.md`
+      - [x] `CHANGELOG.md` 0.2.4 and tag `v0.2.4`
+      - [x] Write-up: Stack 4 post and project page row
 
 ### Stack 5 — Agent instructions
 
