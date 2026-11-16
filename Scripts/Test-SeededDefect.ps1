@@ -11,6 +11,8 @@
 
       control    the copy as it is, with -Unit       the gate passes, unit tier included
       lint       a $_ planted in a function          the gate fails on 'analyzer'
+      instructions  a rule added to Docs\standards\  the gate fails on 'static' only:
+                 without AGENTS.md regenerated       the agent would not be told it
       secret     a token committed in a file         the gate fails on 'secrets' and 'commits'
       message    a token in a commit message         the gate fails on 'messages'
       behaviour  Get-RmanBackupStatus picks the      the gate with -Unit fails on 'unit'
@@ -36,13 +38,13 @@
 .EXAMPLE
     .\Scripts\Test-SeededDefect.ps1
 
-    Runs the nine cases. Exits 0 when every case behaves as expected, 1 otherwise.
+    Runs the ten cases. Exits 0 when every case behaves as expected, 1 otherwise.
 
 .NOTES
     Copyright © TACE Data Management Inc.
     **Invocation:** Standalone — self-contained; safe to run with `pwsh -File`. Needs
     everything the gate needs (PREREQUISITES.md). Takes a few minutes: the gate, static
-    tier included, runs five times, twice with the unit tier.
+    tier included, runs ten times, twice with the unit tier.
 #>
 [CmdletBinding()]
 [OutputType([string])]
@@ -163,6 +165,14 @@ try {
     Add-Case -Name 'lint' -Result (Invoke-CopyGate) -ExpectFailed @('analyzer')
     $null = Invoke-CopyGit -Argument @('checkout', '--quiet', '--', 'Source/Private/Test-WindowsPlatform.ps1')
 
+    # -- instructions: a standard changed, AGENTS.md not regenerated -------------
+    $target = Join-Path -Path $copy -ChildPath 'Docs' -AdditionalChildPath 'standards', 'testing.md'
+    Assert-InCopy -Path $target
+    $rule = "- **T-99** — A seeded rule that AGENTS.md does not carry.`n  Example: none. *Review.*`n"
+    [System.IO.File]::AppendAllText($target, $rule, [System.Text.UTF8Encoding]::new($false))
+    Add-Case -Name 'instructions' -Result (Invoke-CopyGate) -ExpectFailed @('static')
+    $null = Invoke-CopyGit -Argument @('checkout', '--quiet', '--', 'Docs/standards/testing.md')
+
     # -- secret: a token committed in a file -----------------------------------
     $target = Join-Path -Path $copy -ChildPath 'Docs' -AdditionalChildPath 'seeded-note.md'
     Assert-InCopy -Path $target
@@ -234,7 +244,7 @@ finally {
 }
 
 $failedCases = @($cases | Where-Object { -not $PSItem.Passed })
-if ($failedCases.Count -gt 0 -or $cases.Count -ne 9) {
+if ($failedCases.Count -gt 0 -or $cases.Count -ne 10) {
     Write-Output "[FAIL] seeded defects: $($failedCases.Count) of $($cases.Count) cases did not behave as expected"
     exit 1
 }

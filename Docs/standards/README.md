@@ -43,7 +43,18 @@ map: each invariant is listed with the tests or static checks that prove it. A t
 `Tests\Static\` fails when a function has no block, an entry is malformed or names no
 proof, a cited test does not exist, or the committed index is out of date.
 
+## Agent instructions
+
+`AGENTS.md` at the repository root is generated from `coding.md`, `security.md`,
+`testing.md`, `documentation.md` and `invariants.md` by
+`Scripts\Export-AgentInstruction.ps1`, and is never edited by hand. Cursor reads it
+directly. Claude Code reads it through a local, gitignored `.claude\CLAUDE.md` that
+holds `@../AGENTS.md`. A test in `Tests\Static\` fails when the committed `AGENTS.md`
+does not match these files.
+
 ## Status
 
-Ratified 2026-11-14. Nothing here is enforced yet. Enforcement arrives layer by layer;
-until then, existing code that breaks a rule is a known finding, not a failure.
+Ratified 2026-11-14. Linter and Test rules are enforced by the gate,
+`Scripts\Invoke-Gate.ps1`, which CI runs on every pull request into `master`; a change
+that fails it cannot merge. Review rules need judgement and have no machine check; the
+review path arrives in Stack 6.

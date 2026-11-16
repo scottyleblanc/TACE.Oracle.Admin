@@ -416,7 +416,10 @@ secrets.
 `Docs\standards\`, the same source the gate enforces, and their effect on gate failures
 is measured.
 
-- [ ] Generate agent instruction files from `Docs\standards\`
+- [x] Generate agent instruction files from `Docs\standards\`. `AGENTS.md`, from
+      `Scripts\Export-AgentInstruction.ps1`, checked by
+      `Tests\Static\AgentInstruction.Tests.ps1`; Cursor reads it directly, Claude Code
+      through a local import (decision 34). Seeded case `instructions` fails on `static`
 - [ ] Run one small generation task with and without them; compare gate failures
 - [ ] Closing tasks
 
