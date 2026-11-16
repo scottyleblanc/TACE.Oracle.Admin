@@ -375,11 +375,11 @@ a local tier tests the code against a real Oracle database.
         the new `-Unit` switch (Scott's choice, decision 31) fails on `unit` alone; the
         one test that fails is the one R3 cites. Added to `Scripts\Test-SeededDefect.ps1`
         as a fifth case; all five pass. Record in `Docs\audit\stack-3-seeded-defect.md`
-- [ ] Closing tasks
+- [x] Closing tasks
       - [x] Records: `Docs\audit\stack-3-mutation.md`, `stack-3-integration.md`,
             `stack-3-seeded-defect.md`
       - [x] `CHANGELOG.md` 0.2.3 and tag `v0.2.3`
-      - [ ] Write-up: Stack 3 post and project page row
+      - [x] Write-up: Stack 3 post and project page row
 
 ### Stack 4 — Enforced gate
 
