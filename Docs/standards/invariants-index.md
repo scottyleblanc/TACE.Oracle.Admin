@@ -8,12 +8,12 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 | Measure | Count |
 |---|--:|
 | Functions | 14 |
-| Invariants | 155 |
+| Invariants | 159 |
 | Security invariants | 55 |
-| Proven (a cited test or static check) | 98 |
+| Proven (a cited test or static check) | 103 |
 | Unproven (test or static check not written yet) | 35 |
-| Unproven security invariants | 15 |
-| Accepted limitations | 22 |
+| Unproven security invariants | 14 |
+| Accepted limitations | 21 |
 
 ## Source/Private/Assert-OracleEnvironment.ps1
 
@@ -308,7 +308,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 ### Invoke-OraEnv
 
 - **P1** SID, when supplied, is a non-empty string. *(Type; Test, none yet)*
-- **S1** `[SEC]` The only text it writes is the Message returned by Set-OracleEnv. *(Test, none yet)*
+- **S2** `[SEC]` It writes to the host only the instance menu, the Message returned by Set-OracleEnv, an [ERROR] line, and under -Verbose the ORACLE_HOME and ORACLE_BASE values that were set. S1 (only the Message) is retired: the menu moved here from Set-OracleEnv. *(Test)*
+  - Test: 'S2 writes only the menu, the Message and the verbose paths to the host'
 - **R1** Nothing is written to the pipeline. *(Test)*
   - Test: 'Does not write to the pipeline on success'
 - **R2** When Set-OracleEnv fails, one [ERROR] line is written to the host. *(Test)*
@@ -316,7 +317,14 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **R3** SID and -Verbose are passed through to Set-OracleEnv unchanged. *(Test)*
   - Test: 'Calls Set-OracleEnv with the supplied SID'
   - Test: 'Shows ORACLE_HOME and ORACLE_BASE on host when -Verbose is specified'
+- **R4** With no SID and more than one instance it shows a numbered menu, reads the choice with Read-Host, and calls Set-OracleEnv with the chosen SID. *(Test)*
+  - Test: 'R4 several instances: shows a menu and calls Set-OracleEnv with the chosen SID'
+- **R5** An invalid choice writes one [ERROR] line and does not call Set-OracleEnv. *(Test)*
+  - Test: 'R5 an invalid choice writes one [ERROR] line and sets nothing (<Choice>)'
+- **R6** On success the Message returned by Set-OracleEnv is written to the host. *(Test)*
+  - Test: 'R6 on success writes the Message from Set-OracleEnv'
 - **T1** An exception from Set-OracleEnv is not caught here. *(Limitation)*
+- **L1** With no SID and more than one instance it prompts with Read-Host. *(Limitation)*
 
 ## Source/Public/Remove-RmanObsoleteBackup.ps1
 
@@ -387,5 +395,6 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'Does not set $env:ORACLE_SID'
 - **R6** Under -WhatIf, or a declined -Confirm, no variable is set and the return is a preview: Success = $true, Data.Applied = $false, and a Message that starts with 'WhatIf:' (rule C-27). *(Test)*
   - Test: 'R6 WhatIf sets no variable and returns a preview'
-- **L1** With no SID and more than one instance it prompts with Read-Host. *(Limitation)*
-- **L2** User-facing lines are written with Write-Host, by design, even when called from a script. *(Limitation)*
+- **R7** With no SID and more than one instance it sets nothing and returns Success = $false, with a Message that names every SID found and asks for -SID. *(Test)*
+  - Test: 'R7 several instances and no SID set nothing and list every SID'
+- **L3** It never prompts and never writes to the host: no Read-Host, no Write-Host. L1 (the Read-Host menu) and L2 (host output) are retired; both moved to Invoke-OraEnv. *(Static, none yet)*

@@ -200,7 +200,17 @@
             Find = '[ValidatePattern(''^[A-Za-z0-9_.-]*\z'')]'
             Replace = '[ValidatePattern(''^.*\z'')]' }
 
+        # --- Invoke-OraEnv -------------------------------------------------------------
+        @{ Function = 'Invoke-OraEnv'; Id = 'S2'; Label = 'an extra line written to the host'
+            File = 'Source/Public/Invoke-OraEnv.ps1'
+            Find = '    $result = Set-OracleEnv @callParams'
+            Replace = '    Write-Host "[Invoke-OraEnv] calling Set-OracleEnv"; $result = Set-OracleEnv @callParams' }
+
         # --- Set-OracleEnv -------------------------------------------------------------
+        @{ Function = 'Set-OracleEnv'; Id = 'R7'; Label = 'several instances: the first is used'
+            File = 'Source/Public/Set-OracleEnv.ps1'
+            Find = '            if ($databases.Count -eq 1) {'
+            Replace = '            if ($databases.Count -ge 1) {' }
         @{ Function = 'Set-OracleEnv'; Id = 'R4'; Label = 'no warning for a stopped service'
             File = 'Source/Public/Set-OracleEnv.ps1'
             Find = 'if ($serviceWarning)    { Write-Warning $serviceWarning }'

@@ -51,7 +51,7 @@
     **Invocation:** Standalone — self-contained; safe to run with `pwsh -File`. Needs
     git and Pester 5 (PREREQUISITES.md). Writes only inside its temporary copy.
 #>
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 [OutputType([string])]
 param(
     [Parameter()]

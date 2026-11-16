@@ -296,10 +296,15 @@ a local tier tests the code against a real Oracle database.
 - [ ] Bring every cited test to rule T-09: rename the cited tests whose title does not
       start with the IDs they prove (54 at the end of Stack 1), tag the security ones
       `SEC`, update the citations, and add the linter check
-- [ ] `Set-OracleEnv` is documented for scripts and automation, but writes to the host
+- [x] `Set-OracleEnv` is documented for scripts and automation, but writes to the host
       and can show a `Read-Host` menu (its L1, L2). Move the menu and host output into
       `Invoke-OraEnv`, the interactive wrapper, so `Set-OracleEnv` is silent and needs
       no `Write-Host` suppression. A behaviour change: decide it with its tests
+      - Done as agreed by Scott (2026-11-15). `Set-OracleEnv` with several instances
+        and no `-SID` returns `Success = $false` listing them (R7); L1 and L2 retired;
+        new L3 (no `Read-Host`, no `Write-Host`) is proven statically with the other
+        static rules. `Invoke-OraEnv` owns the menu and host output (R4 to R6, S2
+        replacing S1)
 - [ ] [SEC] Every security invariant has a test in a `Security` context
 - [ ] Measure coverage; set a floor in the gate script. The tests import the merged
       `.psm1`, so coverage is reported against `Output\` lines; map it back to `Source\`

@@ -36,6 +36,13 @@ Stack 3 of the AI Development Stack — tests. In progress.
 
 ### Changed
 
+- **Breaking:** `Set-OracleEnv` no longer prompts or writes to the host. With several
+  instances and no `-SID` it returns `Success = $false` with a Message listing them;
+  pass `-SID`. Its `Write-Host` suppression is removed. The menu, the confirmation line
+  and the `-Verbose` `ORACLE_HOME`/`ORACLE_BASE` lines moved to `Invoke-OraEnv`
+  (`oraset`, `oraenv`), which shows the Message from `Set-OracleEnv` on success.
+  Interactive use through the aliases is unchanged apart from the wording of the
+  confirmation line.
 - `Docs/standards/invariants-index.md` is now the invariant-to-test map: each invariant
   is followed by the tests or static checks that prove it. "Enforced" is replaced by
   "Proven"; a type or guard no longer counts as proven without a test.
