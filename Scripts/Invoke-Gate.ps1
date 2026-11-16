@@ -22,6 +22,16 @@
     "Not yet on a remote" means not reachable from any remote-tracking branch, as git
     last saw it. A branch never pushed has all its commits checked.
 
+    In CI every commit is already on a remote, so "not yet on a remote" would check
+    nothing. -Base names the branch a pull request merges into; with it, 'commits' and
+    'messages' check the commits in Base..HEAD instead, and one more check runs:
+
+      7. evidence   Rule T-14 (decision 30). When the commits since the merge base with
+                    Base change Source\, Tests\Integration\LastRun.json at HEAD must
+                    show a passing run on a clean tree (Evidence = true) of a commit
+                    that HEAD contains, and nothing but that file may change between
+                    that commit and HEAD. A change outside Source\ needs no evidence
+
     Found values are never printed in full: gitleaks runs with --redact, and a pattern
     match shows only its first characters.
 
@@ -35,7 +45,12 @@
                     database. Its own guards decide whether it may run; a failed guard
                     fails the check
 
-    They run after the six checks above, unit first. The pre-push hook passes neither.
+    They run after the checks above, unit first. The pre-push hook passes neither.
+
+.PARAMETER Base
+    The branch a pull request merges into, as a git revision (for example
+    origin/master). Checks commits in Base..HEAD instead of the unpushed ones, and adds
+    the 'evidence' check. CI passes it; the pre-push hook does not.
 
 .PARAMETER Unit
     Also run the unit tier, with its coverage floor.
@@ -52,7 +67,13 @@
 .EXAMPLE
     .\Scripts\Invoke-Gate.ps1 -Unit
 
-    Runs the gate, then the unit tier. This is what CI runs.
+    Runs the gate, then the unit tier.
+
+.EXAMPLE
+    .\Scripts\Invoke-Gate.ps1 -Unit -Base origin/master
+
+    Runs the gate over the commits a pull request adds to master, with the evidence
+    check, then the unit tier. This is what CI runs (.github\workflows\gate.yml).
 
 .EXAMPLE
     $env:ORACLE_ADMIN_RUN_INTEGRATION = '1'
@@ -69,6 +90,10 @@
 [CmdletBinding()]
 [OutputType([string])]
 param(
+    [Parameter()]
+    [ValidatePattern('^[A-Za-z0-9_][A-Za-z0-9_./-]*$')]
+    [string]$Base,
+
     [Parameter()]
     [switch]$Unit,
 
@@ -179,28 +204,42 @@ else {
     Add-Result -Name 'secrets' -Passed ($exit -eq 0) -Summary $(if ($exit -eq 0) { 'no leaks in the working tree' } else { 'leaks found in the working tree' }) -Detail @($out | Where-Object { $PSItem -match 'Finding|File|Line|RuleID|leaks found' })
 }
 
-$unpushed = @()
-if ($null -ne $git) {
-    $unpushed = @(& $git.Source -C $repoRoot rev-list HEAD --not --remotes 2>$null)
-    if ($LASTEXITCODE -ne 0) { $unpushed = $null }
+# Without -Base: commits not on any remote. With -Base: the commits a pull request adds.
+$baseCommit = $null
+$notReady   = $null
+if ($null -eq $git) {
+    $notReady = 'not run: git is not on PATH'
+}
+elseif ($Base) {
+    $baseCommit = @(& $git.Source -C $repoRoot rev-parse --verify --quiet "$Base^{commit}" 2>$null) | Select-Object -First 1
+    if ($LASTEXITCODE -ne 0 -or -not $baseCommit) { $notReady = "not run: base '$Base' is not a commit in this checkout" }
 }
 
-if ($null -eq $git -or $null -eq $unpushed) {
-    Add-Result -Name 'commits' -Passed $false -Summary 'not run: this is not a git checkout'
-    Add-Result -Name 'messages' -Passed $false -Summary 'not run: this is not a git checkout'
+$rangeArgs  = if ($Base) { @('HEAD', '--not', $baseCommit) } else { @('HEAD', '--not', '--remotes') }
+$rangeLabel = if ($Base) { "commit(s) since $Base" } else { 'unpushed commit(s)' }
+
+$unpushed = @()
+if ($null -eq $notReady) {
+    $unpushed = @(& $git.Source -C $repoRoot rev-list @rangeArgs 2>$null)
+    if ($LASTEXITCODE -ne 0) { $notReady = 'not run: this is not a git checkout' }
+}
+
+if ($null -ne $notReady) {
+    Add-Result -Name 'commits' -Passed $false -Summary $notReady
+    Add-Result -Name 'messages' -Passed $false -Summary $notReady
 }
 elseif ($unpushed.Count -eq 0) {
-    Add-Result -Name 'commits' -Passed $true -Summary 'no unpushed commits'
-    Add-Result -Name 'messages' -Passed $true -Summary 'no unpushed commits'
+    Add-Result -Name 'commits' -Passed $true -Summary "no $rangeLabel"
+    Add-Result -Name 'messages' -Passed $true -Summary "no $rangeLabel"
 }
 else {
     if (-not $gitleaksReady) {
         Add-Result -Name 'commits' -Passed $false -Summary "not run: gitleaks $requiredGitleaks is missing"
     }
     else {
-        $out = @(& $gitleaks.Source git $repoRoot --config $config --redact --no-banner --log-opts 'HEAD --not --remotes' 2>&1 | ForEach-Object { "$PSItem" })
+        $out = @(& $gitleaks.Source git $repoRoot --config $config --redact --no-banner --log-opts ($rangeArgs -join ' ') 2>&1 | ForEach-Object { "$PSItem" })
         $exit = $LASTEXITCODE
-        Add-Result -Name 'commits' -Passed ($exit -eq 0) -Summary $(if ($exit -eq 0) { "no leaks in $($unpushed.Count) unpushed commit(s)" } else { 'leaks found in unpushed commits' }) -Detail @($out | Where-Object { $PSItem -match 'Finding|File|Commit|RuleID|leaks found' })
+        Add-Result -Name 'commits' -Passed ($exit -eq 0) -Summary $(if ($exit -eq 0) { "no leaks in $($unpushed.Count) $rangeLabel" } else { "leaks found in $rangeLabel" }) -Detail @($out | Where-Object { $PSItem -match 'Finding|File|Commit|RuleID|leaks found' })
     }
 
     $patternFile = Join-Path -Path $repoRoot -ChildPath 'Tests' -AdditionalChildPath 'Lint', 'PublicRepoPatterns.psd1'
@@ -225,10 +264,63 @@ else {
     }
     if (-not $gitleaksReady) { $problems.Add("gitleaks $requiredGitleaks is missing, so messages were checked against the S-16 patterns only") }
 
-    Add-Result -Name 'messages' -Passed ($problems.Count -eq 0) -Summary "$($unpushed.Count) unpushed commit message(s), $($problems.Count) problem(s)" -Detail @($problems)
+    Add-Result -Name 'messages' -Passed ($problems.Count -eq 0) -Summary "messages of $($unpushed.Count) $rangeLabel, $($problems.Count) problem(s)" -Detail @($problems)
 }
 
-# -- 7. unit, only with -Unit ------------------------------------------------
+# -- 7. evidence, only with -Base --------------------------------------------
+
+if ($Base) {
+    $evidencePath = 'Tests/Integration/LastRun.json'
+    if ($null -ne $notReady) {
+        Add-Result -Name 'evidence' -Passed $false -Summary $notReady
+    }
+    else {
+        $changed       = @(& $git.Source -C $repoRoot diff --name-only "$baseCommit...HEAD" 2>$null)
+        $sourceChanged = @($changed | Where-Object { $PSItem -like 'Source/*' })
+        if ($sourceChanged.Count -eq 0) {
+            Add-Result -Name 'evidence' -Passed $true -Summary "Source\ not changed since $Base; no evidence needed"
+        }
+        else {
+            $evidenceProblems = [System.Collections.Generic.List[string]]::new()
+            $json = (& $git.Source -C $repoRoot show "HEAD:$evidencePath" 2>$null) -join "`n"
+            $run  = $null
+            if ($LASTEXITCODE -ne 0 -or -not $json) {
+                $evidenceProblems.Add("$evidencePath is not in HEAD")
+            }
+            else {
+                try { $run = $json | ConvertFrom-Json } catch { $evidenceProblems.Add("$evidencePath is not valid JSON") }
+            }
+            if ($null -ne $run) {
+                $runCommit = if ($run.PSObject.Properties['Commit']) { "$($run.Commit)" } else { '' }
+                if (-not ($run.PSObject.Properties['Evidence'] -and $run.Evidence -eq $true)) {
+                    $evidenceProblems.Add("$evidencePath does not show Evidence = true: the run failed or the tree was not clean")
+                }
+                if ($runCommit -notmatch '^[0-9a-f]{40}$') {
+                    $evidenceProblems.Add("$evidencePath names no commit")
+                }
+                else {
+                    $null = & $git.Source -C $repoRoot merge-base --is-ancestor $runCommit HEAD 2>$null
+                    if ($LASTEXITCODE -ne 0) {
+                        $evidenceProblems.Add("the run's commit $($runCommit.Substring(0, 7)) is not in HEAD's history")
+                    }
+                    else {
+                        $since = @(& $git.Source -C $repoRoot diff --name-only $runCommit HEAD 2>$null | Where-Object { $PSItem -ne $evidencePath })
+                        foreach ($path in $since) { $evidenceProblems.Add("changed after the run's commit $($runCommit.Substring(0, 7)): $path") }
+                    }
+                }
+            }
+            $summary = if ($evidenceProblems.Count -eq 0) {
+                "Source\ changed; LastRun.json is current for $($run.Commit.Substring(0, 7))"
+            }
+            else {
+                "Source\ changed; integration evidence is missing or stale (rule T-14)"
+            }
+            Add-Result -Name 'evidence' -Passed ($evidenceProblems.Count -eq 0) -Summary $summary -Detail @($evidenceProblems)
+        }
+    }
+}
+
+# -- 8. unit, only with -Unit ------------------------------------------------
 
 if ($Unit) {
     $unitScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-UnitTest.ps1'
@@ -246,7 +338,7 @@ if ($Unit) {
     Add-Result -Name 'unit' -Passed ($unitExit -eq 0) -Summary $summary -Detail $unitFailed
 }
 
-# -- 8. integration, only with -Integration ----------------------------------
+# -- 9. integration, only with -Integration ----------------------------------
 
 if ($Integration) {
     $integrationScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-IntegrationTest.ps1'

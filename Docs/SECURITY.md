@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.2.3 |
-| Last audit | 2026-11-16 — Stack 3 tests |
-| Findings resolved | Stack 3: 12 security invariants whose cited tests passed with the invariant broken now have tests that fail; every invariant is proven by a test or a static check; no defect in the module's security behaviour was found |
+| Version | 0.2.4 |
+| Last audit | 2026-11-16 — Stack 4 enforced gate |
+| Findings resolved | Stack 4: in CI the gate's commit checks would have checked nothing (every commit is on a remote); `-Base` makes them check the pull request's commits. `master` had no protection; a ruleset with no bypass now requires a passing gate |
 | Unit tests | 405 (all passing); 160 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
 | Open SEC items | 6 — see Open Items |
 
@@ -166,6 +166,30 @@ confirmation is the only gate.
 
 ---
 
+### 10. Enforced Gate (CI and `master` Protection)
+
+**Status:** Implemented at Stack 4.
+
+**Why:** a check that runs only on the author's machine can be skipped
+(`git push --no-verify`). The gate is enforced only when a change cannot reach `master`
+without passing it.
+
+**How:** `.github\workflows\gate.yml` runs `Scripts\Install-GateTool.ps1` and
+`Scripts\Invoke-Gate.ps1 -Unit -Base origin/master` on every pull request into
+`master`. The workflow has a read-only token, uses no secrets, triggers on
+`pull_request` only, keeps no credentials in the checkout, and pins its one action to a
+full commit SHA; the gitleaks download is checked against a pinned SHA-256. A ruleset on
+`master`, with no bypass list, requires a pull request and a passing `gate` check from
+the GitHub Actions app on a head that is up to date with `master`, allows merge commits
+only, and blocks force pushes and deletion. The repository allows only GitHub-owned,
+SHA-pinned actions, and secret scanning with push protection is on (decisions 32, 33).
+
+**Contract:** every commit on `master` after v0.2.3 arrived through a pull request whose
+head passed every gate check, unit tier included. The record is
+`Docs\audit\stack-4-enforced-gate.md`.
+
+---
+
 ## Open Items
 
 Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
@@ -201,6 +225,7 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | 2026-11-14 | 0.2.1 | 14 (5 `[SEC]`) | Stack 1 invariant review of all 14 functions. `[SEC]`: catalog parameters let caller text into the RMAN script and accepted an unused credential (removed); `-WhatIf` could write the config file and run `tnsping` (gate moved first); an environment variable chose the config file (replaced by a test-only override); `tnsping.exe` is unsigned like every Oracle binary (accepted, documented in section 4). Nine others fixed, among them a `tnsping` that could hang its caller indefinitely and a timeout kill that left child processes running. Details in `CHANGELOG.md` 0.2.1 and `TODO.md` Stack 1. |
 | 2026-11-15 | 0.2.2 | 3 (1 `[SEC]`) | Stack 2 deterministic checks. `[SEC]`: `-WalletAlias` reached the RMAN `CONNECT` line unvalidated (now `ValidatePattern` ending in `\z`). A caller's `-WhatIf` skipped creating the default config and its ACL, so a first run failed (writes pinned `-WhatIf:$false`; rule C-33 checks every such call). No check compares the repository against private identifiers (deferred, Open Items). gitleaks found nothing in the full history or the working tree. Details in `CHANGELOG.md` 0.2.2 and `Docs\audit\stack-2-seeded-defects.md`. |
 | 2026-11-16 | 0.2.3 | 12 (12 `[SEC]`) | Stack 3 tests. Every security invariant's proof was broken on purpose in a copy of the repository: for 12, the cited tests still passed, through tests that compared the session environment with an already-polluted value, credential tests run with no credential, or code the test never reached. All fixed and proven by the mutation script; no defect was in the module's own security behaviour. One behaviour defect, introduced in this stack and not security-related, was found and fixed (`Invoke-OraEnv` with no instance). Integration tests against Oracle Database 21c XE pass. Details in `CHANGELOG.md` 0.2.3 and `Docs\audit\stack-3-*.md`. |
+| 2026-11-16 | 0.2.4 | 2 (2 `[SEC]`) | Stack 4 enforced gate. `[SEC]`: in a CI checkout every commit is on a remote, so the gate's `commits` and `messages` checks would have passed having checked nothing (fixed with `-Base`, decision 32). `[SEC]`: `master` accepted direct pushes from anyone with write access, so the gate was advisory (fixed with a ruleset with no bypass, decision 33). The workflow runs with a read-only token, no secrets and a SHA-pinned action; secret scanning and push protection are on. A pull request carrying the seeded defects was blocked. No change to module code. Details in `CHANGELOG.md` 0.2.4 and `Docs\audit\stack-4-enforced-gate.md`. |
 
 ---
 

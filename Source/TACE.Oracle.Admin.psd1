@@ -8,7 +8,7 @@
 @{
     # Module identity
     RootModule        = 'TACE.Oracle.Admin.psm1'
-    ModuleVersion     = '0.2.3'
+    ModuleVersion     = '0.2.4'
     GUID              = '50e4f865-a551-4f83-beb1-329987147747'
     Author            = 'TACE Data Management Inc.'
     CompanyName       = 'TACE Data Management Inc.'
@@ -34,7 +34,7 @@
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell', 'oraset', 'oraenv')
             ProjectUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin'
             LicenseUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE'
-            ReleaseNotes = 'v0.2.3 — AI Development Stack, Stack 3 (tests): every invariant proven by a test or static check, a mutation check that each proof fails when its invariant is broken, a coverage floor, and a local integration tier against a real Oracle database with its results committed as evidence. Breaking: Set-OracleEnv no longer prompts or writes to the host; Invoke-OraEnv owns the menu. Not published to PSGallery.'
+            ReleaseNotes = 'v0.2.4 — AI Development Stack, Stack 4 (enforced gate): the gate runs in CI on every pull request, unit tier included, and master accepts a change only through a pull request that passes it; integration evidence must be current when the source changes. No change to module behaviour. Not published to PSGallery.'
         }
     }
 }
