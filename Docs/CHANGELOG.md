@@ -38,7 +38,11 @@ Stack 3 of the AI Development Stack — tests. In progress.
   nothing (S1, L1); `Get-RmanBackupStatus` hands Credential only to
   `Invoke-RmanProcess` (S3); `Set-OracleEnv` changes only the three Oracle variables
   and never prompts or writes to the host (S2, L3); both process wrappers dispose in a
-  `finally` (L3). One invariant remains unproven: `Invoke-RmanProcess` L5.
+  `finally` (L3).
+- `Invoke-RmanProcess` L5 split in two, so each claim has its own proof. L5, the
+  timeout kills the whole process tree, has a unit test that checks no child of the
+  fake RMAN survives. New L6, a failed kill or wait does not replace the timeout error,
+  has a static check of the timeout branch. No invariant is now unproven.
 
 ### Fixed
 

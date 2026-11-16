@@ -205,10 +205,13 @@ function Invoke-RmanProcess {
     #   L4 The child PATH starts with OracleHome\bin, built with Join-Path and joined to
     #       the inherited PATH with [System.IO.Path]::PathSeparator.
     #       Test: 'L4 child PATH starts with OracleHome bin and the platform separator'.
-    #   L5 A timeout kills the whole process tree. A failed kill does not replace the
-    #       timeout error, and the killed process is given 5 seconds to exit.
+    #   L5 A timeout kills the whole process tree, so no child of RMAN survives it.
+    #       Guard: Kill($true) in the timeout branch.
+    #       Test: 'L5 a timeout kills the child processes of RMAN as well'.
+    #   L6 After a timeout, a failed kill or a failed wait does not replace the timeout
+    #       error. The killed process is given 5 seconds to exit.
     #       Guard: the try blocks around Kill and WaitForExit in the timeout branch.
-    #       Test: none yet.
+    #       Static: 'Invoke-RmanProcess L6 the timeout branch guards Kill and WaitForExit and ends in the timeout throw'.
     #--------------------------------------------------------------
 
     $process = $null
@@ -294,7 +297,7 @@ function Invoke-RmanProcess {
         $completed = $process.WaitForExit($TimeoutSeconds * 1000)
 
         if (-not $completed) {
-            # T1, L5: kill the whole process tree, so no child keeps a pipe open. The
+            # T1, L5, L6: kill the whole process tree, so no child keeps a pipe open. The
             # process can exit between the timeout and the kill, and Kill() then throws;
             # that must not replace the timeout error. Then allow it a moment to exit.
             try { $process.Kill($true) } catch {

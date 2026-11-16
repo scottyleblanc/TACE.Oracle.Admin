@@ -295,6 +295,26 @@
             File = 'Source/Private/Invoke-RmanProcess.ps1'
             Find = '            $process.Dispose()'
             Replace = '            $null = $process' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'L5'; Label = 'timeout kills the parent process only'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = '$process.Kill($true)'
+            Replace = '$process.Kill($false)' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'L6'; Label = 'Kill not inside a try'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = 'try { $process.Kill($true) } catch {'
+            Replace = '$process.Kill($true); if ($false) {' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'L6'; Label = 'a failed kill rethrows'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = 'KILL on rman failed at $([datetime]::UtcNow.ToString(''o''))"'
+            Replace = 'KILL on rman failed at $([datetime]::UtcNow.ToString(''o''))"; throw $PSItem' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'L6'; Label = 'a failed wait rethrows'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = 'WAIT on killed rman failed at $([datetime]::UtcNow.ToString(''o''))"'
+            Replace = 'WAIT on killed rman failed at $([datetime]::UtcNow.ToString(''o''))"; throw $PSItem' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'L6'; Label = 'killed process given 100 ms, not 5 seconds'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = '$null = $process.WaitForExit(5000)'
+            Replace = '$null = $process.WaitForExit(100)' }
         @{ Function = 'Invoke-TnspingProcess'; Id = 'L3'; Label = 'process not disposed'
             File = 'Source/Private/Invoke-TnspingProcess.ps1'
             Find = 'if ($null -ne $proc) { $proc.Dispose() }'

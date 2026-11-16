@@ -174,6 +174,45 @@ Describe 'Source invariants' -Tag 'Static' {
         $disposes | Should -HaveCount 1
     }
 
+    It 'Invoke-RmanProcess L6 the timeout branch guards Kill and WaitForExit and ends in the timeout throw' {
+        # A unit test cannot make Kill() fail on demand: that needs the process to exit
+        # between the timeout and the kill. So the proof is the shape of the branch.
+        $function = Get-SourceFunction -RelativePath (Get-SourcePath 'Private' 'Invoke-RmanProcess') -Name 'Invoke-RmanProcess'
+        $function | Should -Not -BeNullOrEmpty
+        $branches = @(Find-Node -Ast $function.Body -Type ([System.Management.Automation.Language.IfStatementAst]) |
+            Where-Object { $PSItem.Clauses[0].Item1.Extent.Text -eq '-not $completed' })
+        $branches | Should -HaveCount 1
+        $body = $branches[0].Clauses[0].Item2
+
+        # The branch ends in the timeout throw.
+        $last = $body.Statements[$body.Statements.Count - 1]
+        $last | Should -BeOfType ([System.Management.Automation.Language.ThrowStatementAst])
+        $last.Extent.Text | Should -BeLike '*timed out after*'
+
+        # Kill and WaitForExit each sit in a try, directly in the branch, whose catches
+        # do not throw.
+        foreach ($member in @('Kill', 'WaitForExit')) {
+            $calls = @(Find-Node -Ast $body -Type ([System.Management.Automation.Language.InvokeMemberExpressionAst]) |
+                Where-Object { $PSItem.Member.Extent.Text -eq $member -and $PSItem.Expression.Extent.Text -eq '$process' })
+            $calls | Should -HaveCount 1 -Because "the timeout branch calls $member once"
+            $try = $calls[0].Parent
+            while ($null -ne $try -and $try -isnot [System.Management.Automation.Language.TryStatementAst]) { $try = $try.Parent }
+            $try | Should -Not -BeNullOrEmpty -Because "$member must be inside a try"
+            [object]::ReferenceEquals($try.Parent, $body) | Should -BeTrue -Because "the try around $member must sit directly in the timeout branch"
+            $try.CatchClauses.Count | Should -BeGreaterThan 0
+            $throws = @($try.CatchClauses | ForEach-Object {
+                    Find-Node -Ast $PSItem -Type ([System.Management.Automation.Language.ThrowStatementAst])
+                })
+            $throws | Should -HaveCount 0 -Because "a failed $member must not replace the timeout error"
+        }
+
+        # The killed process is given 5 seconds to exit.
+        $wait = @(Find-Node -Ast $body -Type ([System.Management.Automation.Language.InvokeMemberExpressionAst]) |
+            Where-Object { $PSItem.Member.Extent.Text -eq 'WaitForExit' })
+        @($wait[0].Arguments).Count | Should -Be 1
+        $wait[0].Arguments[0].Extent.Text | Should -Be '5000'
+    }
+
     It 'Invoke-TnspingProcess L3 disposes the process in a finally block' {
         $function = Get-SourceFunction -RelativePath (Get-SourcePath 'Private' 'Invoke-TnspingProcess') -Name 'Invoke-TnspingProcess'
         $disposes = @(Get-FinallyBlock -Ast $function.Body | ForEach-Object {

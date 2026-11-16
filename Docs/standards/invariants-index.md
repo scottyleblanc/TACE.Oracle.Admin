@@ -8,10 +8,10 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 | Measure | Count |
 |---|--:|
 | Functions | 14 |
-| Invariants | 159 |
+| Invariants | 160 |
 | Security invariants | 55 |
-| Proven (a cited test or static check) | 137 |
-| Unproven (test or static check not written yet) | 1 |
+| Proven (a cited test or static check) | 139 |
+| Unproven (test or static check not written yet) | 0 |
 | Unproven security invariants | 0 |
 | Accepted limitations | 21 |
 
@@ -198,7 +198,10 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Static: 'Invoke-RmanProcess L3 disposes the process in a finally block'
 - **L4** The child PATH starts with OracleHome\bin, built with Join-Path and joined to the inherited PATH with [System.IO.Path]::PathSeparator. *(Test)*
   - Test: 'L4 child PATH starts with OracleHome bin and the platform separator'
-- **L5** A timeout kills the whole process tree. A failed kill does not replace the timeout error, and the killed process is given 5 seconds to exit. *(Guard; Test, none yet)*
+- **L5** A timeout kills the whole process tree, so no child of RMAN survives it. *(Guard; Test)*
+  - Test: 'L5 a timeout kills the child processes of RMAN as well'
+- **L6** After a timeout, a failed kill or a failed wait does not replace the timeout error. The killed process is given 5 seconds to exit. *(Guard; Static)*
+  - Static: 'Invoke-RmanProcess L6 the timeout branch guards Kill and WaitForExit and ends in the timeout throw'
 
 ## Source/Private/Invoke-TnspingProcess.ps1
 

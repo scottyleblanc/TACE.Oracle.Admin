@@ -1246,6 +1246,45 @@ Describe 'Invoke-RmanProcess' {
             $env:ORACLE_HOME | Should -Be $homeBefore
         }
 
+        It 'L5 a timeout kills the child processes of RMAN as well' {
+            # The fake RMAN is cmd.exe running ping.exe as a child. Killing only cmd.exe
+            # would leave ping running. The ping count is unique to this test, so its
+            # process can be told apart from any other ping on the host.
+            $treeCmd = Join-Path $TestDrive 'fakerManTree.cmd'
+            Set-Content -Path $treeCmd -Encoding ASCII -Value "@ping -n 43 127.0.0.1 >nul`r`n@echo Recovery Manager complete."
+            $findChild = {
+                @(Get-CimInstance -ClassName Win32_Process -Filter "Name = 'PING.EXE'" |
+                    Where-Object { $PSItem.CommandLine -like '*-n 43 127.0.0.1*' })
+            }
+            try {
+                {
+                    InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $treeCmd; FakeHome = $script:fakeOracleHome } {
+                        param($FakeCmd, $FakeHome)
+                        $params = @{
+                            RmanBinaryPath = $FakeCmd
+                            RmanScript     = 'LIST BACKUP SUMMARY;'
+                            OracleHome     = $FakeHome
+                            OracleSid      = 'ORCL'
+                            TimeoutSeconds = 2
+                        }
+                        Invoke-RmanProcess @params
+                    }
+                } | Should -Throw -ExpectedMessage '*timed out after 2 seconds*'
+
+                # Allow up to 5 seconds for the killed tree to leave the process table.
+                $watch = [System.Diagnostics.Stopwatch]::StartNew()
+                $survivors = @(& $findChild)
+                while ($survivors.Count -gt 0 -and $watch.Elapsed.TotalSeconds -lt 5) {
+                    Start-Sleep -Milliseconds 250
+                    $survivors = @(& $findChild)
+                }
+                $survivors.Count | Should -Be 0 -Because 'no child of the timed-out RMAN may survive the kill'
+            }
+            finally {
+                & $findChild | ForEach-Object { Stop-Process -Id $PSItem.ProcessId -Force -ErrorAction SilentlyContinue }
+            }
+        }
+
         It 'L4 child PATH starts with OracleHome bin and the platform separator' {
             $result = InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanPathCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)

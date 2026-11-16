@@ -292,7 +292,7 @@ a local tier tests the code against a real Oracle database.
         security mutations survived, across 12 invariants. Nine non-security citations
         were also weak. All fixed; final run 44 of 44 caught. Record in
         `Docs\audit\stack-3-mutation.md`. Rule T-11 (environment sentinels) added
-  - [ ] Fill the gaps: 35 unproven (15 security), of which 7 are static checks
+  - [x] Fill the gaps: 35 unproven (15 security), of which 7 are static checks
     - [x] 23 proven by new unit tests, each security one with a mutation: the
           parameter checks, the throw prefixes, the ORACLE_HOME fallback, column
           positions, the default config path, and in `Invoke-RmanProcess` the argument
@@ -302,9 +302,10 @@ a local tier tests the code against a real Oracle database.
           dispose in `finally` in both process wrappers (L3). Twelve checks in
           `Tests\Static\SourceInvariants.Tests.ps1`, each reading the syntax tree, each
           with a mutation. Built at Scott's request (2026-11-15) for review after the fact
-    - [ ] `Invoke-RmanProcess` L5: the tree kill can be tested, the "failed kill does
-          not replace the timeout error" part cannot without faking .NET. Needs a
-          decision: split the entry, or let one entry carry both a test and a static check
+    - [x] `Invoke-RmanProcess` L5: the tree kill can be tested, the "failed kill does
+          not replace the timeout error" part cannot without faking .NET. Scott chose to
+          split it (2026-11-16): L5 the tree kill, by a unit test; L6 the failed kill or
+          wait, by a static check. One proof per entry, so the format is unchanged
 - [ ] Bring every cited test to rule T-09: rename the cited tests whose title does not
       start with the IDs they prove (54 at the end of Stack 1), tag the security ones
       `SEC`, update the citations, and add the linter check

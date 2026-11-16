@@ -79,6 +79,7 @@ first final run stalled on this mutation and had to be stopped.
 | The `Set-OracleEnv` split (`Invoke-OraEnv` S2, `Set-OracleEnv` R7) | 3, those two functions only | 3 |
 | Tests for 23 unproven invariants, 7 of them security | 60, all | 60 |
 | Static checks for 11 invariants | 71, all | 70; the 71st after a fix, below |
+| `Invoke-RmanProcess` L5 split into L5 (unit test) and L6 (static check) | 20, that function only | 20 |
 
 The static run's control failed on one check: `ConvertFrom-SecureStringToPlaintext` S5
 passed in the static tier but threw under the StrictMode the script's child process sets.
@@ -88,10 +89,12 @@ function's 5 mutations are all caught.
 
 ## What this does not cover
 
-- 35 invariants have no proof yet (`Test: none yet` or `Static: none yet`), 15 of them
-  security. There is nothing to mutate until their tests exist.
+- Every Type and Guard entry now has a proof, but only the security entries are
+  required to have a mutation. The non-security entries are mutated where a citation
+  was found weak or a proof was added in Stack 3.
 - A mutation shows that one specific break is caught, not every possible one. The
   mutations target the line that enforces each invariant.
-- The script runs locally and takes about 15 minutes. It is not part of the gate.
+- The script runs locally and takes about 20 minutes for all mutations. It is not part
+  of the gate.
 - Every unit test that starts a fake RMAN or tnsping uses a `.cmd` file, so these runs
   are Windows only. Linux is a later Stack 3 task.
