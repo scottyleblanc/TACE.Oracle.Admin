@@ -72,6 +72,13 @@ for good, as it should, because that is the deadlock L1 prevents. The script kil
 run that passes its timeout and counts it as caught. Before that timeout existed, the
 first final run stalled on this mutation and had to be stopped.
 
+## Later runs
+
+| After | Mutations | Caught |
+|---|--:|--:|
+| The `Set-OracleEnv` split (`Invoke-OraEnv` S2, `Set-OracleEnv` R7) | 3, those two functions only | 3 |
+| Tests for 23 unproven invariants, 7 of them security | 60, all | 60 |
+
 ## What this does not cover
 
 - 35 invariants have no proof yet (`Test: none yet` or `Static: none yet`), 15 of them

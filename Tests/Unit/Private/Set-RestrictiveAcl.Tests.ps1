@@ -79,6 +79,29 @@ Describe 'Set-RestrictiveAcl' {
             }
         }
 
+        It 'R1 returns nothing' {
+            $target = Join-Path $TestDrive 'r1_returns_nothing'
+            $null = New-Item -Path $target -ItemType Directory -Force
+            $output = InModuleScope TACE.Oracle.Admin -Parameters @{ P = $target } {
+                param($P)
+                Set-RestrictiveAcl -Path $P
+            }
+            @($output) | Should -HaveCount 0
+        }
+
+        It 'T1 a failure throws with the prefix and the path' {
+            $missing = Join-Path $TestDrive 'no_such_path'
+            $message = $null
+            try {
+                InModuleScope TACE.Oracle.Admin -Parameters @{ P = $missing } {
+                    param($P)
+                    Set-RestrictiveAcl -Path $P
+                }
+            }
+            catch { $message = $PSItem.Exception.Message }
+            $message | Should -BeLike "Failed to apply restrictive ACL to '$missing':*"
+        }
+
         It 'Throws when Path does not exist on disk' {
             InModuleScope TACE.Oracle.Admin {
                 { Set-RestrictiveAcl -Path 'C:\Does\Not\Exist\path' } | Should -Throw

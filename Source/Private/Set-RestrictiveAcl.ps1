@@ -86,9 +86,9 @@ function Set-RestrictiveAcl {
     # POST-CONDITIONS
     #   R1 Returns nothing.
     #       Type: OutputType void.
-    #       Test: none yet.
+    #       Test: 'R1 returns nothing'.
     #   T1 Every throw starts with 'Failed to apply restrictive ACL to' and names the path.
-    #       Test: none yet.
+    #       Test: 'T1 a failure throws with the prefix and the path'.
     #
     # EXECUTION INVARIANTS
     #   L1 Permissions are changed without a ShouldProcess check of its own, and a

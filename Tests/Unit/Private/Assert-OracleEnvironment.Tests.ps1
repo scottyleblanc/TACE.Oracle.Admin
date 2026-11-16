@@ -261,6 +261,75 @@ Describe 'Assert-OracleEnvironment' {
 
     # ── Security ──────────────────────────────────────────────────────────────
 
+    Context 'Throw prefix and ORACLE_HOME fallback' {
+
+        BeforeAll {
+            # A home with both binaries, for the tnsping failure path.
+            $script:fullHome = Join-Path $TestDrive 'fullhome'
+            $null = New-Item -Path (Join-Path $script:fullHome 'bin') -ItemType Directory -Force
+            $null = New-Item -Path (Join-Path $script:fullHome 'bin' 'rman.exe') -ItemType File -Force
+            $null = New-Item -Path (Join-Path $script:fullHome 'bin' 'tnsping.exe') -ItemType File -Force
+        }
+
+        BeforeEach {
+            Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
+                [PSCustomObject]@{ Status = 'Valid'; SignerCertificate = [PSCustomObject]@{ Subject = 'CN=Oracle America Inc' } }
+            }
+            Mock -CommandName Invoke-TnspingProcess -ModuleName TACE.Oracle.Admin -MockWith {
+                [PSCustomObject]@{ ExitCode = 1; StdOut = 'TNS-03505: Failed to resolve name'; StdErr = '' }
+            }
+        }
+
+        It 'T1 every throw starts with the validation prefix (<Case>)' -ForEach @(
+            @{ Case = 'no home configured' }
+            @{ Case = 'home does not exist' }
+            @{ Case = 'binary missing' }
+            @{ Case = 'signature HashMismatch' }
+            @{ Case = 'tnsping fails' }
+        ) {
+            if ($Case -eq 'signature HashMismatch') {
+                Mock -CommandName Get-AuthenticodeSignature -ModuleName TACE.Oracle.Admin -MockWith {
+                    [PSCustomObject]@{ Status = 'HashMismatch'; SignerCertificate = [PSCustomObject]@{ Subject = 'CN=Oracle America Inc' } }
+                }
+            }
+            $call = switch ($Case) {
+                'no home configured'     { @{ OracleHome = '' } }
+                'home does not exist'    { @{ OracleHome = (Join-Path $TestDrive 'missing-home') } }
+                'binary missing'         { @{ OracleHome = $script:fakeOracleHome; Binary = 'absent.exe' } }
+                'signature HashMismatch' { @{ OracleHome = $script:fakeOracleHome } }
+                'tnsping fails'          { @{ OracleHome = $script:fullHome; WalletAlias = 'MY_ALIAS' } }
+            }
+            $saved = $env:ORACLE_HOME
+            $env:ORACLE_HOME = ''
+            try {
+                $message = $null
+                try {
+                    InModuleScope TACE.Oracle.Admin -Parameters @{ Call = $call } {
+                        param($Call)
+                        Assert-OracleEnvironment @Call
+                    }
+                }
+                catch { $message = $PSItem.Exception.Message }
+            }
+            finally {
+                $env:ORACLE_HOME = $saved
+            }
+            $message | Should -BeLike 'Oracle environment validation failed: *'
+        }
+
+        It 'L1 an empty OracleHome falls back to ORACLE_HOME and returns the binary under its bin folder' {
+            $saved = $env:ORACLE_HOME
+            $env:ORACLE_HOME = $script:fakeOracleHome
+            try {
+                $result = InModuleScope TACE.Oracle.Admin { Assert-OracleEnvironment -OracleHome '' }
+            }
+            finally {
+                $env:ORACLE_HOME = $saved
+            }
+            $result | Should -Be (Join-Path $script:fakeOracleHome 'bin' 'rman.exe')
+        }
+    }
+
     Context 'Security' {
 
         BeforeEach {

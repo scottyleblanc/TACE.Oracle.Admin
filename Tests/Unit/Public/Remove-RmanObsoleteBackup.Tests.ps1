@@ -72,6 +72,12 @@ Describe 'Remove-RmanObsoleteBackup' {
             $isMandatory | Should -Not -BeNullOrEmpty
         }
 
+        It 'P1 DatabaseName rejects an empty string' {
+            $param = (Get-Command Remove-RmanObsoleteBackup).Parameters['DatabaseName']
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidateNotNullOrEmptyAttribute] }) |
+                Should -Not -BeNullOrEmpty
+        }
+
         It 'Supports WhatIf' {
             $cmd = Get-Command Remove-RmanObsoleteBackup
             $cmd.Parameters.ContainsKey('WhatIf') | Should -Be $true
@@ -281,6 +287,16 @@ Describe 'Remove-RmanObsoleteBackup' {
             }
             Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Confirm:$false | Out-Null
             $script:capturedScript | Should -BeExactly 'DELETE NOPROMPT OBSOLETE;'
+        }
+
+        It 'S8 exception text is scrubbed before it is placed in Message' -Tag 'SEC' {
+            Mock -CommandName Assert-OracleEnvironment -ModuleName TACE.Oracle.Admin -MockWith {
+                throw 'tnsping failed for backup_user/Gr8Backup!Pwd77@ORCL'
+            }
+            $result = Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Confirm:$false
+            $result.Success | Should -BeFalse
+            $result.Message | Should -Match 'SCRUBBED'
+            $result.Message | Should -Not -Match 'Gr8Backup!Pwd77'
         }
 
         It 'Message should not contain credential fragments' {

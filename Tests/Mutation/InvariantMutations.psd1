@@ -46,6 +46,14 @@
             File = 'Source/Private/Assert-OracleEnvironment.ps1'
             Find = '$tnsErrScrubbed = Invoke-CredentialScrub -Content $tnsResult.StdErr'
             Replace = '$tnsErrScrubbed = $tnsResult.StdErr' }
+        @{ Function = 'Assert-OracleEnvironment'; Id = 'T1'; Label = 'throw prefix changed'
+            File = 'Source/Private/Assert-OracleEnvironment.ps1'
+            Find = 'throw "Oracle environment validation failed: $($PSItem.Exception.Message)"'
+            Replace = 'throw "Oracle environment check failed: $($PSItem.Exception.Message)"' }
+        @{ Function = 'Assert-OracleEnvironment'; Id = 'L1'; Label = 'ORACLE_HOME fallback removed'
+            File = 'Source/Private/Assert-OracleEnvironment.ps1'
+            Find = '$resolvedHome = $env:ORACLE_HOME'
+            Replace = '$resolvedHome = ''''' }
         @{ Function = 'Assert-OracleEnvironment'; Id = 'S8'; Label = 'ORACLE_HOME set on the session'
             File = 'Source/Private/Assert-OracleEnvironment.ps1'
             Find = '        return $binaryPath'
@@ -74,6 +82,11 @@
             Find = '$configPath = if (-not [string]::IsNullOrWhiteSpace($script:ConfigPathOverride)) {'
             Replace = '$configPath = if (-not [string]::IsNullOrWhiteSpace($env:ORACLE_BACKUP_CONFIG_PATH)) { $env:ORACLE_BACKUP_CONFIG_PATH } elseif (-not [string]::IsNullOrWhiteSpace($script:ConfigPathOverride)) {' }
 
+        @{ Function = 'Get-OracleBackupConfigStore'; Id = 'T1'; Label = 'throw prefix changed'
+            File = 'Source/Private/Get-OracleBackupConfigStore.ps1'
+            Find = 'throw "Failed to load OracleBackup configuration from'
+            Replace = 'throw "Could not load OracleBackup configuration from' }
+
         # --- Invoke-CredentialScrub ----------------------------------------------------
         @{ Function = 'Invoke-CredentialScrub'; Id = 'S1'; Label = 'password kept'
             File = 'Source/Private/Invoke-CredentialScrub.ps1'
@@ -101,6 +114,34 @@
             File = 'Source/Private/Invoke-RmanProcess.ps1'
             Find = 'else { $binDir + [System.IO.Path]::PathSeparator + $childPath }'
             Replace = 'else { $env:PATH = $binDir + [System.IO.Path]::PathSeparator + $childPath; $env:PATH }' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'S1'; Label = 'NamedCredential connect string put in the arguments'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = '$psi.Arguments = '''''
+            Replace = '$psi.Arguments = "target $($Credential.UserName)/$($Credential.GetNetworkCredential().Password)@$ServiceAlias"' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'S4'; Label = 'stdout not scrubbed'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = '$stdOut = Invoke-CredentialScrub -Content $stdOut'
+            Replace = '$stdOut = $stdOut' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'S4'; Label = 'stderr not scrubbed'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = '$stdErr = Invoke-CredentialScrub -Content $stdErr'
+            Replace = '$stdErr = $stdErr' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'S5'; Label = 'exception message not scrubbed'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = '$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message'
+            Replace = '$safeMessage = $PSItem.Exception.Message' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'S6'; Label = 'password in the verbose line'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = 'service=''$ServiceAlias''"'
+            Replace = 'service=''$ServiceAlias'' pw=''$($Credential.GetNetworkCredential().Password)''"' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'L2'; Label = 'EXIT; not written'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = '$process.StandardInput.WriteLine(''EXIT;'')'
+            Replace = '$null = 0' }
+        @{ Function = 'Invoke-RmanProcess'; Id = 'L2'; Label = 'stdin left open'
+            File = 'Source/Private/Invoke-RmanProcess.ps1'
+            Find = '$process.StandardInput.Close()'
+            Replace = '$null = 0' }
         @{ Function = 'Invoke-RmanProcess'; Id = 'R1'; Label = 'extra property returned'
             File = 'Source/Private/Invoke-RmanProcess.ps1'
             Find = '            AuthMode = $authMode'
@@ -138,6 +179,11 @@
             Find = '$inheritanceFlags = if ($item.PSIsContainer) {'
             Replace = '$inheritanceFlags = if ($false) {' }
 
+        @{ Function = 'Set-RestrictiveAcl'; Id = 'T1'; Label = 'throw prefix changed'
+            File = 'Source/Private/Set-RestrictiveAcl.ps1'
+            Find = 'throw "Failed to apply restrictive ACL to'
+            Replace = 'throw "Could not apply restrictive ACL to' }
+
         # --- Get-OracleDatabaseList ----------------------------------------------------
         @{ Function = 'Get-OracleDatabaseList'; Id = 'R1'; Label = 'unsupported platform returns an extra property'
             File = 'Source/Public/Get-OracleDatabaseList.ps1'
@@ -153,6 +199,10 @@
             File = 'Source/Public/Get-RmanBackupStatus.ps1'
             Find = '"Most recent backup for ''$DatabaseName'': $($mostRecent.Level)'
             Replace = '"$(if ($null -ne $Credential) { "$($Credential.UserName)/$($Credential.GetNetworkCredential().Password)@$DatabaseName " })Most recent backup for ''$DatabaseName'': $($mostRecent.Level)' }
+        @{ Function = 'Get-RmanBackupStatus'; Id = 'S5'; Label = 'exception text not scrubbed'
+            File = 'Source/Public/Get-RmanBackupStatus.ps1'
+            Find = '$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message'
+            Replace = '$safeMessage = $PSItem.Exception.Message' }
         @{ Function = 'Get-RmanBackupStatus'; Id = 'S6'; Label = 'WalletAlias pattern loosened'
             File = 'Source/Public/Get-RmanBackupStatus.ps1'
             Find = '[ValidatePattern(''^[A-Za-z0-9_.-]*\z'')]'
@@ -195,6 +245,10 @@
             File = 'Source/Public/Remove-RmanObsoleteBackup.ps1'
             Find = '$deleteScript = ''DELETE NOPROMPT OBSOLETE;'''
             Replace = '$deleteScript = "DELETE NOPROMPT OBSOLETE; # $DatabaseName"' }
+        @{ Function = 'Remove-RmanObsoleteBackup'; Id = 'S8'; Label = 'exception text not scrubbed'
+            File = 'Source/Public/Remove-RmanObsoleteBackup.ps1'
+            Find = '$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message'
+            Replace = '$safeMessage = $PSItem.Exception.Message' }
         @{ Function = 'Remove-RmanObsoleteBackup'; Id = 'S10'; Label = 'WalletAlias pattern loosened'
             File = 'Source/Public/Remove-RmanObsoleteBackup.ps1'
             Find = '[ValidatePattern(''^[A-Za-z0-9_.-]*\z'')]'
@@ -207,6 +261,10 @@
             Replace = '    Write-Host "[Invoke-OraEnv] calling Set-OracleEnv"; $result = Set-OracleEnv @callParams' }
 
         # --- Set-OracleEnv -------------------------------------------------------------
+        @{ Function = 'Set-OracleEnv'; Id = 'S1'; Label = 'the instance list is cached in the module'
+            File = 'Source/Public/Set-OracleEnv.ps1'
+            Find = '$listResult = Get-OracleDatabaseList'
+            Replace = 'if ($null -eq $script:TaceCachedList) { $script:TaceCachedList = Get-OracleDatabaseList }; $listResult = $script:TaceCachedList' }
         @{ Function = 'Set-OracleEnv'; Id = 'R7'; Label = 'several instances: the first is used'
             File = 'Source/Public/Set-OracleEnv.ps1'
             Find = '            if ($databases.Count -eq 1) {'

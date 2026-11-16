@@ -67,7 +67,7 @@ function Set-OracleEnv {
     # PRE-CONDITIONS
     #   P1 SID, when supplied, is a non-empty string.
     #       Type: ValidateNotNullOrEmpty.
-    #       Test: none yet.
+    #       Test: 'P1 SID rejects an empty string'.
     #   P2 A supplied SID matches an instance discovered on this host.
     #       Guard: the match check returns Success = $false when there is none.
     #       Test: 'Message lists valid SIDs'.
@@ -76,7 +76,7 @@ function Set-OracleEnv {
     #   [SEC] S1 The list of valid SIDs always comes from live discovery, never from a
     #       stored list.
     #       Guard: the Get-OracleDatabaseList call at the start of every run.
-    #       Test: none yet.
+    #       Test: 'S1 every call discovers the instances afresh; nothing is remembered'.
     #   [SEC] S2 Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are
     #       changed. Nothing is written to disk, the registry or another process.
     #       Static: none yet.

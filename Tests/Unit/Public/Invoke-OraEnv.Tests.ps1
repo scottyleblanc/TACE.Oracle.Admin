@@ -58,6 +58,12 @@ Describe 'Invoke-OraEnv' {
             $params = (Get-Command Invoke-OraEnv).Parameters['SID']
             $params.ParameterType | Should -Be ([string])
         }
+
+        It 'P1 SID rejects an empty string' {
+            $param = (Get-Command Invoke-OraEnv).Parameters['SID']
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidateNotNullOrEmptyAttribute] }) |
+                Should -Not -BeNullOrEmpty
+        }
     }
 
     Context 'Implementation - SID pass-through' {

@@ -41,6 +41,39 @@ Describe 'Invoke-TnspingProcess' {
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
     }
 
+    Context 'Parameter validation' {
+
+        It 'P1 <Name> is mandatory and rejects an empty string' -ForEach @(
+            @{ Name = 'TnspingPath' }
+            @{ Name = 'WalletAlias' }
+            @{ Name = 'OracleHome' }
+        ) {
+            $param = InModuleScope TACE.Oracle.Admin -Parameters @{ Name = $Name } {
+                param($Name)
+                (Get-Command Invoke-TnspingProcess).Parameters[$Name]
+            }
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ParameterAttribute] -and $PSItem.Mandatory }) |
+                Should -Not -BeNullOrEmpty
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidateNotNullOrEmptyAttribute] }) |
+                Should -Not -BeNullOrEmpty
+        }
+
+        It 'P2 TimeoutSeconds is limited to 1 to 300 and defaults to 30' {
+            $param = InModuleScope TACE.Oracle.Admin { (Get-Command Invoke-TnspingProcess).Parameters['TimeoutSeconds'] }
+            $range = @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidateRangeAttribute] })
+            $range | Should -HaveCount 1
+            $range[0].MinRange | Should -Be 1
+            $range[0].MaxRange | Should -Be 300
+
+            $default = InModuleScope TACE.Oracle.Admin {
+                $ast = (Get-Command Invoke-TnspingProcess).ScriptBlock.Ast
+                $ast.Body.ParamBlock.Parameters | Where-Object { $PSItem.Name.VariablePath.UserPath -eq 'TimeoutSeconds' } |
+                    ForEach-Object { $PSItem.DefaultValue.Extent.Text }
+            }
+            $default | Should -Be '30'
+        }
+    }
+
     Context 'Implementation' {
 
         It 'R1 returns exactly ExitCode, StdOut and StdErr' {

@@ -123,6 +123,23 @@ Describe 'ConvertFrom-RmanListBackup' {
             $records[0].CompletionTime | Should -BeNullOrEmpty
         }
 
+        It 'L1 reads the column positions from the separator line' {
+            # The Key column is three characters wider than the usual layout, so every
+            # later column starts three characters further right. Fixed positions would
+            # read the wrong cells.
+            $wide = '---------- -- -- - ----------- ------------------- ------- ------- ---------- ---'
+            $row  = '        91 B  F  A DISK        2026-02-01 02:00:00  3       1       YES        TAG20260201T020000'
+            $records = Invoke-Parse -RawLog (New-RmanListing -Separator $wide -Row $row)
+            $records | Should -HaveCount 1
+            $records[0].Key            | Should -Be 91
+            $records[0].Level          | Should -Be 'Full'
+            $records[0].DeviceType     | Should -Be 'DISK'
+            $records[0].CompletionTime | Should -Be ([datetime]'2026-02-01 02:00:00')
+            $records[0].PieceCount     | Should -Be 3
+            $records[0].Compressed     | Should -BeTrue
+            $records[0].Tag            | Should -Be 'TAG20260201T020000'
+        }
+
         It 'L2 skips a row whose Key is not a positive integer' {
             $rows = @(
                 '    abc B  F  A DISK        2026-02-01 02:00:00  1       1       NO         TAG20260201T020000'

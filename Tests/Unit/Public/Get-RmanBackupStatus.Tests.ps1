@@ -340,6 +340,16 @@ Recovery Manager complete.
             $result.Message | Should -Not -Match 'backup_user'
         }
 
+        It 'S5 exception text is scrubbed before it is placed in Message' -Tag 'SEC' {
+            Mock -CommandName Assert-OracleEnvironment -ModuleName TACE.Oracle.Admin -MockWith {
+                throw 'tnsping failed for backup_user/Gr8Backup!Pwd77@ORCL'
+            }
+            $result = Get-RmanBackupStatus -DatabaseName 'ORCL'
+            $result.Success | Should -BeFalse
+            $result.Message | Should -Match 'SCRUBBED'
+            $result.Message | Should -Not -Match 'Gr8Backup!Pwd77'
+        }
+
         It 'Message should not contain credential fragments' {
             $result = Get-RmanBackupStatus -DatabaseName 'ORCL'
             $result.Message | Should -Not -Match '\w+/\w+@\w+'

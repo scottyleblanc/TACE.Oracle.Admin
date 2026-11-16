@@ -51,10 +51,10 @@
     # PRE-CONDITIONS
     #   P1 TnspingPath, WalletAlias and OracleHome are non-empty strings.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
-    #       Test: none yet.
+    #       Test: 'P1 <Name> is mandatory and rejects an empty string'.
     #   P2 TimeoutSeconds is between 1 and 300. It defaults to 30.
     #       Type: ValidateRange.
-    #       Test: none yet.
+    #       Test: 'P2 TimeoutSeconds is limited to 1 to 300 and defaults to 30'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 ORACLE_HOME and PATH are set on the child process only. The current

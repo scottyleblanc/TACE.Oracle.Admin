@@ -239,6 +239,53 @@ Describe 'Invoke-RmanProcess' {
                 } | Should -Throw
             }
         }
+
+        It 'P1 <Name> is mandatory in every parameter set and rejects an empty string' -ForEach @(
+            @{ Name = 'RmanBinaryPath' }
+            @{ Name = 'RmanScript' }
+            @{ Name = 'OracleHome' }
+        ) {
+            $param = InModuleScope TACE.Oracle.Admin -Parameters @{ Name = $Name } {
+                param($Name)
+                (Get-Command Invoke-RmanProcess).Parameters[$Name]
+            }
+            $sets = @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ParameterAttribute] })
+            $sets | Should -Not -BeNullOrEmpty
+            foreach ($set in $sets) {
+                $set.Mandatory | Should -BeTrue -Because "$Name in set $($set.ParameterSetName)"
+            }
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidateNotNullOrEmptyAttribute] }) |
+                Should -Not -BeNullOrEmpty
+        }
+
+        It 'P2 each authentication mode is its own parameter set, with its own mandatory parameters' {
+            $command = InModuleScope TACE.Oracle.Admin { Get-Command Invoke-RmanProcess }
+            @($command.ParameterSets.Name | Sort-Object) | Should -Be @('NamedCredential', 'OSAuth', 'WalletAuth')
+            $expected = @{
+                OSAuth          = @('OracleSid')
+                WalletAuth      = @('WalletAlias')
+                NamedCredential = @('Credential', 'ServiceAlias')
+            }
+            foreach ($set in $command.ParameterSets) {
+                $modeParams = @($set.Parameters | Where-Object { $PSItem.Name -in @('OracleSid', 'WalletAlias', 'ServiceAlias', 'Credential') })
+                @($modeParams.Name | Sort-Object) | Should -Be $expected[$set.Name] -Because "set $($set.Name)"
+                foreach ($modeParam in $modeParams) {
+                    $modeParam.IsMandatory | Should -BeTrue -Because "$($modeParam.Name) in set $($set.Name)"
+                }
+            }
+        }
+
+        It 'P2 OracleSid and ServiceAlias are mutually exclusive — binding both throws' {
+            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
+                param($FakeCmd, $FakeHome)
+                $cred = [PSCredential]::new('rman_user', (ConvertTo-SecureString 'TestPass1!' -AsPlainText -Force))
+                $params = @{
+                    RmanBinaryPath = $FakeCmd; RmanScript = 'BACKUP DATABASE;'; OracleHome = $FakeHome
+                    OracleSid = 'ORCL'; ServiceAlias = 'ORCL_SVC'; Credential = $cred
+                }
+                { Invoke-RmanProcess @params } | Should -Throw
+            }
+        }
     }
 
     # ── Implementation — OSAuth ────────────────────────────────────────────────
@@ -267,6 +314,26 @@ Describe 'Invoke-RmanProcess' {
                     -OracleSid 'ORCL'
                 $result.Success | Should -Be $true
             }
+        }
+
+        It 'L2 writes the script, then EXIT;, then closes stdin' {
+            # The fake echoes stdin until it closes. If stdin stayed open it would block
+            # until the timeout and the call would throw.
+            $echoCmd = Join-Path $TestDrive 'fakerManEcho.cmd'
+            Set-Content -Path $echoCmd -Encoding ASCII -Value "@findstr `"^`"`r`n@echo Recovery Manager complete."
+            $result = InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $echoCmd; FakeHome = $script:fakeOracleHome } {
+                param($FakeCmd, $FakeHome)
+                $params = @{
+                    RmanBinaryPath = $FakeCmd
+                    RmanScript     = 'LIST BACKUP SUMMARY;'
+                    OracleHome     = $FakeHome
+                    OracleSid      = 'ORCL'
+                    TimeoutSeconds = 20
+                }
+                Invoke-RmanProcess @params
+            }
+            $lines = @($result.StdOut -split "`r?`n" | Where-Object { $PSItem.Trim() -ne '' })
+            $lines | Should -Be @('LIST BACKUP SUMMARY;', 'EXIT;', 'Recovery Manager complete.')
         }
 
         It 'L1 an RMAN process that floods stderr still completes' {
@@ -817,6 +884,82 @@ Describe 'Invoke-RmanProcess' {
                 $changed = & (Join-Path $PSScriptRoot '..' 'Compare-EnvironmentSentinel.ps1') -Snapshot $sentinel
             }
             ($changed -join ', ') | Should -BeNullOrEmpty
+        }
+
+        It 'S1 no password reaches the process argument list (<Mode>)' -Tag 'SEC' -ForEach @(
+            @{ Mode = 'OSAuth' }
+            @{ Mode = 'WalletAuth' }
+            @{ Mode = 'NamedCredential' }
+        ) {
+            # The fake writes its arguments to a file, not stdout: stdout is scrubbed and
+            # would hide a user/password@service argument.
+            $argsFile = Join-Path $TestDrive "rman-args-$Mode.txt"
+            $argsCmd  = Join-Path $TestDrive "fakerManArgs-$Mode.cmd"
+            Set-Content -Path $argsCmd -Encoding ASCII -Value "@echo ARGS=[%*]> `"$argsFile`"`r`n@echo Recovery Manager complete."
+            InModuleScope TACE.Oracle.Admin -Parameters @{
+                FakeCmd = $argsCmd; FakeHome = $script:fakeOracleHome; Mode = $Mode; Cred = $script:secTestCred
+            } {
+                param($FakeCmd, $FakeHome, $Mode, $Cred)
+                $params = @{ RmanBinaryPath = $FakeCmd; RmanScript = 'BACKUP DATABASE;'; OracleHome = $FakeHome; Credential = $Cred }
+                switch ($Mode) {
+                    'OSAuth'          { $params.Remove('Credential'); $params['OracleSid'] = 'ORCL' }
+                    'WalletAuth'      { $params.Remove('Credential'); $params['WalletAlias'] = 'ORCL_WALLET' }
+                    'NamedCredential' { $params['ServiceAlias'] = 'ORCL_SVC' }
+                }
+                Invoke-RmanProcess @params | Out-Null
+            }
+            $recorded = Get-Content -Path $argsFile -Raw
+            $recorded | Should -Match 'ARGS='
+            $recorded | Should -Not -Match ([regex]::Escape($script:secTestPassword))
+        }
+
+        It 'S4 a credential in stdout or stderr is scrubbed before it is returned' -Tag 'SEC' {
+            $leakCmd = Join-Path $TestDrive 'fakerManLeak.cmd'
+            Set-Content -Path $leakCmd -Encoding ASCII -Value (
+                "@echo CONNECT backup_user/$($script:secTestPassword)@ORCL_SVC`r`n@echo CONNECT backup_user/$($script:secTestPassword)@ORCL_SVC 1>&2`r`n@echo Recovery Manager complete.")
+            $result = InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $leakCmd; FakeHome = $script:fakeOracleHome } {
+                param($FakeCmd, $FakeHome)
+                Invoke-RmanProcess -RmanBinaryPath $FakeCmd -RmanScript 'BACKUP DATABASE;' -OracleHome $FakeHome -OracleSid 'ORCL'
+            }
+            $result.StdOut | Should -Match 'SCRUBBED'
+            $result.StdErr | Should -Match 'SCRUBBED'
+            $result.StdOut | Should -Not -Match ([regex]::Escape($script:secTestPassword))
+            $result.StdErr | Should -Not -Match ([regex]::Escape($script:secTestPassword))
+        }
+
+        It 'S5 an exception message is scrubbed before it is re-thrown' -Tag 'SEC' {
+            # A binary path that does not exist and has the shape of a connect string: the
+            # start failure names the path, so the scrub is what keeps the password out.
+            $badPath = (Join-Path $TestDrive 'nope') + "\backup_user/$($script:secTestPassword)@ORCL_SVC.exe"
+            $message = $null
+            try {
+                InModuleScope TACE.Oracle.Admin -Parameters @{ Bad = $badPath; FakeHome = $script:fakeOracleHome } {
+                    param($Bad, $FakeHome)
+                    Invoke-RmanProcess -RmanBinaryPath $Bad -RmanScript 'BACKUP DATABASE;' -OracleHome $FakeHome -OracleSid 'ORCL'
+                }
+            }
+            catch { $message = $PSItem.Exception.Message }
+            $message | Should -BeLike 'RMAN process invocation failed: *'
+            $message | Should -Match 'SCRUBBED'
+            $message | Should -Not -Match ([regex]::Escape($script:secTestPassword))
+        }
+
+        It 'S6 verbose output names the mode and user but never the password' -Tag 'SEC' {
+            $verbose = InModuleScope TACE.Oracle.Admin -Parameters @{
+                FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome; Cred = $script:secTestCred
+            } {
+                param($FakeCmd, $FakeHome, $Cred)
+                $params = @{
+                    RmanBinaryPath = $FakeCmd; RmanScript = 'BACKUP DATABASE;'; OracleHome = $FakeHome
+                    ServiceAlias = 'ORCL_SVC'; Credential = $Cred; Verbose = $true
+                }
+                Invoke-RmanProcess @params 4>&1 | Where-Object { $PSItem -is [System.Management.Automation.VerboseRecord] } |
+                    ForEach-Object { $PSItem.Message }
+            }
+            $text = @($verbose) -join "`n"
+            $text | Should -Match 'NamedCredential'
+            $text | Should -Match 'backup_user'
+            $text | Should -Not -Match ([regex]::Escape($script:secTestPassword))
         }
 
         # [SEC] WalletAuth: ArgumentList contains alias in safe form — not a password

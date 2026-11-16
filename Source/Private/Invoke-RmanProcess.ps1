@@ -133,11 +133,14 @@ function Invoke-RmanProcess {
     # PRE-CONDITIONS
     #   P1 RmanBinaryPath, RmanScript and OracleHome are non-empty strings.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
-    #       Test: none yet.
+    #       Test: 'P1 <Name> is mandatory in every parameter set and rejects an empty string'.
     #   P2 Exactly one authentication mode is chosen: OracleSid (OSAuth), WalletAlias
     #       (WalletAuth), or ServiceAlias with Credential (NamedCredential).
     #       Type: parameter sets.
-    #       Test: none yet.
+    #       Test: 'P2 each authentication mode is its own parameter set, with its own mandatory parameters',
+    #       'P2 OracleSid and ServiceAlias are mutually exclusive — binding both throws',
+    #       'OracleSid and WalletAlias are mutually exclusive — binding both throws',
+    #       'WalletAlias and ServiceAlias are mutually exclusive — binding both throws'.
     #   P3 TimeoutSeconds is between 1 and 86400.
     #       Type: ValidateRange.
     #       Test: 'TimeoutSeconds has ValidateRange with minimum 1',
@@ -151,7 +154,7 @@ function Invoke-RmanProcess {
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 No password is placed in the process argument list, in any mode.
-    #       Test: none yet.
+    #       Test: 'S1 no password reaches the process argument list (<Mode>)'.
     #   [SEC] S2 In NamedCredential mode the password is extracted inline at the stdin
     #       write and is never assigned to a variable.
     #       Static: none yet.
@@ -160,13 +163,12 @@ function Invoke-RmanProcess {
     #       Test: 'S3 <Mode> leaves the session environment unchanged, PATH included',
     #       'NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment'.
     #   [SEC] S4 Stdout and stderr are scrubbed before they are returned.
-    #       Test: none yet. The existing 'does not contain the plaintext password' tests
-    #       run a fake RMAN that never echoes its input, so they pass without the scrub.
+    #       Test: 'S4 a credential in stdout or stderr is scrubbed before it is returned'.
     #   [SEC] S5 An exception message is scrubbed before it is re-thrown.
-    #       Test: none yet.
+    #       Test: 'S5 an exception message is scrubbed before it is re-thrown'.
     #   [SEC] S6 Verbose output names the mode and the SID, alias or user name. It never
     #       holds a password.
-    #       Test: none yet.
+    #       Test: 'S6 verbose output names the mode and user but never the password'.
     #   [SEC] S7 The WalletAlias placed in the argument list is a connection name, not a
     #       credential.
     #       Limitation: true by definition of a TNS alias. Nothing checks the value.
@@ -196,7 +198,7 @@ function Invoke-RmanProcess {
     #       'SEC-04: stdout is captured correctly when the RMAN process also writes to stderr'.
     #   L2 EXIT; is written after the script, and stdin is then closed.
     #       Guard: the three StandardInput calls that follow the script write.
-    #       Test: none yet.
+    #       Test: 'L2 writes the script, then EXIT;, then closes stdin'.
     #   L3 The process object is disposed on every path.
     #       Guard: the finally block.
     #       Test: none yet.

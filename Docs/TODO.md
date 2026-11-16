@@ -293,6 +293,16 @@ a local tier tests the code against a real Oracle database.
         were also weak. All fixed; final run 44 of 44 caught. Record in
         `Docs\audit\stack-3-mutation.md`. Rule T-11 (environment sentinels) added
   - [ ] Fill the gaps: 35 unproven (15 security), of which 7 are static checks
+    - [x] 23 proven by new unit tests, each security one with a mutation: the
+          parameter checks, the throw prefixes, the ORACLE_HOME fallback, column
+          positions, the default config path, and in `Invoke-RmanProcess` the argument
+          list, output and exception scrubbing, verbose output and the stdin sequence
+    - [ ] The static checks (8 entries), plus three guards a unit test cannot observe:
+          the buffer zeroing in `ConvertFrom-SecureStringToPlaintext` (S2) and the
+          dispose in `finally` in both process wrappers (L3)
+    - [ ] `Invoke-RmanProcess` L5: the tree kill can be tested, the "failed kill does
+          not replace the timeout error" part cannot without faking .NET. Needs a
+          decision: split the entry, or let one entry carry both a test and a static check
 - [ ] Bring every cited test to rule T-09: rename the cited tests whose title does not
       start with the IDs they prove (54 at the end of Stack 1), tag the security ones
       `SEC`, update the citations, and add the linter check

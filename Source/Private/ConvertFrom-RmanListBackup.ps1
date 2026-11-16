@@ -90,7 +90,7 @@ function ConvertFrom-RmanListBackup {
     # EXECUTION INVARIANTS
     #   L1 Column positions are taken from the separator line, not hard-coded.
     #       Guard: the column start scan.
-    #       Test: none yet.
+    #       Test: 'L1 reads the column positions from the separator line'.
     #   L2 A row whose Key is not a positive integer is skipped.
     #       Guard: the TryParse check at the start of the row loop.
     #       Test: 'L2 skips a row whose Key is not a positive integer'.

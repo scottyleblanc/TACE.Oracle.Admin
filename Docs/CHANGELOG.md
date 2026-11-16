@@ -25,6 +25,11 @@ Stack 3 of the AI Development Stack — tests. In progress.
   T-11: session-environment tests set known values first and compare every variable.
 - `Tests/Static/SourceInvariants.Tests.ps1`, the static checks cited on `Static:` lines.
   The first: `ConvertFrom-SecureStringToPlaintext` S5.
+- Tests for 23 invariants that had none, among them 7 security invariants:
+  `Invoke-RmanProcess` S1 (no password in the argument list, checked from a file the
+  fake RMAN writes, since stdout is scrubbed), S4, S5, S6; `Get-RmanBackupStatus` S5;
+  `Remove-RmanObsoleteBackup` S8; `Set-OracleEnv` S1 (no remembered instance list).
+  Unproven invariants fall from 35 to 12.
 
 ### Fixed
 

@@ -46,7 +46,8 @@ function Get-OracleBackupConfigStore {
     #   P1 The config file is Config\OracleBackup.json under the module folder, unless
     #       the module-scoped test override $script:ConfigPathOverride is set.
     #       Guard: the path resolution at the start of the body.
-    #       Test: none yet.
+    #       Test: 'P1 reads Config\OracleBackup.json under the module folder when no override is set',
+    #       'P1 reads the override path when one is set'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 A config file created here is given restricted permissions straight
@@ -70,7 +71,7 @@ function Get-OracleBackupConfigStore {
     #       Test: 'R2 writes the defaults to the override path when the file is absent'.
     #   T1 Every throw starts with 'Failed to load OracleBackup configuration from' and
     #       names the path.
-    #       Test: none yet.
+    #       Test: 'T1 a file it cannot read throws with the prefix and the path'.
     #
     # EXECUTION INVARIANTS
     #   L1 The first call creates the folder, the file and its ACL even when the caller

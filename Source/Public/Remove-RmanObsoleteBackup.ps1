@@ -59,7 +59,8 @@ function Remove-RmanObsoleteBackup {
     # PRE-CONDITIONS
     #   P1 DatabaseName is a non-empty string.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
-    #       Test: none yet.
+    #       Test: 'DatabaseName is mandatory',
+    #       'P1 DatabaseName rejects an empty string'.
     #   P2 WalletAlias and Credential are not both supplied.
     #       Guard: the check at the start of the body returns Success = $false.
     #       Test: 'Returns Success=$false when both WalletAlias and Credential are specified'.
@@ -81,7 +82,7 @@ function Remove-RmanObsoleteBackup {
     #       Test: 'S4, S5 no part of a named credential reaches Message or the RMAN script',
     #       'Message should not contain credential fragments'.
     #   [SEC] S8 Exception text is scrubbed before it is placed in Message.
-    #       Test: none yet. No test raises an exception that carries a credential.
+    #       Test: 'S8 exception text is scrubbed before it is placed in Message'.
     #   [SEC] S5 The RMAN script holds no credential.
     #       Test: 'S4, S5 no part of a named credential reaches Message or the RMAN script',
     #       'RMAN script should not contain credential fragments'.

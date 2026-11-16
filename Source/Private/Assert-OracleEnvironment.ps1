@@ -130,7 +130,7 @@ function Assert-OracleEnvironment {
     #   R1 Returns the full path of the validated binary.
     #       Test: 'Returns the binary path when all checks pass (valid Oracle signature, SYSTEM owner)'.
     #   T1 Every throw starts with 'Oracle environment validation failed:'.
-    #       Test: none yet.
+    #       Test: 'T1 every throw starts with the validation prefix (<Case>)'.
     #   T2 The error for a missing OracleHome names the two ways to set one: OracleHome in
     #       Config\OracleBackup.json, or the ORACLE_HOME environment variable.
     #       Test: 'T2 the missing-home error names the config file and ORACLE_HOME'.
@@ -141,7 +141,7 @@ function Assert-OracleEnvironment {
     #       recovers the validated home from that path.
     #       Guard: callers derive the home from the returned path. See Get-RmanBackupStatus
     #       L3 and Remove-RmanObsoleteBackup L2.
-    #       Test: none yet.
+    #       Test: 'L1 an empty OracleHome falls back to ORACLE_HOME and returns the binary under its bin folder'.
     #--------------------------------------------------------------
 
     try {

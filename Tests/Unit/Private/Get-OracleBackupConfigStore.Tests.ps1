@@ -92,6 +92,48 @@ Describe 'Get-OracleBackupConfigStore' {
             }
         }
 
+        It 'P1 reads Config\OracleBackup.json under the module folder when no override is set' {
+            InModuleScope TACE.Oracle.Admin { $script:ConfigPathOverride = $null }
+            Mock -CommandName Test-Path -ModuleName TACE.Oracle.Admin -MockWith { $true }
+            Mock -CommandName Get-Content -ModuleName TACE.Oracle.Admin -MockWith { $script:fullConfigJson }
+
+            InModuleScope TACE.Oracle.Admin { Get-OracleBackupConfigStore } | Out-Null
+
+            Should -Invoke -CommandName Get-Content -ModuleName TACE.Oracle.Admin -Times 1 -Exactly -ParameterFilter {
+                $Path -eq $script:defaultConfigPath
+            }
+        }
+
+        It 'P1 reads the override path when one is set' {
+            $target = Join-Path $TestDrive 'p1' 'OracleBackup.json'
+            $null = New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent)
+            Set-Content -Path $target -Value $script:fullConfigJson -Encoding UTF8
+            InModuleScope TACE.Oracle.Admin -Parameters @{ Path = $target } { $script:ConfigPathOverride = $Path }
+            try {
+                Mock -CommandName Get-Content -ModuleName TACE.Oracle.Admin -MockWith { $script:fullConfigJson }
+                InModuleScope TACE.Oracle.Admin { Get-OracleBackupConfigStore } | Out-Null
+                Should -Invoke -CommandName Get-Content -ModuleName TACE.Oracle.Admin -Times 1 -Exactly -ParameterFilter { $Path -eq $target }
+            }
+            finally {
+                InModuleScope TACE.Oracle.Admin { $script:ConfigPathOverride = $null }
+            }
+        }
+
+        It 'T1 a file it cannot read throws with the prefix and the path' {
+            $target = Join-Path $TestDrive 't1' 'OracleBackup.json'
+            $null = New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent)
+            Set-Content -Path $target -Value '{ not json' -Encoding UTF8
+            InModuleScope TACE.Oracle.Admin -Parameters @{ Path = $target } { $script:ConfigPathOverride = $Path }
+            try {
+                $message = $null
+                try { InModuleScope TACE.Oracle.Admin { Get-OracleBackupConfigStore } } catch { $message = $PSItem.Exception.Message }
+                $message | Should -BeLike "Failed to load OracleBackup configuration from '$target':*"
+            }
+            finally {
+                InModuleScope TACE.Oracle.Admin { $script:ConfigPathOverride = $null }
+            }
+        }
+
         It 'L1 creates the folder, file and ACL even when the caller runs under -WhatIf' {
             $target = Join-Path $TestDrive 'l1' 'Config' 'OracleBackup.json'
             InModuleScope TACE.Oracle.Admin -Parameters @{ Path = $target } {

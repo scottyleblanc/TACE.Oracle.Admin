@@ -33,6 +33,12 @@ Describe 'Set-OracleEnv' {
             $params.ParameterType | Should -Be ([string])
         }
 
+        It 'P1 SID rejects an empty string' {
+            $param = (Get-Command Set-OracleEnv).Parameters['SID']
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ValidateNotNullOrEmptyAttribute] }) |
+                Should -Not -BeNullOrEmpty
+        }
+
         It 'Supports -WhatIf' {
             (Get-Command Set-OracleEnv).Parameters.ContainsKey('WhatIf') | Should -BeTrue
         }
@@ -504,6 +510,22 @@ Describe 'Set-OracleEnv' {
             $env:ORACLE_SID  = $null
             $env:ORACLE_HOME = $null
             $env:ORACLE_BASE = $null
+        }
+
+        It 'S1 every call discovers the instances afresh; nothing is remembered' -Tag 'SEC' {
+            Set-OracleEnv -SID 'ORCL' | Select-Object -ExpandProperty Success | Should -BeTrue
+
+            # The host now has only CDB1. A stored list would still accept ORCL.
+            Mock Get-OracleDatabaseList {
+                [PSCustomObject]@{
+                    Success = $true
+                    Data    = @([PSCustomObject]@{ SID = 'CDB1'; Status = 'Running'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' })
+                    Message = 'Found 1 Oracle database instance(s).'
+                }
+            } -ModuleName 'TACE.Oracle.Admin'
+            $second = Set-OracleEnv -SID 'ORCL'
+            $second.Success | Should -BeFalse
+            $second.Message | Should -Match 'CDB1'
         }
 
         It 'Message contains no credential fragments' {

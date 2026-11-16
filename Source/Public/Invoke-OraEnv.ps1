@@ -56,7 +56,7 @@ function Invoke-OraEnv {
     # PRE-CONDITIONS
     #   P1 SID, when supplied, is a non-empty string.
     #       Type: ValidateNotNullOrEmpty.
-    #       Test: none yet.
+    #       Test: 'P1 SID rejects an empty string'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S2 It writes to the host only the instance menu, the Message returned by

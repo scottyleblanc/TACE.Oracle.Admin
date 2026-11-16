@@ -21,6 +21,18 @@ Describe 'Invoke-CredentialScrub' {
         Remove-Module TACE.Oracle.Admin -Force -ErrorAction SilentlyContinue
     }
 
+    Context 'Parameter validation' {
+
+        It 'P1 Content is a mandatory string that accepts an empty string' {
+            $param = InModuleScope TACE.Oracle.Admin { (Get-Command Invoke-CredentialScrub).Parameters['Content'] }
+            $param.ParameterType | Should -Be ([string])
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.ParameterAttribute] -and $PSItem.Mandatory }) |
+                Should -Not -BeNullOrEmpty
+            @($param.Attributes | Where-Object { $PSItem -is [System.Management.Automation.AllowEmptyStringAttribute] }) |
+                Should -Not -BeNullOrEmpty
+        }
+    }
+
     Context 'Implementation' {
 
         It 'Invoke-CredentialScrub returns clean content unchanged' {

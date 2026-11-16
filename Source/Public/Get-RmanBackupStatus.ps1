@@ -84,7 +84,7 @@ function Get-RmanBackupStatus {
     #       'Message should not contain credential fragments',
     #       '[SEC] Message does not contain credential fragments when WalletAlias is used'.
     #   [SEC] S5 Exception text is scrubbed before it is placed in Message.
-    #       Test: none yet. No test raises an exception that carries a credential.
+    #       Test: 'S5 exception text is scrubbed before it is placed in Message'.
     #   [SEC] S3 Credential is handed to Invoke-RmanProcess and to nothing else. It is
     #       never logged or returned.
     #       Static: none yet.
