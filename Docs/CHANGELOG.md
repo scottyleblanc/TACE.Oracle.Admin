@@ -101,6 +101,14 @@ Stack 3 of the AI Development Stack — tests. In progress.
   discovery fails, finds nothing, or `Set-OracleEnv` returns nothing, and an RMAN row
   that ends before its last columns. The 17 commands left are recorded in `Docs/TODO.md`
   by reason.
+- Signing references in `Assert-OracleEnvironment`, its tests and `Docs/SECURITY.md` now
+  state only the fact: Oracle binaries are not signed. The claims that Oracle signs
+  distribution archives, and the references to the old design decision, are removed.
+  The tests' pass-through mocks return `NotSigned`, the real state; one test keeps a
+  valid Oracle-signed mock to cover the accepting side of the signer check. `R1` is
+  retitled without "valid Oracle signature, SYSTEM owner"; the owner is not checked.
+  The RMAN functions' integrity-failure mocks use `HashMismatch`, since `NotSigned`
+  never fails the check.
 
 ---
 

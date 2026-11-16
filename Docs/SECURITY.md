@@ -80,8 +80,7 @@ is not Oracle's. A wallet alias is resolved with `tnsping` before RMAN is starte
 **Contract:** `ORACLE_HOME` from configuration or the environment is untrusted
 input and is validated before use in any path or process start.
 
-**Limit:** Oracle does not sign individual executables. On a 21c home every binary
-checked (`rman.exe`, `tnsping.exe`, `sqlplus.exe`, `oracle.exe`) reports `NotSigned`,
+**Limit:** Oracle binaries are not signed. On a 21c home every binary checked (`rman.exe`, `tnsping.exe`, `sqlplus.exe`, `oracle.exe`) reports `NotSigned`,
 so the signature check cannot tell a patched binary from a tampered one, and passes
 both. It catches only a broken signature or a non-Oracle signer. Detecting a replaced
 binary would need a recorded baseline; that is not built.

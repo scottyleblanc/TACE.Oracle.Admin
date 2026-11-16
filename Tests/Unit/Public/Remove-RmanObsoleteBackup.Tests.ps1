@@ -310,7 +310,7 @@ Describe 'Remove-RmanObsoleteBackup' {
 
         It 'R1 should return Success=$false and safe Message when binary integrity check fails' {
             Mock -CommandName Assert-OracleEnvironment -ModuleName TACE.Oracle.Admin -MockWith {
-                throw 'RMAN binary integrity check failed: Authenticode signature status is NotSigned'
+                throw 'RMAN binary integrity check failed: Authenticode signature status is HashMismatch'
             }
             $result = Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Confirm:$false
             $result.Success | Should -Be $false

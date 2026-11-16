@@ -6,10 +6,9 @@
 .DESCRIPTION
     Validates that ORACLE_HOME is configured, that the resolved path exists on
     disk, and that the specified Oracle binary exists under ORACLE_HOME\bin.
-    Also verifies the binary's Authenticode signature: hard-fails only on
-    HashMismatch and TrustFailure (genuine tamper indicators). NotSigned is
-    always expected — Oracle signs distribution archives, not individual
-    executables.
+    Also checks the binary's Authenticode signature. Oracle binaries are not
+    signed, so NotSigned passes. The call stops on HashMismatch or TrustFailure,
+    or on a valid signature whose signer is not Oracle.
 
     When -WalletAlias is specified, also validates that the alias can be
     resolved by tnsping.exe. tnsping is invoked via ProcessStartInfo (same
@@ -46,12 +45,10 @@
     $env:PATH alone. The full resolved path is verified to exist on disk
     before being returned.
 
-    [SEC] AD-023 — Authenticode signature checked via Get-AuthenticodeSignature.
-    Hard failure on HashMismatch or TrustFailure — these indicate the binary was
-    altered after signing and represent genuine tamper evidence. NotSigned is
-    always expected; Oracle signs distribution archives (zip/jar), not individual
-    executables. When Status is Valid the Subject must contain 'Oracle' — a valid
-    cert from a different vendor indicates binary substitution.
+    [SEC] Authenticode signature checked via Get-AuthenticodeSignature. Oracle
+    binaries are not signed, so NotSigned passes, and the check cannot detect a
+    replaced unsigned binary. It stops the call on HashMismatch or TrustFailure,
+    and on a valid signature whose subject does not contain 'Oracle'.
 
     [SEC] AD-026 — WalletAlias validated by tnsping before RMAN invocation
     (APSC-DV-002000). tnsping stdout scrubbed via Invoke-CredentialScrub before
@@ -108,9 +105,9 @@ function Assert-OracleEnvironment {
     #       Test: 'S3 throws when Authenticode status is HashMismatch',
     #       'S3 throws when Authenticode status is TrustFailure',
     #       'S3 throws when Authenticode signer subject does not contain Oracle'.
-    #   [SEC] S4 An unsigned binary is accepted. Oracle does not sign individual
-    #       executables, so the signature check cannot detect a replaced Oracle binary,
-    #       whether the replacement came from a patch or from tampering.
+    #   [SEC] S4 An unsigned binary is accepted. Oracle binaries are not signed, so the
+    #       signature check cannot detect a replaced Oracle binary, whether the
+    #       replacement came from a patch or from tampering.
     #       Limitation: accepted. Detecting replacement needs a recorded baseline, which
     #       is outside this module's current scope.
     #   [SEC] S5 No parameter turns the signature check off.
@@ -128,7 +125,7 @@ function Assert-OracleEnvironment {
     #
     # POST-CONDITIONS
     #   R1 Returns the full path of the validated binary.
-    #       Test: 'R1 returns the binary path when all checks pass (valid Oracle signature, SYSTEM owner)'.
+    #       Test: 'R1 returns the binary path when all checks pass'.
     #   T1 Every throw starts with 'Oracle environment validation failed:'.
     #       Test: 'T1 every throw starts with the validation prefix (<Case>)'.
     #   T2 The error for a missing OracleHome names the two ways to set one: OracleHome in
@@ -173,10 +170,9 @@ function Assert-OracleEnvironment {
             throw "Oracle binary '$Binary' not found at expected path: '$binaryPath'"
         }
 
-        # [SEC] AD-023 — Authenticode integrity check.
-        # Hard-fail ONLY on statuses that indicate the binary was altered after signing.
-        # NotSigned is always expected — Oracle signs distribution archives, not individual
-        # executables. No bypass parameter exists.
+        # [SEC] Authenticode check (S3, S4). Oracle binaries are not signed, so NotSigned
+        # passes. Stop on a broken signature, or on a valid one from another signer.
+        # No bypass parameter exists (S5).
         $sig = Get-AuthenticodeSignature -FilePath $binaryPath
         if ($sig.Status -in @('HashMismatch', 'TrustFailure')) {
             throw "RMAN binary integrity check failed: Authenticode signature status is '$($sig.Status)'. The binary may have been tampered with. Verify the Oracle installation is intact."

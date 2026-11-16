@@ -36,7 +36,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'S3 throws when Authenticode status is HashMismatch'
   - Test: 'S3 throws when Authenticode status is TrustFailure'
   - Test: 'S3 throws when Authenticode signer subject does not contain Oracle'
-- **S4** `[SEC]` An unsigned binary is accepted. Oracle does not sign individual executables, so the signature check cannot detect a replaced Oracle binary, whether the replacement came from a patch or from tampering. *(Limitation)*
+- **S4** `[SEC]` An unsigned binary is accepted. Oracle binaries are not signed, so the signature check cannot detect a replaced Oracle binary, whether the replacement came from a patch or from tampering. *(Limitation)*
 - **S5** `[SEC]` No parameter turns the signature check off. *(Test)*
   - Test: 'S5 no bypass parameter exists — SkipSignatureCheck, Force, and SkipOwnerCheck are absent'
 - **S6** `[SEC]` A WalletAlias is resolved with tnsping before the function returns. *(Test)*
@@ -48,7 +48,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'S8 the session environment is unchanged when all checks pass'
 - **S9** `[SEC]` tnsping.exe is checked to exist, but its signature is not checked. *(Limitation)*
 - **R1** Returns the full path of the validated binary. *(Test)*
-  - Test: 'R1 returns the binary path when all checks pass (valid Oracle signature, SYSTEM owner)'
+  - Test: 'R1 returns the binary path when all checks pass'
 - **T1** Every throw starts with 'Oracle environment validation failed:'. *(Test)*
   - Test: 'T1 every throw starts with the validation prefix (<Case>)'
 - **T2** The error for a missing OracleHome names the two ways to set one: OracleHome in Config\OracleBackup.json, or the ORACLE_HOME environment variable. *(Test)*
