@@ -46,11 +46,13 @@ function Get-OracleBackupConfigStore {
     #   P1 The config file is Config\OracleBackup.json under the module folder, unless
     #       the module-scoped test override $script:ConfigPathOverride is set.
     #       Guard: the path resolution at the start of the body.
+    #       Test: none yet.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 A config file created here is given restricted permissions straight
     #       after it is written.
     #       Guard: the Set-RestrictiveAcl call that follows the write.
+    #       Test: 'L1 creates the folder, file and ACL even when the caller runs under -WhatIf'.
     #   [SEC] S2 The config holds paths and defaults, never a credential.
     #       Limitation: nothing checks what the file contains.
     #   [SEC] S3 OracleHome read from the config is untrusted until checked.

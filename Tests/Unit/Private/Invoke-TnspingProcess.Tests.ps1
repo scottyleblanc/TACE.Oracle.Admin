@@ -75,32 +75,40 @@ Describe 'Invoke-TnspingProcess' {
 
     Context 'Security' {
 
+        # Sentinels first: a before-and-after read proves nothing when an earlier test has
+        # already left the value the call would set.
         It 'S1 child gets ORACLE_HOME and the session environment is unchanged' -Tag 'SEC' {
-            $homeBefore = $env:ORACLE_HOME
-            $pathBefore = $env:PATH
-            $result = InModuleScope TACE.Oracle.Admin -Parameters @{ Cmd = $script:tnsEchoCmd; FakeHome = $script:tnsHome } {
-                param($Cmd, $FakeHome)
-                Invoke-TnspingProcess -TnspingPath $Cmd -WalletAlias 'MY_ALIAS' -OracleHome $FakeHome
+            $sentinel = & (Join-Path $PSScriptRoot '..' 'Set-EnvironmentSentinel.ps1')
+            try {
+                $result = InModuleScope TACE.Oracle.Admin -Parameters @{ Cmd = $script:tnsEchoCmd; FakeHome = $script:tnsHome } {
+                    param($Cmd, $FakeHome)
+                    Invoke-TnspingProcess -TnspingPath $Cmd -WalletAlias 'MY_ALIAS' -OracleHome $FakeHome
+                }
             }
-            $result.StdOut   | Should -Match ([regex]::Escape("ORACLE_HOME=$($script:tnsHome)"))
-            $env:ORACLE_HOME | Should -Be $homeBefore
-            $env:PATH        | Should -Be $pathBefore
+            finally {
+                $changed = & (Join-Path $PSScriptRoot '..' 'Compare-EnvironmentSentinel.ps1') -Snapshot $sentinel
+            }
+            $result.StdOut | Should -Match ([regex]::Escape("ORACLE_HOME=$($script:tnsHome)"))
+            ($changed -join ', ') | Should -BeNullOrEmpty
         }
 
         It 'S1, L2 kills a tnsping that runs past TimeoutSeconds and throws' -Tag 'SEC' {
-            $homeBefore = $env:ORACLE_HOME
-            $pathBefore = $env:PATH
-            $watch = [System.Diagnostics.Stopwatch]::StartNew()
-            {
-                InModuleScope TACE.Oracle.Admin -Parameters @{ Cmd = $script:tnsHangCmd; FakeHome = $script:tnsHome } {
-                    param($Cmd, $FakeHome)
-                    Invoke-TnspingProcess -TnspingPath $Cmd -WalletAlias 'MY_ALIAS' -OracleHome $FakeHome -TimeoutSeconds 2
-                }
-            } | Should -Throw -ExpectedMessage '*timed out after 2 seconds and the process was killed*'
-            $watch.Stop()
+            $sentinel = & (Join-Path $PSScriptRoot '..' 'Set-EnvironmentSentinel.ps1')
+            try {
+                $watch = [System.Diagnostics.Stopwatch]::StartNew()
+                {
+                    InModuleScope TACE.Oracle.Admin -Parameters @{ Cmd = $script:tnsHangCmd; FakeHome = $script:tnsHome } {
+                        param($Cmd, $FakeHome)
+                        Invoke-TnspingProcess -TnspingPath $Cmd -WalletAlias 'MY_ALIAS' -OracleHome $FakeHome -TimeoutSeconds 2
+                    }
+                } | Should -Throw -ExpectedMessage '*timed out after 2 seconds and the process was killed*'
+                $watch.Stop()
+            }
+            finally {
+                $changed = & (Join-Path $PSScriptRoot '..' 'Compare-EnvironmentSentinel.ps1') -Snapshot $sentinel
+            }
             $watch.Elapsed.TotalSeconds | Should -BeLessThan 15
-            $env:ORACLE_HOME | Should -Be $homeBefore
-            $env:PATH        | Should -Be $pathBefore
+            ($changed -join ', ') | Should -BeNullOrEmpty
         }
 
         It 'Invoke-TnspingProcess is not exported as a public command' {

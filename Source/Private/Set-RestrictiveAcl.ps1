@@ -58,8 +58,11 @@ function Set-RestrictiveAcl {
     # PRE-CONDITIONS
     #   P1 Path is a non-empty string.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #       Test: 'Path parameter is mandatory',
+    #       'Path parameter has ValidateNotNullOrEmpty'.
     #   P2 Path exists on disk.
     #       Guard: the Test-Path check throws when it does not.
+    #       Test: 'Throws when Path does not exist on disk'.
     #   P3 Path was created by this module immediately before the call.
     #       Limitation: the caller's duty. Nothing here checks who created the path.
     #
@@ -74,7 +77,8 @@ function Set-RestrictiveAcl {
     #       'No broad identity (Everyone / BUILTIN\Users) rules are present on directory'.
     #   [SEC] S3 Rules on a directory are inherited by what is created inside it. Rules on
     #       a file are not inheritable.
-    #       Test: 'SEC-07: child file created inside a secured directory inherits the restrictive ACEs',
+    #       Test: 'Directory ACEs use ContainerInherit | ObjectInherit (SEC-07)',
+    #       'SEC-07: child file created inside a secured directory inherits the restrictive ACEs',
     #       'File ACEs use InheritanceFlags::None (files have no child objects)'.
     #   [SEC] S4 On a platform other than Windows nothing is changed.
     #       Limitation: permissions are left to the operating system.
@@ -82,6 +86,7 @@ function Set-RestrictiveAcl {
     # POST-CONDITIONS
     #   R1 Returns nothing.
     #       Type: OutputType void.
+    #       Test: none yet.
     #   T1 Every throw starts with 'Failed to apply restrictive ACL to' and names the path.
     #       Test: none yet.
     #

@@ -59,8 +59,10 @@ function Remove-RmanObsoleteBackup {
     # PRE-CONDITIONS
     #   P1 DatabaseName is a non-empty string.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #       Test: none yet.
     #   P2 WalletAlias and Credential are not both supplied.
     #       Guard: the check at the start of the body returns Success = $false.
+    #       Test: 'Returns Success=$false when both WalletAlias and Credential are specified'.
     #   P3 It runs on Windows. On any other platform it returns Success = $false before
     #       the ShouldProcess gate, the config read or any process (rule C-07).
     #       Test: 'P3 returns Success false on a platform other than Windows'.
@@ -69,17 +71,20 @@ function Remove-RmanObsoleteBackup {
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 Nothing is deleted unless ShouldProcess approves, with ConfirmImpact High.
-    #       Test: 'RMAN must not be invoked on WhatIf — ShouldProcess is the sole gate'.
+    #       Test: 'RMAN must not be invoked on WhatIf — ShouldProcess is the sole gate',
+    #       'S1 declares ConfirmImpact High, so it asks before deleting at the default preference'.
     #   [SEC] S2 RMAN is run with NOPROMPT, so ShouldProcess is the only confirmation.
     #       Test: 'RMAN script must contain NOPROMPT'.
     #   [SEC] S3 ORACLE_SID is never set on the current session.
-    #       Test: 'ORACLE_SID should not be set on current session'.
+    #       Test: 'S3 the session environment is unchanged after the call'.
     #   [SEC] S4 Message holds no credential when RMAN succeeds.
-    #       Test: 'Message should not contain credential fragments'.
+    #       Test: 'S4, S5 no part of a named credential reaches Message or the RMAN script',
+    #       'Message should not contain credential fragments'.
     #   [SEC] S8 Exception text is scrubbed before it is placed in Message.
     #       Test: none yet. No test raises an exception that carries a credential.
     #   [SEC] S5 The RMAN script holds no credential.
-    #       Test: 'RMAN script should not contain credential fragments'.
+    #       Test: 'S4, S5 no part of a named credential reaches Message or the RMAN script',
+    #       'RMAN script should not contain credential fragments'.
     #   [SEC] S9 The RMAN script is fixed text. No parameter value is placed in it, and
     #       there is no catalog parameter. S6 and S7 are retired with those parameters.
     #       Test: 'S9 RMAN script is fixed text and no catalog parameter exists'.
@@ -87,6 +92,8 @@ function Remove-RmanObsoleteBackup {
     #       line or a command to the CONNECT text written to RMAN's stdin, or an
     #       argument to tnsping.
     #       Type: ValidatePattern('^[A-Za-z0-9_.-]*\z'); the empty default passes.
+    #       Test: 'S10 WalletAlias pattern accepts <Alias>',
+    #       'S10 WalletAlias refuses <Case> at the call'.
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws once its

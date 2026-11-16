@@ -117,6 +117,12 @@ git config core.hooksPath .githooks
 a secret in a temporary copy of the repository and checks that the gate fails on each.
 It takes a few minutes.
 
+`.\Scripts\Test-InvariantMutation.ps1` proves the tests prove the invariants (rule I-10):
+for each mutation in `Tests\Mutation\InvariantMutations.psd1` it breaks one invariant in
+a temporary copy, builds the module and runs the cited tests, which must fail. It refuses
+to run when a security invariant with a cited proof has no mutation. It takes several
+minutes and is not part of the gate. `-Function` limits it to named functions.
+
 ## Execution Policy
 
 | Context | Minimum policy |

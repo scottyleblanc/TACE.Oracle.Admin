@@ -38,9 +38,10 @@ each function body, not in a separate document. They travel with the function, a
 in the same diff as a change to it, and are read by whoever, or whatever, edits it next.
 
 The block format is defined in [invariants.md](invariants.md). The index is generated
-from the blocks by `Tests\Lint\Invoke-InvariantLint.ps1`, and a test in `Tests\Static\`
-fails when a function has no block, an entry is malformed, or the committed index is
-out of date.
+from the blocks by `Tests\Lint\Invoke-InvariantLint.ps1`. It is also the invariant-to-test
+map: each invariant is listed with the tests or static checks that prove it. A test in
+`Tests\Static\` fails when a function has no block, an entry is malformed or names no
+proof, a cited test does not exist, or the committed index is out of date.
 
 ## Status
 

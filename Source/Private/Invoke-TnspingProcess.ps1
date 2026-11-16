@@ -51,8 +51,10 @@
     # PRE-CONDITIONS
     #   P1 TnspingPath, WalletAlias and OracleHome are non-empty strings.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #       Test: none yet.
     #   P2 TimeoutSeconds is between 1 and 300. It defaults to 30.
     #       Type: ValidateRange.
+    #       Test: none yet.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 ORACLE_HOME and PATH are set on the child process only. The current
@@ -81,6 +83,7 @@
     #       Test: 'S1, L2 kills a tnsping that runs past TimeoutSeconds and throws'.
     #   L3 The process object is disposed on every path.
     #       Guard: the finally block.
+    #       Test: none yet.
     #   L4 The child PATH starts with OracleHome\bin, built with Join-Path and joined to
     #       the inherited PATH with [System.IO.Path]::PathSeparator.
     #       Test: 'L4 child PATH starts with OracleHome bin and the platform separator'.

@@ -8,6 +8,41 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+Stack 3 of the AI Development Stack — tests. In progress.
+
+### Added
+
+- Rule I-11: every invariant except a limitation names its proof. A `Type:` or `Guard:`
+  line is followed by a `Test:` or `Static:` line, so removing the enforcement fails a
+  test. Rule I-12: a `Static:` line cites a check in
+  `Tests/Static/SourceInvariants.Tests.ps1` whose title starts with the function name.
+- Fixture tests for the linter's proof rules in `Tests/Static/InvariantConformance.Tests.ps1`.
+- `Scripts/Test-InvariantMutation.ps1` and `Tests/Mutation/InvariantMutations.psd1`: break
+  each invariant in a temporary copy and confirm its cited tests fail (rule I-10). It
+  refuses to run when a security invariant with a proof has no mutation. Result in
+  `Docs/audit/stack-3-mutation.md`.
+- `Tests/Unit/Set-EnvironmentSentinel.ps1` and `Compare-EnvironmentSentinel.ps1`, and rule
+  T-11: session-environment tests set known values first and compare every variable.
+- `Tests/Static/SourceInvariants.Tests.ps1`, the static checks cited on `Static:` lines.
+  The first: `ConvertFrom-SecureStringToPlaintext` S5.
+
+### Fixed
+
+- Twelve security invariants cited tests that passed with the invariant broken. The
+  environment tests compared with a value earlier tests had already polluted; the
+  credential tests ran with no credential; the tnsping scrub test never reached the
+  message; ConfirmImpact and directory inheritance were untested. Nine non-security
+  citations were weak in the same way. All now fail when their invariant is broken.
+
+### Changed
+
+- `Docs/standards/invariants-index.md` is now the invariant-to-test map: each invariant
+  is followed by the tests or static checks that prove it. "Enforced" is replaced by
+  "Proven"; a type or guard no longer counts as proven without a test.
+- The 35 `Type:` and `Guard:` entries carry a proof line: 17 cite an existing test, 18
+  are `Test: none yet.` Unproven invariants rise from 17 to 35 (15 security) because
+  they are now counted, not because anything regressed.
+
 ---
 
 ## [0.2.2] - 2026-11-15

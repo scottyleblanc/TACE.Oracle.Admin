@@ -49,6 +49,7 @@ function Invoke-CredentialScrub {
     # PRE-CONDITIONS
     #   P1 Content is a string, and may be empty.
     #       Type: Mandatory and AllowEmptyString.
+    #       Test: none yet.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 The password in every user/password@service pattern is replaced with

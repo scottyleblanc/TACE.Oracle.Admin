@@ -245,7 +245,7 @@ Describe 'Invoke-RmanProcess' {
 
     Context 'Implementation — OSAuth' {
 
-        It 'Returns a PSCustomObject with the correct five properties' {
+        It 'R1 returns exactly ExitCode, StdOut, StdErr, Success and AuthMode' {
             InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
                 param($FakeCmd, $FakeHome)
                 $result = Invoke-RmanProcess `
@@ -253,11 +253,7 @@ Describe 'Invoke-RmanProcess' {
                     -RmanScript 'BACKUP DATABASE;' `
                     -OracleHome $FakeHome `
                     -OracleSid 'ORCL'
-                $result.PSObject.Properties.Name | Should -Contain 'ExitCode'
-                $result.PSObject.Properties.Name | Should -Contain 'StdOut'
-                $result.PSObject.Properties.Name | Should -Contain 'StdErr'
-                $result.PSObject.Properties.Name | Should -Contain 'Success'
-                $result.PSObject.Properties.Name | Should -Contain 'AuthMode'
+                @($result.PSObject.Properties.Name) | Should -Be @('ExitCode', 'StdOut', 'StdErr', 'Success', 'AuthMode')
             }
         }
 
@@ -271,6 +267,27 @@ Describe 'Invoke-RmanProcess' {
                     -OracleSid 'ORCL'
                 $result.Success | Should -Be $true
             }
+        }
+
+        It 'L1 an RMAN process that floods stderr still completes' {
+            # About 200 KB to stderr: far past the pipe buffer, so a synchronous stdout read
+            # would leave the child blocked on stderr until the timeout.
+            $floodCmd = Join-Path $TestDrive 'fakerManFlood.cmd'
+            Set-Content -Path $floodCmd -Encoding ASCII -Value (
+                "@for /l %%i in (1,1,4000) do @echo STDERR_FLOOD_LINE_%%i_padding_padding_padding 1>&2`r`n@echo Recovery Manager complete.")
+            $result = InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $floodCmd; FakeHome = $script:fakeOracleHome } {
+                param($FakeCmd, $FakeHome)
+                $params = @{
+                    RmanBinaryPath = $FakeCmd
+                    RmanScript     = 'BACKUP DATABASE;'
+                    OracleHome     = $FakeHome
+                    OracleSid      = 'ORCL'
+                    TimeoutSeconds = 60
+                }
+                Invoke-RmanProcess @params
+            }
+            $result.StdOut        | Should -Match 'Recovery Manager complete'
+            $result.StdErr.Length | Should -BeGreaterThan 100000
         }
 
         It 'Returns AuthMode = OSAuth' {
@@ -773,46 +790,33 @@ Describe 'Invoke-RmanProcess' {
             }
         }
 
-        # [SEC] OSAuth: ORACLE_SID is never set on the current session
-        It 'OSAuth: ORACLE_SID is NOT set on the current session after the call' {
-            $sidBefore = $env:ORACLE_SID
-            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
-                param($FakeCmd, $FakeHome)
-                Invoke-RmanProcess `
-                    -RmanBinaryPath $FakeCmd `
-                    -RmanScript 'BACKUP DATABASE;' `
-                    -OracleHome $FakeHome `
-                    -OracleSid 'ORCL' | Out-Null
+        # [SEC] S3: ORACLE_HOME, ORACLE_SID, PATH and NLS_DATE_FORMAT go to the child only.
+        # Sentinels first: a before-and-after read proves nothing when an earlier test has
+        # already left the value the call would set.
+        It 'S3 <Mode> leaves the session environment unchanged, PATH included' -Tag 'SEC' -ForEach @(
+            @{ Mode = 'OSAuth' }
+            @{ Mode = 'WalletAuth' }
+            @{ Mode = 'NamedCredential' }
+        ) {
+            $sentinel = & (Join-Path $PSScriptRoot '..' 'Set-EnvironmentSentinel.ps1')
+            try {
+                InModuleScope TACE.Oracle.Admin -Parameters @{
+                    FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome; Mode = $Mode; Cred = $script:secTestCred
+                } {
+                    param($FakeCmd, $FakeHome, $Mode, $Cred)
+                    $params = @{ RmanBinaryPath = $FakeCmd; RmanScript = 'BACKUP DATABASE;'; OracleHome = $FakeHome }
+                    switch ($Mode) {
+                        'OSAuth'          { $params['OracleSid'] = 'ORCL' }
+                        'WalletAuth'      { $params['WalletAlias'] = 'ORCL_WALLET' }
+                        'NamedCredential' { $params['ServiceAlias'] = 'ORCL_SVC'; $params['Credential'] = $Cred }
+                    }
+                    Invoke-RmanProcess @params | Out-Null
+                }
             }
-            $env:ORACLE_SID | Should -Be $sidBefore
-        }
-
-        # [SEC] OSAuth: ORACLE_HOME is never set on the current session
-        It 'OSAuth: ORACLE_HOME on the current session is unchanged after the call' {
-            $homeBefore = $env:ORACLE_HOME
-            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
-                param($FakeCmd, $FakeHome)
-                Invoke-RmanProcess `
-                    -RmanBinaryPath $FakeCmd `
-                    -RmanScript 'BACKUP DATABASE;' `
-                    -OracleHome $FakeHome `
-                    -OracleSid 'ORCL' | Out-Null
+            finally {
+                $changed = & (Join-Path $PSScriptRoot '..' 'Compare-EnvironmentSentinel.ps1') -Snapshot $sentinel
             }
-            $env:ORACLE_HOME | Should -Be $homeBefore
-        }
-
-        # [SEC] WalletAuth: current session environment unmodified
-        It 'WalletAuth: ORACLE_SID is NOT set on the current session after the call' {
-            $sidBefore = $env:ORACLE_SID
-            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeCmd = $script:fakeRmanCmd; FakeHome = $script:fakeOracleHome } {
-                param($FakeCmd, $FakeHome)
-                Invoke-RmanProcess `
-                    -RmanBinaryPath $FakeCmd `
-                    -RmanScript 'BACKUP DATABASE;' `
-                    -OracleHome $FakeHome `
-                    -WalletAlias 'ORCL_WALLET' | Out-Null
-            }
-            $env:ORACLE_SID | Should -Be $sidBefore
+            ($changed -join ', ') | Should -BeNullOrEmpty
         }
 
         # [SEC] WalletAuth: ArgumentList contains alias in safe form — not a password

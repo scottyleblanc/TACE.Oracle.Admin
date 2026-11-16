@@ -86,10 +86,16 @@ function Assert-OracleEnvironment {
     # PRE-CONDITIONS
     #   P1 OracleHome is a string, and may be empty.
     #       Type: Mandatory and AllowEmptyString.
+    #       Test: 'OracleHome is mandatory',
+    #       'Throws with a clear message when OracleHome is empty and env var is not set'.
     #   P2 Binary is a non-empty file name. It defaults to rman.exe.
     #       Type: ValidateNotNullOrEmpty.
+    #       Test: 'Binary must not be null or empty',
+    #       'Binary defaults to rman.exe — Get-AuthenticodeSignature called with rman.exe path when Binary is omitted'.
     #   P3 An empty or blank WalletAlias means no alias check is made.
     #       Guard: the IsNullOrWhiteSpace check before the tnsping step.
+    #       Test: 'Returns binary path when WalletAlias is empty — tnsping not invoked',
+    #       'Treats whitespace-only WalletAlias as empty — tnsping not invoked'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 OracleHome, from the config or the environment, is checked to exist
@@ -113,9 +119,9 @@ function Assert-OracleEnvironment {
     #       Test: 'Throws when tnsping exits with a non-zero exit code',
     #       'Throws when tnsping stdout contains a TNS-NNNNN error code'.
     #   [SEC] S7 tnsping output is scrubbed before it is placed in an error message.
-    #       Test: 'Error message on tnsping failure contains no credential fragments'.
+    #       Test: 'S7 a credential in tnsping stdout or stderr is scrubbed from the error message (<Stream>)'.
     #   [SEC] S8 The current session environment is not changed.
-    #       Test: 'Current session environment is not modified when all checks pass'.
+    #       Test: 'S8 the session environment is unchanged when all checks pass'.
     #   [SEC] S9 tnsping.exe is checked to exist, but its signature is not checked.
     #       Limitation: accepted. tnsping.exe is unsigned like every Oracle binary (S4),
     #       so the same check would not detect a replacement.
@@ -135,6 +141,7 @@ function Assert-OracleEnvironment {
     #       recovers the validated home from that path.
     #       Guard: callers derive the home from the returned path. See Get-RmanBackupStatus
     #       L3 and Remove-RmanObsoleteBackup L2.
+    #       Test: none yet.
     #--------------------------------------------------------------
 
     try {

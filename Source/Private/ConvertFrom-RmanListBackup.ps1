@@ -61,6 +61,7 @@ function ConvertFrom-RmanListBackup {
     # PRE-CONDITIONS
     #   P1 RawLog is a string, and may be empty.
     #       Type: Mandatory and AllowEmptyString.
+    #       Test: 'P1 RawLog is mandatory and accepts an empty string'.
     #   P2 Completion times in RawLog are in the form yyyy-MM-dd HH:mm:ss.
     #       Limitation: the caller's duty, met by Invoke-RmanProcess. Another format gives
     #       a null CompletionTime, not an error.
@@ -89,8 +90,10 @@ function ConvertFrom-RmanListBackup {
     # EXECUTION INVARIANTS
     #   L1 Column positions are taken from the separator line, not hard-coded.
     #       Guard: the column start scan.
+    #       Test: none yet.
     #   L2 A row whose Key is not a positive integer is skipped.
     #       Guard: the TryParse check at the start of the row loop.
+    #       Test: 'L2 skips a row whose Key is not a positive integer'.
     #--------------------------------------------------------------
 
     if ([string]::IsNullOrWhiteSpace($RawLog)) {

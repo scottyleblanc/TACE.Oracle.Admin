@@ -133,11 +133,17 @@ function Invoke-RmanProcess {
     # PRE-CONDITIONS
     #   P1 RmanBinaryPath, RmanScript and OracleHome are non-empty strings.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #       Test: none yet.
     #   P2 Exactly one authentication mode is chosen: OracleSid (OSAuth), WalletAlias
     #       (WalletAuth), or ServiceAlias with Credential (NamedCredential).
     #       Type: parameter sets.
+    #       Test: none yet.
     #   P3 TimeoutSeconds is between 1 and 86400.
     #       Type: ValidateRange.
+    #       Test: 'TimeoutSeconds has ValidateRange with minimum 1',
+    #       'TimeoutSeconds has ValidateRange with maximum 86400',
+    #       'TimeoutSeconds of 0 is rejected (below ValidateRange minimum of 1)',
+    #       'TimeoutSeconds of 86401 is rejected (above ValidateRange maximum of 86400)'.
     #   P4 RmanBinaryPath was validated by Assert-OracleEnvironment before this call.
     #       Limitation: the caller's duty. This function does not check the path again.
     #   P5 RmanScript holds no password.
@@ -151,9 +157,7 @@ function Invoke-RmanProcess {
     #       Static: none yet.
     #   [SEC] S3 ORACLE_HOME, ORACLE_SID, PATH and NLS_DATE_FORMAT are set on the child
     #       process only. The current session environment is not changed.
-    #       Test: 'OSAuth: ORACLE_SID is NOT set on the current session after the call',
-    #       'OSAuth: ORACLE_HOME on the current session is unchanged after the call',
-    #       'WalletAuth: ORACLE_SID is NOT set on the current session after the call',
+    #       Test: 'S3 <Mode> leaves the session environment unchanged, PATH included',
     #       'NLS_DATE_FORMAT is set to YYYY-MM-DD HH24:MI:SS on the child process environment'.
     #   [SEC] S4 Stdout and stderr are scrubbed before they are returned.
     #       Test: none yet. The existing 'does not contain the plaintext password' tests
@@ -169,7 +173,7 @@ function Invoke-RmanProcess {
     #
     # POST-CONDITIONS
     #   R1 Returns an object with exactly ExitCode, StdOut, StdErr, Success and AuthMode.
-    #       Test: 'Returns a PSCustomObject with the correct five properties'.
+    #       Test: 'R1 returns exactly ExitCode, StdOut, StdErr, Success and AuthMode'.
     #   R2 Success is false when stdout or stderr holds an RMAN-nnnnn or ORA-nnnnn code.
     #       The exit code does not decide Success.
     #       Test: 'Returns Success=$false when output contains ORA- error code',
@@ -187,18 +191,22 @@ function Invoke-RmanProcess {
     # EXECUTION INVARIANTS
     #   L1 Both output streams are read asynchronously before stdin is written, so a full
     #       stderr pipe cannot stall the process.
-    #       Test: 'SEC-04: stderr content written by the RMAN process is captured in StdErr',
+    #       Test: 'L1 an RMAN process that floods stderr still completes',
+    #       'SEC-04: stderr content written by the RMAN process is captured in StdErr',
     #       'SEC-04: stdout is captured correctly when the RMAN process also writes to stderr'.
     #   L2 EXIT; is written after the script, and stdin is then closed.
     #       Guard: the three StandardInput calls that follow the script write.
+    #       Test: none yet.
     #   L3 The process object is disposed on every path.
     #       Guard: the finally block.
+    #       Test: none yet.
     #   L4 The child PATH starts with OracleHome\bin, built with Join-Path and joined to
     #       the inherited PATH with [System.IO.Path]::PathSeparator.
     #       Test: 'L4 child PATH starts with OracleHome bin and the platform separator'.
     #   L5 A timeout kills the whole process tree. A failed kill does not replace the
     #       timeout error, and the killed process is given 5 seconds to exit.
     #       Guard: the try blocks around Kill and WaitForExit in the timeout branch.
+    #       Test: none yet.
     #--------------------------------------------------------------
 
     $process = $null

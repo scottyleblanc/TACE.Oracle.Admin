@@ -34,7 +34,8 @@ Describe 'Invoke-CredentialScrub' {
         It 'Invoke-CredentialScrub handles empty string without error' {
             InModuleScope TACE.Oracle.Admin {
                 $result = Invoke-CredentialScrub -Content ''
-                $result | Should -BeNullOrEmpty
+                $result | Should -BeOfType [string]
+                $result | Should -BeExactly ''
             }
         }
     }

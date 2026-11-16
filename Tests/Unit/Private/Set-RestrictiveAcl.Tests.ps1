@@ -272,11 +272,17 @@ Describe 'Set-RestrictiveAcl' {
                 $childAcl = Get-Acl -Path $childFile
                 $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 
-                # Child file must have an ACE for the current user (inherited or explicit)
+                # The child's rules for the current user and Administrators must be inherited
+                # from the directory. A new file always gets some rule for its creator from
+                # the default ACL, so "a rule exists" would pass with no inheritance at all.
                 $userAce = @($childAcl.Access | Where-Object {
-                    $PSItem.IdentityReference.Value -eq $currentUser
+                    $PSItem.IdentityReference.Value -eq $currentUser -and $PSItem.IsInherited
                 })
-                $userAce.Count | Should -BeGreaterThan 0
+                $adminAce = @($childAcl.Access | Where-Object {
+                    $PSItem.IdentityReference.Value -eq 'BUILTIN\Administrators' -and $PSItem.IsInherited
+                })
+                $userAce.Count  | Should -BeGreaterThan 0
+                $adminAce.Count | Should -BeGreaterThan 0
             }
         }
 

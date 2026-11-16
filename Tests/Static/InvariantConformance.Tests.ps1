@@ -39,3 +39,119 @@ Describe 'Invariant blocks' -Tag 'Static' {
         $fresh | Should -Be $committed -Because 'a block changed without the index being regenerated'
     }
 }
+
+Describe 'Invariant linter proof rules' -Tag 'Static' {
+
+    BeforeAll {
+        $script:lintPath = Join-Path -Path $script:repoRoot -ChildPath 'Tests' -AdditionalChildPath 'Lint', 'Invoke-InvariantLint.ps1'
+
+        # Builds a one-function repository under TestDrive and lints it. $Block is the
+        # INVARIANTS entry lines, without the leading '    #'.
+        function Invoke-FixtureLint {
+            param([string]$Name, [string[]]$Block, [string[]]$UnitTitles = @(), [string[]]$StaticTitles = @())
+
+            $root = Join-Path -Path $TestDrive -ChildPath $Name
+            $null = New-Item -ItemType Directory -Path (Join-Path -Path $root -ChildPath 'Source' -AdditionalChildPath 'Public') -Force
+            $null = New-Item -ItemType Directory -Path (Join-Path -Path $root -ChildPath 'Source' -AdditionalChildPath 'Private') -Force
+            $null = New-Item -ItemType Directory -Path (Join-Path -Path $root -ChildPath 'Tests' -AdditionalChildPath 'Unit', 'Public') -Force
+            $null = New-Item -ItemType Directory -Path (Join-Path -Path $root -ChildPath 'Tests' -AdditionalChildPath 'Static') -Force
+
+            $source = @(
+                'function Get-Thing {'
+                '    param()'
+                '    Set-StrictMode -Version Latest'
+                "    `$ErrorActionPreference = 'Stop'"
+                '    #--------------------------------------------------------------'
+                '    # INVARIANTS'
+                '    #'
+                @($Block | ForEach-Object { "    #$PSItem" })
+                '    #--------------------------------------------------------------'
+                '}'
+            ) -join "`n"
+            Set-Content -LiteralPath (Join-Path -Path $root -ChildPath 'Source' -AdditionalChildPath 'Public', 'Get-Thing.ps1') -Value $source -Encoding UTF8
+
+            $unit = @($UnitTitles | ForEach-Object { "It '$PSItem' { }" }) -join "`n"
+            Set-Content -LiteralPath (Join-Path -Path $root -ChildPath 'Tests' -AdditionalChildPath 'Unit', 'Public', 'Get-Thing.Tests.ps1') -Value $unit -Encoding UTF8
+
+            if ($StaticTitles.Count -gt 0) {
+                $static = @($StaticTitles | ForEach-Object { "It '$PSItem' { }" }) -join "`n"
+                Set-Content -LiteralPath (Join-Path -Path $root -ChildPath 'Tests' -AdditionalChildPath 'Static', 'SourceInvariants.Tests.ps1') -Value $static -Encoding UTF8
+            }
+
+            & $script:lintPath -RepoRoot $root
+        }
+    }
+
+    It 'I-11 refuses a Type entry with no proof line' {
+        $result = Invoke-FixtureLint -Name 'no-proof' -Block @(
+            ' PRE-CONDITIONS'
+            '   P1 Name is a non-empty string.'
+            '       Type: ValidateNotNullOrEmpty.'
+        )
+        $result.Success | Should -BeFalse
+        @($result.Data.Defects.Reason) | Should -Match 'rule I-11'
+    }
+
+    It 'I-11 accepts a Guard entry with a cited test and counts it as proven' {
+        $result = Invoke-FixtureLint -Name 'guard-proof' -UnitTitles @('P1 refuses a missing name') -Block @(
+            ' PRE-CONDITIONS'
+            '   P1 Name is checked.'
+            '       Guard: the check at the start of the body.'
+            "       Test: 'P1 refuses a missing name'."
+        )
+        $result.Success | Should -BeTrue -Because $result.Message
+        $result.Data.Proven | Should -Be 1
+    }
+
+    It 'I-11 counts a Type entry with Test: none yet as unproven, not as a defect' {
+        $result = Invoke-FixtureLint -Name 'type-none-yet' -Block @(
+            ' PRE-CONDITIONS'
+            '   P1 Name is a non-empty string.'
+            '       Type: ValidateNotNullOrEmpty.'
+            '       Test: none yet.'
+        )
+        $result.Success | Should -BeTrue -Because $result.Message
+        $result.Data.Unproven | Should -Be 1
+    }
+
+    It 'I-09 refuses a proof line that cites a test the test file does not hold' {
+        $result = Invoke-FixtureLint -Name 'missing-test' -Block @(
+            ' PRE-CONDITIONS'
+            '   P1 Name is checked.'
+            '       Guard: the check at the start of the body.'
+            "       Test: 'P1 a test nobody wrote'."
+        )
+        $result.Success | Should -BeFalse
+        @($result.Data.Defects.Reason) | Should -Match 'Cited test not found'
+    }
+
+    It 'I-12 accepts a cited static check in SourceInvariants.Tests.ps1 named for the function' {
+        $result = Invoke-FixtureLint -Name 'static-ok' -StaticTitles @('Get-Thing S1 opens no file') -Block @(
+            ' SECURITY INVARIANTS'
+            '   [SEC] S1 No file is opened.'
+            "       Static: 'Get-Thing S1 opens no file'."
+        )
+        $result.Success | Should -BeTrue -Because $result.Message
+        $result.Data.Proven | Should -Be 1
+    }
+
+    It 'I-12 refuses a cited static check that does not start with the function name' {
+        $result = Invoke-FixtureLint -Name 'static-unnamed' -StaticTitles @('S1 opens no file') -Block @(
+            ' SECURITY INVARIANTS'
+            '   [SEC] S1 No file is opened.'
+            "       Static: 'S1 opens no file'."
+        )
+        $result.Success | Should -BeFalse
+        @($result.Data.Defects.Reason) | Should -Match 'rule I-12'
+    }
+
+    It 'I-12 refuses a cited static check that is not in SourceInvariants.Tests.ps1' {
+        $result = Invoke-FixtureLint -Name 'static-missing' -Block @(
+            ' SECURITY INVARIANTS'
+            '   [SEC] S1 No file is opened.'
+            "       Static: 'Get-Thing S1 opens no file'."
+        )
+        $result.Success | Should -BeFalse
+        @($result.Data.Defects.Reason) | Should -Match 'Cited check not found'
+    }
+}

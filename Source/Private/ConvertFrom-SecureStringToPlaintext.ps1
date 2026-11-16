@@ -55,6 +55,8 @@ function ConvertFrom-SecureStringToPlaintext {
     # PRE-CONDITIONS
     #   P1 SecureString is a non-null SecureString.
     #       Type: Mandatory and the SecureString type.
+    #       Test: 'SecureString parameter is mandatory',
+    #       'SecureString parameter is typed as [SecureString]'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 The return value is plaintext. The caller uses it at a stdin write and
@@ -62,6 +64,7 @@ function ConvertFrom-SecureStringToPlaintext {
     #       Limitation: the caller's duty. See Invoke-RmanProcess S2.
     #   [SEC] S2 The unmanaged buffer is zeroed and freed on every path.
     #       Guard: the finally block.
+    #       Test: none yet.
     #   [SEC] S3 This is the only place in the module that turns a secure value into
     #       plaintext.
     #       Static: none yet.
@@ -69,7 +72,7 @@ function ConvertFrom-SecureStringToPlaintext {
     #       Test: 'Function is not exported as a public command',
     #       'Is not callable outside module scope'.
     #   [SEC] S5 A throw does not contain the plaintext.
-    #       Test: 'Throw message does not contain the input plaintext when conversion fails'.
+    #       Static: 'ConvertFrom-SecureStringToPlaintext S5 the catch block refers to neither the buffer nor the input'.
     #
     # POST-CONDITIONS
     #   R1 Returns the exact plaintext, including an empty string and special characters.

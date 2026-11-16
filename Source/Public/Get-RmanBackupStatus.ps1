@@ -67,17 +67,21 @@ function Get-RmanBackupStatus {
     # PRE-CONDITIONS
     #   P1 DatabaseName is a non-empty string.
     #       Type: Mandatory and ValidateNotNullOrEmpty.
+    #       Test: 'DatabaseName is mandatory',
+    #       'DatabaseName has ValidateNotNullOrEmpty'.
     #   P2 WalletAlias and Credential are not both supplied.
     #       Guard: the check at the start of the body returns Success = $false.
+    #       Test: 'Returns Success=$false when both WalletAlias and Credential are specified'.
     #   P3 It runs on Windows. On any other platform it returns Success = $false before
     #       it reads the config or starts a process (rule C-07).
     #       Test: 'P3 returns Success false on a platform other than Windows'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 ORACLE_SID is never set on the current session.
-    #       Test: 'ORACLE_SID should not be set on current session after call'.
+    #       Test: 'S1 the session environment is unchanged after the call'.
     #   [SEC] S2 Message holds no credential when RMAN succeeds.
-    #       Test: 'Message should not contain credential fragments',
+    #       Test: 'S2 Message holds no part of a named credential when RMAN succeeds',
+    #       'Message should not contain credential fragments',
     #       '[SEC] Message does not contain credential fragments when WalletAlias is used'.
     #   [SEC] S5 Exception text is scrubbed before it is placed in Message.
     #       Test: none yet. No test raises an exception that carries a credential.
@@ -90,6 +94,8 @@ function Get-RmanBackupStatus {
     #       line or a command to the CONNECT text written to RMAN's stdin, or an
     #       argument to tnsping.
     #       Type: ValidatePattern('^[A-Za-z0-9_.-]*\z'); the empty default passes.
+    #       Test: 'S6 WalletAlias pattern accepts <Alias>',
+    #       'S6 WalletAlias refuses <Case> at the call'.
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws once its
@@ -99,7 +105,8 @@ function Get-RmanBackupStatus {
     #       Test: 'Data should be a single object, not an array'.
     #   R3 The record chosen has the latest CompletionTime. A record with no
     #       CompletionTime is chosen only when none has one, by highest Key.
-    #       Test: 'Should select the most recent record by CompletionTime (Key 94 over Key 95)'.
+    #       Test: 'Should select the most recent record by CompletionTime (Key 94 over Key 95)',
+    #       'R3 chooses the highest Key when no record has a CompletionTime'.
     #   R4 When CompletionTime is null, IsRecentDay is false and AgeHours is -1.
     #       Test: 'Data.AgeHours should be -1 (sentinel) when CompletionTime is null'.
     #   R5 No backup records, or an RMAN failure, gives Success = $false.
@@ -108,7 +115,7 @@ function Get-RmanBackupStatus {
     #
     # EXECUTION INVARIANTS
     #   L1 Read-only: the only RMAN command sent is LIST BACKUP SUMMARY.
-    #       Test: 'Should include LIST BACKUP SUMMARY in the RMAN script'.
+    #       Test: 'L1 the only RMAN command sent is LIST BACKUP SUMMARY'.
     #   L2 The first call can create the config file on disk.
     #       Limitation: see Get-OracleBackupConfigStore L1.
     #   L3 Invoke-RmanProcess receives the home that Assert-OracleEnvironment validated,

@@ -66,13 +66,16 @@ function Set-OracleEnv {
     # PRE-CONDITIONS
     #   P1 SID, when supplied, is a non-empty string.
     #       Type: ValidateNotNullOrEmpty.
+    #       Test: none yet.
     #   P2 A supplied SID matches an instance discovered on this host.
     #       Guard: the match check returns Success = $false when there is none.
+    #       Test: 'Message lists valid SIDs'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 The list of valid SIDs always comes from live discovery, never from a
     #       stored list.
     #       Guard: the Get-OracleDatabaseList call at the start of every run.
+    #       Test: none yet.
     #   [SEC] S2 Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are
     #       changed. Nothing is written to disk, the registry or another process.
     #       Static: none yet.
@@ -82,16 +85,18 @@ function Set-OracleEnv {
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws.
-    #       Test: 'Has Success property', 'Has Data property', 'Has Message property'.
+    #       Test: 'R1 returns exactly Success, Data and Message, without throwing, when <Path>'.
     #   R2 On success Data has SID, OracleHome, OracleBase and Applied.
     #       Test: 'Data.SID is a non-empty string on success',
     #       'Data.Applied is true when the variables are set'.
     #   R3 ORACLE_HOME and ORACLE_BASE are left unset when they cannot be determined, and
     #       a warning is written for each.
     #       Test: 'Does not set $env:ORACLE_HOME when OracleHome is null',
-    #       'Does not set $env:ORACLE_BASE when OracleBase is null'.
+    #       'Does not set $env:ORACLE_BASE when OracleBase is null',
+    #       'Emits warnings when OracleHome and OracleBase are null'.
     #   R4 A stopped service does not prevent the SID being set. A warning is written.
-    #       Test: 'Sets $env:ORACLE_SID despite stopped service'.
+    #       Test: 'Sets $env:ORACLE_SID despite stopped service',
+    #       'Emits a warning for a stopped service'.
     #   R5 On a failure path ORACLE_SID is not changed.
     #       Test: 'Does not set $env:ORACLE_SID'.
     #   R6 Under -WhatIf, or a declined -Confirm, no variable is set and the return is a

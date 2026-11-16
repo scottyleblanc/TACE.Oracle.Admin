@@ -315,15 +315,20 @@ Describe 'Assert-OracleEnvironment' {
             }
         }
 
-        It 'Current session environment is not modified when all checks pass' {
-            $before = [System.Environment]::GetEnvironmentVariables()
-            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeHome = $script:fakeOracleHome } {
-                param($FakeHome)
-                Assert-OracleEnvironment -OracleHome $FakeHome | Out-Null
+        It 'S8 the session environment is unchanged when all checks pass' -Tag 'SEC' {
+            # Sentinels first: a before-and-after read proves nothing when an earlier test
+            # has already left the value the call would set.
+            $sentinel = & (Join-Path $PSScriptRoot '..' 'Set-EnvironmentSentinel.ps1')
+            try {
+                InModuleScope TACE.Oracle.Admin -Parameters @{ FakeHome = $script:fakeOracleHome } {
+                    param($FakeHome)
+                    Assert-OracleEnvironment -OracleHome $FakeHome | Out-Null
+                }
             }
-            $after   = [System.Environment]::GetEnvironmentVariables()
-            $newKeys = @($after.Keys | Where-Object { $before.Keys -notcontains $_ })
-            $newKeys.Count | Should -Be 0
+            finally {
+                $changed = & (Join-Path $PSScriptRoot '..' 'Compare-EnvironmentSentinel.ps1') -Snapshot $sentinel
+            }
+            ($changed -join ', ') | Should -BeNullOrEmpty
         }
     }
 
@@ -486,6 +491,27 @@ Describe 'Assert-OracleEnvironment' {
         }
 
         # Test 10 (Security): Error message is scrubbed — no credential fragments
+        It 'S7 a credential in tnsping stdout or stderr is scrubbed from the error message (<Stream>)' -Tag 'SEC' -ForEach @(
+            @{ Stream = 'StdOut'; Out = 'TNS-12154: user/pass@service could not resolve'; Err = '' }
+            @{ Stream = 'StdErr'; Out = ''; Err = 'TNS-12154: user/pass@service could not resolve' }
+        ) {
+            # The output must carry a TNS- code: only then is it placed in the message.
+            $script:tnsOut = $Out
+            $script:tnsErr = $Err
+            Mock -CommandName Invoke-TnspingProcess -ModuleName TACE.Oracle.Admin -MockWith {
+                [PSCustomObject]@{ ExitCode = 1; StdOut = $script:tnsOut; StdErr = $script:tnsErr }
+            }
+            InModuleScope TACE.Oracle.Admin -Parameters @{ FakeHome = $script:homeWithTnsping } {
+                param($FakeHome)
+                $msg = ''
+                try { Assert-OracleEnvironment -OracleHome $FakeHome -WalletAlias 'MY_DB_ALIAS' }
+                catch { $msg = $PSItem.Exception.Message }
+                $msg | Should -Match 'TNS-12154'
+                $msg | Should -Match 'SCRUBBED'
+                $msg | Should -Not -Match 'user/pass@'
+            }
+        }
+
         It 'Error message on tnsping failure contains no credential fragments' {
             Mock -CommandName Invoke-TnspingProcess -ModuleName TACE.Oracle.Admin -MockWith {
                 [PSCustomObject]@{ ExitCode = 1; StdOut = 'user/pass@service: error'; StdErr = '' }

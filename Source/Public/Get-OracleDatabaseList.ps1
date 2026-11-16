@@ -59,6 +59,8 @@ function Get-OracleDatabaseList {
     #       any other OS. Any other value is refused at the call; 'Unsupported' reaches
     #       the final else branch, which returns Success = $false (rule C-07).
     #       Type: ValidateSet('Windows', 'Linux', 'Unsupported').
+    #       Test: 'P1 Platform accepts only Windows, Linux and Unsupported',
+    #       'P1 throws a parameter error for an unknown platform value'.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 No Oracle connection is made and no credential is read.
@@ -69,7 +71,8 @@ function Get-OracleDatabaseList {
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws.
-    #       Test: 'Has Success property', 'Has Data property', 'Has Message property'.
+    #       Test: 'R1 returns exactly Success, Data and Message, without throwing, on Windows when <Path>',
+    #       'R1 returns exactly Success, Data and Message, without throwing, on <Platform> when <Path>'.
     #   R2 When no instance is found, Success is true and Data is an empty array.
     #       Test: 'Returns Success = $true with empty Data'.
     #   R3 Each Data entry has SID, Status, ServiceName, OracleHome and OracleBase.

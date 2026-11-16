@@ -41,6 +41,7 @@ function Invoke-OraEnv {
     # PRE-CONDITIONS
     #   P1 SID, when supplied, is a non-empty string.
     #       Type: ValidateNotNullOrEmpty.
+    #       Test: none yet.
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 The only text it writes is the Message returned by Set-OracleEnv.

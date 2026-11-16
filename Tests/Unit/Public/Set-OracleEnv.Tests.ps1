@@ -414,16 +414,52 @@ Describe 'Set-OracleEnv' {
             $env:ORACLE_BASE = $null
         }
 
-        It 'Has Success property' {
-            (Set-OracleEnv).PSObject.Properties.Name | Should -Contain 'Success'
-        }
-
-        It 'Has Data property' {
-            (Set-OracleEnv).PSObject.Properties.Name | Should -Contain 'Data'
-        }
-
-        It 'Has Message property' {
-            (Set-OracleEnv).PSObject.Properties.Name | Should -Contain 'Message'
+        # R1 is "on every path", so each path is tested. The context mock gives one instance.
+        It 'R1 returns exactly Success, Data and Message, without throwing, when <Path>' -ForEach @(
+            @{ Path = 'one instance is found and no SID is given' }
+            @{ Path = 'the given SID is found' }
+            @{ Path = 'the given SID is not found' }
+            @{ Path = 'several instances are found and a valid one is chosen' }
+            @{ Path = 'several instances are found and an invalid choice is made' }
+            @{ Path = 'no instance is found' }
+            @{ Path = 'discovery fails' }
+            @{ Path = 'the call runs under -WhatIf' }
+        ) {
+            $script:twoInstances = [PSCustomObject]@{
+                Success = $true
+                Data    = @(
+                    [PSCustomObject]@{ SID = 'ORCL'; Status = 'Running'; ServiceName = 'OracleServiceORCL'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_1'; OracleBase = 'C:\app\oracle' }
+                    [PSCustomObject]@{ SID = 'CDB1'; Status = 'Stopped'; ServiceName = 'OracleServiceCDB1'; OracleHome = 'C:\app\oracle\product\19.3\dbhome_2'; OracleBase = 'C:\app\oracle' }
+                )
+                Message = 'Found 2 Oracle database instance(s).'
+            }
+            $call = @{}
+            switch ($Path) {
+                'the given SID is found'     { $call['SID'] = 'ORCL' }
+                'the given SID is not found' { $call['SID'] = 'BOGUS' }
+                'several instances are found and a valid one is chosen' {
+                    Mock Get-OracleDatabaseList { $script:twoInstances } -ModuleName 'TACE.Oracle.Admin'
+                    Mock Read-Host { '1' } -ModuleName 'TACE.Oracle.Admin'
+                }
+                'several instances are found and an invalid choice is made' {
+                    Mock Get-OracleDatabaseList { $script:twoInstances } -ModuleName 'TACE.Oracle.Admin'
+                    Mock Read-Host { '99' } -ModuleName 'TACE.Oracle.Admin'
+                }
+                'no instance is found' {
+                    Mock Get-OracleDatabaseList {
+                        [PSCustomObject]@{ Success = $true; Data = @(); Message = 'No Oracle database services found.' }
+                    } -ModuleName 'TACE.Oracle.Admin'
+                }
+                'discovery fails' {
+                    Mock Get-OracleDatabaseList {
+                        [PSCustomObject]@{ Success = $false; Data = $null; Message = 'Service query failed.' }
+                    } -ModuleName 'TACE.Oracle.Admin'
+                }
+                'the call runs under -WhatIf' { $call['WhatIf'] = $true }
+            }
+            $result = Set-OracleEnv @call
+            @($result.PSObject.Properties.Name) | Should -Be @('Success', 'Data', 'Message')
+            $result.Message | Should -BeOfType [string]
         }
 
         It 'Data.SID is a non-empty string on success' {

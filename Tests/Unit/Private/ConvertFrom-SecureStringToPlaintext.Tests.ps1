@@ -129,7 +129,7 @@ Describe 'ConvertFrom-SecureStringToPlaintext' {
                 $secure.Dispose()
 
                 { ConvertFrom-SecureStringToPlaintext -SecureString $secure } |
-                    Should -Throw -ExpectedMessage '*Failed to convert SecureString*'
+                    Should -Throw -ExpectedMessage 'Failed to convert SecureString:*'
             }
         }
     }

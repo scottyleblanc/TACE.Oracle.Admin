@@ -221,10 +221,41 @@ Describe 'Remove-RmanObsoleteBackup' {
             $script:rmanCalled | Should -Be $false
         }
 
-        It 'ORACLE_SID should not be set on current session' {
-            $before = $env:ORACLE_SID
-            Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Confirm:$false | Out-Null
-            $env:ORACLE_SID | Should -Be $before
+        It 'S1 declares ConfirmImpact High, so it asks before deleting at the default preference' -Tag 'SEC' {
+            $binding = (Get-Command Remove-RmanObsoleteBackup).ScriptBlock.Attributes |
+                Where-Object { $PSItem -is [System.Management.Automation.CmdletBindingAttribute] }
+            $binding.SupportsShouldProcess | Should -BeTrue
+            $binding.ConfirmImpact         | Should -Be ([System.Management.Automation.ConfirmImpact]::High)
+        }
+
+        # Sentinels first: a before-and-after read proves nothing when an earlier test has
+        # already left the value the call would set.
+        It 'S3 the session environment is unchanged after the call' -Tag 'SEC' {
+            $sentinel = & (Join-Path $PSScriptRoot '..' 'Set-EnvironmentSentinel.ps1')
+            try {
+                Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Confirm:$false | Out-Null
+            }
+            finally {
+                $changed = & (Join-Path $PSScriptRoot '..' 'Compare-EnvironmentSentinel.ps1') -Snapshot $sentinel
+            }
+            ($changed -join ', ') | Should -BeNullOrEmpty
+        }
+
+        It 'S4, S5 no part of a named credential reaches Message or the RMAN script' -Tag 'SEC' {
+            $password = 'Gr8Backup!Pwd77'
+            $cred     = [PSCredential]::new('backup_user', (ConvertTo-SecureString $password -AsPlainText -Force))
+            $script:capturedScript = $null
+            Mock -CommandName Invoke-RmanProcess -ModuleName TACE.Oracle.Admin -MockWith {
+                $script:capturedScript = $RmanScript
+                return [PSCustomObject]@{ ExitCode = 0; StdOut = 'deleted backup piece'; StdErr = ''; Success = $true }
+            }
+            $result = Remove-RmanObsoleteBackup -DatabaseName 'ORCL' -Credential $cred -Confirm:$false
+            $result.Success         | Should -BeTrue
+            $result.Message         | Should -Not -Match ([regex]::Escape($password))
+            $result.Message         | Should -Not -Match 'backup_user'
+            $script:capturedScript  | Should -Not -BeNullOrEmpty
+            $script:capturedScript  | Should -Not -Match ([regex]::Escape($password))
+            $script:capturedScript  | Should -Not -Match 'backup_user'
         }
 
         It 'RMAN script should not contain credential fragments' {
