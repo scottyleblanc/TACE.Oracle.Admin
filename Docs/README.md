@@ -99,8 +99,8 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.2.3 |
-| Last audit | 2026-11-16 — Stack 3 tests: every invariant proven, mutation check of every security proof, coverage floor, local integration tier |
+| Version | 0.2.4 |
+| Last audit | 2026-11-16 — Stack 4 enforced gate: the gate runs in CI on every pull request, and `master` accepts only a pull request that passes it |
 | Tests | 405 unit tests, 160 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
 | Open SEC items | 6 — see the Open Items in SECURITY.md |
 
@@ -123,6 +123,11 @@ introduces data handling risks that are outside TACE's control and may conflict 
 organization's own data governance obligations.
 
 ## Contributing
+
+Changes reach `master` only through a pull request, and the pull request merges only
+when the gate passes in CI (`.github\workflows\gate.yml`; see the Gate section of
+[PREREQUISITES.md](PREREQUISITES.md)). A change to `Source\` also needs current
+integration evidence, which needs a local Oracle database.
 
 - Build task list: [TODO.md](TODO.md)
 - Version history: [CHANGELOG.md](CHANGELOG.md)

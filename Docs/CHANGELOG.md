@@ -6,10 +6,10 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.2.4] - 2026-11-16
 
-Stack 4 of the AI Development Stack — enforced gate. In progress. Record in
-`Docs/audit/stack-4-enforced-gate.md`.
+Stack 4 of the AI Development Stack — enforced gate. Not published to PSGallery. No
+change to module behaviour. Record in `Docs/audit/stack-4-enforced-gate.md`.
 
 ### Added
 
@@ -25,6 +25,12 @@ Stack 4 of the AI Development Stack — enforced gate. In progress. Record in
 - `Test-SeededDefect.ps1`: four more cases, nine in all. A secret in a commit message
   that is already on a remote passes without `-Base` and fails with it; integration
   evidence passes when current and fails when stale.
+- Decisions 32 (`-Base` and the CI checkout) and 33 (the `master` ruleset, no bypass).
+
+### Changed
+
+- `master` changes only through a pull request merged with a merge commit; the local
+  `--no-ff` merge and push in `VERSIONING.md` is replaced.
 
 ### Security
 
