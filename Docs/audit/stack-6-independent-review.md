@@ -8,7 +8,7 @@ question is whether the review layer catches what the gate cannot.
 |---|---|
 | Recorded | 2026-11-16 |
 | Reviewer | `Scripts\Invoke-ModelReview.ps1`: Claude Code 2.1.308, headless, model `claude-opus-5-5`, effort `high` |
-| Prompt | `Review\reviewer-prompt.md`, SHA-256 `dd8021b2265c...` in every run |
+| Prompt | `Review\reviewer-prompt.md` as it was at `6bff32c`, SHA-256 `dd8021b2265c...` in every run. The prompt changed later in Stack 6 (commit messages added to the inputs); these runs used the earlier text |
 | Starting point | `6bff32c` on `v0.2.6-dev`: the review layer built, gate passing all 7 checks |
 | Runs | 3, one after another, same commit |
 | Measure | Whether each review reports the planted defect, at what severity and against which rule |

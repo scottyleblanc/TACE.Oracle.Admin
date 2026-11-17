@@ -41,8 +41,9 @@
     contains one of them. The reviewer is told never to quote a
     credential-like value; the gate's secret scan covers the file when it is committed.
 
-    An uncommitted Review\LastReview.json with an answered finding is not overwritten
-    unless -Force is given, so a second run cannot discard the author's Responses.
+    An uncommitted Review\LastReview.json with an answered finding, or one that cannot be
+    read, is not overwritten unless -Force is given, so a second run cannot discard the
+    author's Responses.
 
 .PARAMETER Base
     The branch the pull request merges into, as a git revision. Default: origin/master.
@@ -188,14 +189,13 @@ if ($changes.Count -gt 0) {
 if (-not $Force -and (Test-Path -LiteralPath $recordFile -PathType Leaf)) {
     $recordState = @(Invoke-RepoGit -Argument @('status', '--porcelain', '--untracked-files=all', '--', 'Review/LastReview.json') | Where-Object { $PSItem })
     if ($recordState.Count -gt 0) {
-        $answered = @()
         try {
             $existing = [System.IO.File]::ReadAllText($recordFile) | ConvertFrom-Json
-            $answered = @(@($existing.Findings) | Where-Object { $null -ne $PSItem -and $PSItem.PSObject.Properties['Response'] -and "$($PSItem.Response)".Trim() })
         }
         catch {
-            $answered = @()
+            throw '[Invoke-ModelReview] Review/LastReview.json is not committed and cannot be read as JSON, so its Responses cannot be checked. Fix or commit it, or run with -Force to discard it.'
         }
+        $answered = @(@($existing.Findings) | Where-Object { $null -ne $PSItem -and $PSItem.PSObject.Properties['Response'] -and "$($PSItem.Response)".Trim() })
         if ($answered.Count -gt 0) {
             throw "[Invoke-ModelReview] Review/LastReview.json is not committed and has $($answered.Count) answered finding(s). Commit it, or run with -Force to discard the Responses."
         }
