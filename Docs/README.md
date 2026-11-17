@@ -101,7 +101,7 @@ passwords, credential values, or sensitive path fragments.
 |---|---|
 | Version | 0.2.6 |
 | Last audit | 2026-11-16 — Stack 6 independent review: every pull request carries a gate-checked second-model review; a planted S-11 defect the gate passed was reported as High by each of three reviews |
-| Tests | 405 unit tests, 163 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
+| Tests | 405 unit tests, 164 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
 | Open SEC items | 6 — see the Open Items in SECURITY.md |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.

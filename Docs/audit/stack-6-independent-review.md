@@ -92,6 +92,33 @@ What this shows about the layers:
   as a concrete test (a `[string]` in RMAN text is a finding unless its validation
   limits the characters), and every run applied that wording.
 
+## Reviewing this stack's own pull request
+
+The first design required a new review after any change to the branch. The Stack 6
+pull request was reviewed eight times under it, about US$8 in all, with three
+integration runs, and every round found something new. The 23 findings, by origin:
+
+| Origin | Findings |
+|---|---|
+| The first review's own findings | 4 |
+| The same Low (STAGES says complete while TODO has open tasks), in rounds 2 to 7 | 6 |
+| Problems in code written to fix an earlier finding | 6 |
+| Problems in the original code that the first review did not report | 4, two of them Medium |
+| A gap in the fix for the first review's Medium finding | 1 |
+| Caused by a change to the human checklist made during the review | 2 |
+
+Two conclusions changed the design (decision 35):
+
+- **Each fresh review finds a different subset of the real problems.** Repeating it does
+  not settle; it samples again. The two Medium problems in the original code that the
+  first review missed were the reviewer not being given the commit messages, and the
+  gate's `review` check passing when git could not list the changes.
+- **Fixing every finding creates new code to review.** Twelve of the 19 later findings
+  were in code written to fix earlier findings, or repeated a finding already answered.
+
+So the review now runs once per pull request. The author fixes what is worth fixing in
+later commits, answered `Fixed:`, and the human review reads those commits.
+
 ## Limitations
 
 - Three runs, one planted defect, one model. Three of three shows the defect is caught

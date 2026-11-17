@@ -5,7 +5,7 @@
 ## Second-model review
 
 <!-- From Review/LastReview.json. The gate's review check fails if the record is missing,
-stale or has an unanswered finding. -->
+does not cover the branch, or has an unanswered finding. -->
 
 - Reviewed commit:
 - Findings: <!-- count by severity, e.g. 0 High, 1 Medium, 2 Low -->
@@ -22,13 +22,13 @@ mutation run and the second-model review; see "What the human review covers" in
 
 - [ ] **Intent:** the change does what this description and its TODO item or decision say,
       and nothing else I can see
-- [ ] **Findings:** I read every finding and agree with each Response. One I disagree with
-      is fixed in a new commit, followed by a new review
+- [ ] **Findings:** I read every finding and agree with each Response
+- [ ] **Fix commits:** the commits after the reviewed commit do what their findings asked,
+      and nothing else <!-- or: no commits after the review but the evidence files -->
 - [ ] **Risk read:** I read the parts of the diff that touch credentials, RMAN or SQL text,
       file or backup deletion, or the gate and saw nothing wrong
       <!-- or: none of these changed -->
-- [ ] **Evidence:** the gate passed in CI, and the review record names this branch's last
-      code commit
+- [ ] **Evidence:** the gate passed in CI
 
 ## Evidence
 

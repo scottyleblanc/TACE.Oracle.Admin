@@ -34,9 +34,10 @@
       8. review     Decision 35. When the commits since the merge base with Base change
                     any file other than the two evidence files, Review\LastReview.json at
                     HEAD must show a completed review of a commit that HEAD contains,
-                    from that same merge base; nothing but the evidence files may change
-                    between that commit and HEAD; and every finding must have a Response
-                    that starts with Rejected:, Accepted: or Deferred: (Docs\REVIEW.md)
+                    from that same merge base, and every finding must have a Response
+                    that starts with Fixed:, Rejected:, Accepted: or Deferred:
+                    (Docs\REVIEW.md). Commits after the reviewed one are fixes, read in
+                    the human review. If git cannot list the changes, the check fails
 
     Found values are never printed in full: gitleaks runs with --redact, and a pattern
     match shows only its first characters.
@@ -282,8 +283,13 @@ if ($Base) {
     }
     else {
         $changed       = @(& $git.Source -C $repoRoot diff --name-only "$baseCommit...HEAD" 2>$null)
+        $changedExit   = $LASTEXITCODE
         $sourceChanged = @($changed | Where-Object { $PSItem -like 'Source/*' })
-        if ($sourceChanged.Count -eq 0) {
+        if ($changedExit -ne 0) {
+            # Fail closed: a check that cannot see the change does not pass it.
+            Add-Result -Name 'evidence' -Passed $false -Summary "not run: git could not list the files changed since $Base"
+        }
+        elseif ($sourceChanged.Count -eq 0) {
             Add-Result -Name 'evidence' -Passed $true -Summary "Source\ not changed since $Base; no evidence needed"
         }
         else {
@@ -336,9 +342,14 @@ if ($Base) {
     }
     else {
         $mergeBase = @(& $git.Source -C $repoRoot merge-base $baseCommit HEAD 2>$null) | Select-Object -First 1
-        $reviewed  = @(& $git.Source -C $repoRoot diff --name-only "$baseCommit...HEAD" 2>$null |
-            Where-Object { $PSItem -and $evidenceFiles -notcontains $PSItem })
-        if ($reviewed.Count -eq 0) {
+        $diffOut   = @(& $git.Source -C $repoRoot diff --name-only "$baseCommit...HEAD" 2>$null)
+        $diffExit  = $LASTEXITCODE
+        $reviewed  = @($diffOut | Where-Object { $PSItem -and $evidenceFiles -notcontains $PSItem })
+        if ($diffExit -ne 0 -or -not $mergeBase) {
+            # Fail closed: a check that cannot see the change does not pass it.
+            Add-Result -Name 'review' -Passed $false -Summary "not run: git could not list the files changed since $Base"
+        }
+        elseif ($reviewed.Count -eq 0) {
             Add-Result -Name 'review' -Passed $true -Summary "no file changed since $Base; no review needed"
         }
         else {
@@ -372,11 +383,6 @@ if ($Base) {
                     if ($LASTEXITCODE -ne 0) {
                         $reviewProblems.Add("the reviewed commit $($reviewCommit.Substring(0, 7)) is not in HEAD's history")
                     }
-                    else {
-                        $since = @(& $git.Source -C $repoRoot diff --name-only $reviewCommit HEAD 2>$null |
-                            Where-Object { $PSItem -and $evidenceFiles -notcontains $PSItem })
-                        foreach ($path in $since) { $reviewProblems.Add("changed after the reviewed commit $($reviewCommit.Substring(0, 7)): $path") }
-                    }
                 }
                 if ($names -notcontains 'Findings') {
                     $reviewProblems.Add("$reviewPath has no Findings list")
@@ -385,17 +391,17 @@ if ($Base) {
                     foreach ($finding in @($record.Findings | Where-Object { $null -ne $PSItem })) {
                         $id       = if ($finding.PSObject.Properties['Id']) { "$($finding.Id)" } else { '?' }
                         $response = if ($finding.PSObject.Properties['Response']) { "$($finding.Response)" } else { '' }
-                        if ($response -notmatch '^(Rejected|Accepted|Deferred): \S') {
-                            $reviewProblems.Add("finding $id is not answered: its Response must start with Rejected:, Accepted: or Deferred:")
+                        if ($response -notmatch '^(Fixed|Rejected|Accepted|Deferred): \S') {
+                            $reviewProblems.Add("finding $id is not answered: its Response must start with Fixed:, Rejected:, Accepted: or Deferred:")
                         }
                     }
                 }
             }
             $summary = if ($reviewProblems.Count -eq 0) {
-                "LastReview.json is current for $($record.Commit.Substring(0, 7)); $(@($record.Findings | Where-Object { $null -ne $PSItem }).Count) finding(s), all answered"
+                "LastReview.json covers $($record.Commit.Substring(0, 7)); $(@($record.Findings | Where-Object { $null -ne $PSItem }).Count) finding(s), all answered"
             }
             else {
-                'the review is missing, stale or not answered (decision 35)'
+                'the review is missing, incomplete or not answered (decision 35)'
             }
             Add-Result -Name 'review' -Passed ($reviewProblems.Count -eq 0) -Summary $summary -Detail @($reviewProblems)
         }

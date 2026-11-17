@@ -444,10 +444,10 @@ one real pull request.
       second-model review
 - [x] Choose the second-model review mechanism; add it as a script step. A headless
       Claude Code session, confined to a temporary worktree with read-only file tools,
-      run by `Scripts\Invoke-ModelReview.ps1`; the gate's `review` check fails a missing,
-      stale or unanswered `Review\LastReview.json` (decision 35). Seeded cases
-      `review missing`, `review current`, `review wrong base`, `review unanswered` and
-      `review stale`
+      run by `Scripts\Invoke-ModelReview.ps1` once per pull request; the gate's `review`
+      check fails a `Review\LastReview.json` that is missing, does not cover the branch
+      or has an unanswered finding (decision 35). Seeded cases `review missing`,
+      `review current`, `review wrong base`, `review unanswered` and `review fixed`
 - [x] [SEC] Seeded defect: a caller's `[string]` embedded in RMAN script text (S-11), on
       a throwaway branch. The gate passed it; three reviews of the same commit each
       reported it as High against S-11 (`Docs\audit\stack-6-independent-review.md`)
@@ -562,16 +562,12 @@ Not part of the stack or the OracleBackup migration. Recorded so the idea is not
       tools, no command tools, no instruction files or memory, structured output.
       Decide whether `Review\LastReview.json` holds one reviewer or several (found in
       Stack 6)
-- [ ] [SEC] Tests for `Scripts\Invoke-ModelReview.ps1`: move the path scrub and the
-      refuse-to-write check into a dot-sourced helper in `Scripts\Lib\`, and test that
-      each path form (raw, forward-slash, JSON-escaped) is replaced and that a record
-      still holding one is refused; test that the guard refuses to overwrite an
-      uncommitted record with an answered finding. Today these are checked by hand
-      only (found by the Stack 6 review of its own pull request)
+- [ ] [SEC] Seeded case: a review record that quotes a local user-profile path, raw and
+      JSON-escaped, fails the gate on `static` (the S-16 pattern added in Stack 6)
 - [ ] Seeded cases for the gate's other `review` failures: a record with
       `Completed = false`, another schema version, a reviewed commit outside HEAD's
       history, no `Findings` list, and a `Response` with a wrong or bare prefix such as
-      `Fixed: ...` or `Accepted:` (found by the Stack 6 review of its own pull request)
+      `Done: ...` or `Accepted:` (found by the Stack 6 review of its own pull request)
 - [ ] Integration helper module lookup: `Tests\Integration\IntegrationTestHelpers.ps1`
       calls `Get-Module -Name 'TACE.Oracle.Admin'` three times. When the session has
       already loaded another copy of the module, such as from a profile, each call

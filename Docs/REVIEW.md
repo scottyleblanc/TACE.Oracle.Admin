@@ -16,19 +16,25 @@ and whether the change does what it says.
    (`.\Scripts\Invoke-Gate.ps1 -Unit`). When the change touches an invariant block, the
    tests it cites or the mutation list, `.\Scripts\Test-InvariantMutation.ps1` passes
    too (rule I-10). Every change is committed.
-2. The author runs `.\Scripts\Invoke-ModelReview.ps1`. A new Claude Code session,
-   with no access to the author's session, memory or instruction files, reviews the
-   commits the branch adds to `master` in the order below. It can read the
+2. The author runs `.\Scripts\Invoke-ModelReview.ps1`, once. A new Claude Code
+   session, with no access to the author's session, memory or instruction files,
+   reviews the commits the branch adds to `master` in the order below. It can read the
    repository at the reviewed commit and nothing else; it cannot run commands or
    change files. The script writes its findings to `Review\LastReview.json`.
-3. The author answers every finding in `Review\LastReview.json` (see "Answering a
-   finding") and commits the file. A finding the author fixes is not answered: the
-   fix is a new commit, and the review runs again on it.
+3. The author fixes the findings worth fixing, in new commits, and answers every
+   finding in `Review\LastReview.json` (see "Answering a finding"). The fixes are not
+   reviewed again by the model; the human review reads them. Run the gate again after
+   the fixes.
 4. When `Source\` changed, the integration run follows, and `LastRun.json` is the
    last commit of the branch (rule T-14).
 5. The author opens the pull request. CI runs the gate with `-Base`, and its `review`
-   check fails when the record is missing, stale or has an unanswered finding. The
-   maintainer does the human review with the template's checklist.
+   check fails when the record is missing, does not cover the branch from its merge
+   base, or has an unanswered finding. The maintainer does the human review with the
+   template's checklist.
+
+One review per pull request keeps the cost bounded: each new review is a fresh session
+over the whole change, which finds a different subset of problems each time and never
+settles. A second review is the author's choice, not a rule.
 
 ## What the human review covers
 
@@ -43,10 +49,11 @@ the checklist does not ask for that. Each rule has an owner:
 | S-16, no real names in files or commit messages | The gate's patterns and gitleaks for known shapes, the second-model review, and the human for names they recognise as real |
 | The change does what it says, and nothing else visible | The human |
 | Each finding's Response is right, and a finding that should be fixed is fixed | The human |
+| The fix commits after the reviewed commit do what their findings asked, and nothing else | The human reads them |
 | The parts of the diff with the most at stake: credentials, RMAN or SQL text, file or backup deletion, and the gate itself | The human reads them |
 
-The human checklist has four items: intent, findings, the risk read, and the evidence
-(the gate passed in CI, and the record names the branch's last code commit).
+The human checklist has five items: intent, findings, the fix commits, the risk read, and
+the evidence (the gate passed in CI).
 
 ## Review order
 
@@ -113,26 +120,29 @@ these, followed by the reason:
 
 | Response | When |
 |---|---|
+| `Fixed: <commit>` | The finding is right and a later commit on the branch fixes it |
 | `Rejected: <reason>` | The finding is wrong: the code already does what it asks |
 | `Accepted: <reason>` | The finding is right and is not fixed in this pull request, with the reason that is safe |
-| `Deferred: <TODO item>` | The finding is right and its item is already committed in `TODO.md` |
+| `Deferred: <TODO item>` | The finding is right and its item is added to `TODO.md` on the branch |
 
 The gate fails while any `Response` is empty or does not start with one of these words.
 It cannot judge the reason; the human checklist does.
 
-Only `Review\LastReview.json` and `LastRun.json` may change after the reviewed commit. A
-`TODO.md` item for a deferred finding is a change, so it is committed first and the
-review runs again; the new review either reports the finding again, answered with
-`Deferred:` and the item, or sees the item and does not report it.
+Fix a High finding. Fix a Medium one, or say in its Response why it is safe not to. A Low
+finding is usually answered, not fixed: each fix is new code that no model reviews.
 
 ## Limits
 
 - The record is the author's attestation, as `LastRun.json` is (decision 30). The gate
-  proves it is current and answered, not that the session ran as recorded.
+  proves it covers the branch and is answered, not that the session ran as recorded.
+- Commits after the reviewed one are not checked by the gate to be fixes. The human
+  review reads them; a large change after the review should be reviewed again.
 - The model reviewer is a second session of the same model family as the author. It
   shares the author's blind spots more than a different model or a person would.
-- A review can miss a defect, and the same change reviewed twice can give different
-  findings. The gate stays the deterministic check; review adds judgement on top.
+- A review can miss a defect, and the same change reviewed twice gives different
+  findings. On the Stack 6 pull request, later reviews found real problems in the
+  original code that the first review missed. The gate stays the deterministic check;
+  review adds judgement on top.
 - GitHub does not let the author of a pull request approve it, and this repository has
   one maintainer, so no approval is required (decision 33). The human checklist is
   completed by the maintainer in the pull request.

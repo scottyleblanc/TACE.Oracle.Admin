@@ -25,8 +25,8 @@
       current    naming it, then LastRun.json
                  naming the review commit
       evidence   one more Source\ change after   the gate with -Base fails on
-      stale      the evidence commit             'evidence' and 'review' (rule T-14,
-                                                 decision 35)
+      stale      the evidence commit             'evidence' only (rule T-14); a fix
+                                                 after the review needs no new review
       review     a docs change with no review    the gate with -Base fails on
       missing    record                          'review' only (decision 35)
       review     a review record naming it,      the gate with -Base passes
@@ -36,8 +36,8 @@
                  it covers none of the commits
       review     the same record with the        the gate with -Base fails on
       unanswered finding's Response empty        'review' only
-      review     one more docs change after      the gate with -Base fails on
-      stale      the review commit               'review' only
+      review     a fix committed after the       the gate with -Base passes: a fix
+      fixed      review, answered Fixed:         needs no new review
 
     Each case starts from the clean copy. The planted token is generated at random in
     the GitHub token format, so it is no real credential; it is never printed. This
@@ -251,7 +251,7 @@ try {
     # -- evidence: rule T-14 ---------------------------------------------------
     # A Source\ change, its review, then LastRun.json naming the review commit, in the
     # order Docs\REVIEW.md gives: current. One more Source\ change after the evidence
-    # commit: stale, for both records.
+    # commit: the integration evidence is stale; the review still covers the branch.
     $sourceFile = Join-Path -Path $copy -ChildPath 'Source' -AdditionalChildPath 'Private', 'Test-WindowsPlatform.ps1'
     $evidence   = Join-Path -Path $copy -ChildPath 'Tests' -AdditionalChildPath 'Integration', 'LastRun.json'
     Assert-InCopy -Path $sourceFile
@@ -269,7 +269,7 @@ try {
     Add-Case -Name 'evidence current' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @()
     [System.IO.File]::AppendAllText($sourceFile, "# seeded change 2`n", [System.Text.UTF8Encoding]::new($false))
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'fix: a later source change')
-    Add-Case -Name 'evidence stale' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('evidence', 'review')
+    Add-Case -Name 'evidence stale' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('evidence')
     $null = Invoke-CopyGit -Argument @('reset', '--quiet', '--hard', $baseline)
 
     # -- review: decision 35 ---------------------------------------------------
@@ -295,10 +295,10 @@ try {
     Write-ReviewRecord -Commit $docCommit -BaseCommit $baseline -Response ''
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: review record, unanswered')
     Add-Case -Name 'review unanswered' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('review')
-    Write-ReviewRecord -Commit $docCommit -BaseCommit $baseline -Response 'Accepted: seeded answer.'
-    [System.IO.File]::AppendAllText($docFile, "Seeded docs change 2.`n", [System.Text.UTF8Encoding]::new($false))
-    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: a later docs change')
-    Add-Case -Name 'review stale' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('review')
+    [System.IO.File]::AppendAllText($docFile, "Seeded fix for F1.`n", [System.Text.UTF8Encoding]::new($false))
+    Write-ReviewRecord -Commit $docCommit -BaseCommit $baseline -Response 'Fixed: seeded fix commit.'
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: fix F1 after the review')
+    Add-Case -Name 'review fixed' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @()
     $null = Invoke-CopyGit -Argument @('reset', '--quiet', '--hard', $baseline)
 }
 finally {

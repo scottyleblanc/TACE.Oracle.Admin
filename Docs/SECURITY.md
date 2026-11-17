@@ -7,7 +7,7 @@
 | Version | 0.2.6 |
 | Last audit | 2026-11-16 — Stack 6 independent review |
 | Findings resolved | Stack 6: none in the module. A planted S-11 defect that the gate passed was reported as High by every review. The Stack 5 `[SEC]` finding in the agent tooling stays open for Stack 7 |
-| Unit tests | 405 (all passing); 163 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
+| Unit tests | 405 (all passing); 164 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
 | Open SEC items | 6 — see Open Items |
 
 The RMAN functions added at Stack 0 (v0.2.0, not on PSGallery) were copied from
@@ -203,21 +203,24 @@ in a new Claude Code session, in the order in `Docs\REVIEW.md`, and writes
 worktree of the reviewed commit, which holds only committed files, so ignored local
 files such as the integration config are not in reach; `--restricted` removes every
 tool that runs commands or code, and WebFetch, ignores user, project and local settings,
-and confines file tools to the worktree and its input folder; its tools are Read, Grep
-and Glob only; `--safe-mode` and `--strict-mcp-config` load no instruction file, skill,
-hook, plugin or MCP server; and the session is not saved. [SEC] Everything the reviewer
-returns has the run's local folders, the repository folder, the user profile folder and
-the account name, as a whole word, replaced with labels before the record is written,
-and the script refuses to write a record that still holds one, so no local path or
-account name is committed. The script needs no secret and CI calls no model. The author answers every finding; the human checklist in
-`.github\pull_request_template.md` follows. The gate's `review` check fails a pull
-request whose record is missing, stale or unanswered (decision 35).
+and confines file tools to the worktree; its tools are Read, Grep and Glob only;
+`--safe-mode` and `--strict-mcp-config` load no instruction file, skill, hook, plugin or
+MCP server; and the session is not saved. [SEC] The prompt names no absolute path, and an
+S-16 pattern in the static tier fails any committed file, the review record included,
+that holds a local user-profile path, which names the machine account. The script
+needs no secret and CI calls no model. The review runs once per pull request; the
+author fixes or answers every finding, and the human checklist in
+`.github\pull_request_template.md` reads the fix commits. The gate's `review` check
+fails a pull request whose record is missing, does not cover the branch from its merge
+base, or has an unanswered finding, and fails when git cannot list the changes
+(decision 35).
 
 **Contract:** a pull request into `master` that changes any file other than the evidence
 files carries a completed review of its own commits, with every finding answered. The
-record is the author's attestation: the check proves it current and answered, not that
-the session ran as recorded. The record holds no local path, enforced by the script,
-and no credential-like value, by the reviewer's instructions and the gate's secret scan.
+record is the author's attestation: the check proves it covers the branch and is
+answered, not that the session ran as recorded. Commits after the reviewed one are read
+by the human, not the model. The record holds no local user-profile path (static tier)
+and no credential-like value (the reviewer's instructions and the gate's secret scan).
 
 ---
 

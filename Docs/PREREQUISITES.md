@@ -155,15 +155,15 @@ checks run:
 | Check | What it runs |
 |---|---|
 | evidence | Rule T-14: when the pull request changes `Source\`, `Tests\Integration\LastRun.json` shows `Evidence = true` for a commit HEAD contains, and only that file changed since |
-| review | Decision 35: when the pull request changes any file other than the two evidence files, `Review\LastReview.json` shows a completed review from the merge base, of a commit HEAD contains, with only the evidence files changed since and every finding answered |
+| review | Decision 35: when the pull request changes any file other than the two evidence files, `Review\LastReview.json` shows a completed review from the merge base, of a commit HEAD contains, with every finding answered. Later commits are fixes, read in the human review |
 
 ### Review
 
 `.\Scripts\Invoke-ModelReview.ps1` runs the second-model review (`Docs\REVIEW.md`). It
 needs Claude Code (`claude`) on `PATH`, signed in; tested with 2.1.308. It runs on the
-author's machine, not in CI, and costs a few US dollars per review at the default model
-and effort; `-MaxBudgetUsd` caps it (default 10). Run it after the gate passes and every
-change is committed, and before the integration run.
+author's machine, not in CI, and costs about US$1 per review at the default model and
+effort; `-MaxBudgetUsd` caps it (default 10). Run it once per pull request, after the
+gate passes and every change is committed, and before the integration run.
 
 ### CI
 
@@ -182,8 +182,9 @@ git config core.hooksPath .githooks
 `.\Scripts\Test-SeededDefect.ps1` proves the gate works: in a temporary copy of the
 repository it plants a lint violation, secrets, a behaviour defect, a secret in a
 commit message that is already on a remote, stale integration evidence, and a review
-record that is missing, from the wrong base, unanswered or stale, and checks that the gate fails on each with
-the expected check. It takes about fifteen minutes.
+record that is missing, from the wrong base or unanswered, and checks that the gate
+fails on each with the expected check. It also checks that a fix committed after the
+review, answered `Fixed:`, passes. It takes about fifteen minutes.
 
 `.\Scripts\Test-InvariantMutation.ps1` proves the tests prove the invariants (rule I-10):
 for each mutation in `Tests\Mutation\InvariantMutations.psd1` it breaks one invariant in
