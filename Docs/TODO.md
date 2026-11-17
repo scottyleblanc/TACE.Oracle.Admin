@@ -424,7 +424,10 @@ is measured.
       Three runs each way from `v0.2.4` (`Docs\audit\stack-5-agent-instructions.md`):
       every run ended on a passing gate and met the same Review rules; no measurable
       difference. Without the file, every agent read the standards itself
-- [ ] Closing tasks
+- [x] Closing tasks
+      - [x] Record: `Docs\audit\stack-5-agent-instructions.md`
+      - [x] `CHANGELOG.md` 0.2.5 and tag `v0.2.5`
+      - [x] Write-up: Stack 5 post and project page row
 
 ### Stack 6 — Independent review
 
@@ -539,6 +542,11 @@ Not part of the stack or the OracleBackup migration. Recorded so the idea is not
       different wording. Decide whether the shared file drops its rule copy where a
       repository has its own generated `AGENTS.md`. The shared file covers other
       projects, so the change is made there, not here (found in Stack 5)
+- [ ] Integration helper module lookup: `Tests\Integration\IntegrationTestHelpers.ps1`
+      calls `Get-Module -Name 'TACE.Oracle.Admin'` three times. When the session has
+      already loaded another copy of the module, such as from a profile, each call
+      returns two modules. Select the module loaded from the build output at all three.
+      Until then, run the integration tier with `pwsh -NoProfile -File` (found in Stack 5)
 
 ---
 
