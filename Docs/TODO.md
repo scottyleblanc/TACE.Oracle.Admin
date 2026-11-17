@@ -420,7 +420,10 @@ is measured.
       `Scripts\Export-AgentInstruction.ps1`, checked by
       `Tests\Static\AgentInstruction.Tests.ps1`; Cursor reads it directly, Claude Code
       through a local import (decision 34). Seeded case `instructions` fails on `static`
-- [ ] Run one small generation task with and without them; compare gate failures
+- [x] Run one small generation task with and without them; compare gate failures.
+      Three runs each way from `v0.2.4` (`Docs\audit\stack-5-agent-instructions.md`):
+      every run ended on a passing gate and met the same Review rules; no measurable
+      difference. Without the file, every agent read the standards itself
 - [ ] Closing tasks
 
 ### Stack 6 — Independent review
@@ -442,7 +445,13 @@ material is outside its reach, and a planted attempt to read it is blocked.
 
 - [ ] Commit agent permission settings
 - [ ] [SEC] Add ignore files covering credential material
-- [ ] [SEC] Write the rules for what the agent may run or read
+- [ ] [SEC] Write the rules for what the agent may run or read. Found in Stack 5
+      (Claude Code 2.1.308, headless): in `acceptEdits` mode the PowerShell tool ran
+      `Remove-Item .\README.md` without asking, while no allow rule matched a repository
+      script called by path in that tool, so a read-only lint script was refused. The
+      only form an allow rule matched was the Bash tool running
+      `pwsh -NoProfile -File ./Scripts/...`. Test the rules against the commands the
+      agent actually issues, and do not rely on `acceptEdits` to stop file deletion
 - [ ] Seeded defect: an attempt to read ignored material
 - [ ] Closing tasks
 
@@ -524,6 +533,12 @@ Not part of the stack or the OracleBackup migration. Recorded so the idea is not
       patch level, in a restricted file; fail on mismatch with a message that says to
       update the baseline after patching. Needs a `ShouldProcess` update command and a
       step in the patch runbook
+- [ ] Instruction duplication: the shared standards file loaded above this repository
+      (about 3,800 tokens) restates many rules that `AGENTS.md` (about 6,500 tokens)
+      carries word for word, so an agent here reads most rules twice, in slightly
+      different wording. Decide whether the shared file drops its rule copy where a
+      repository has its own generated `AGENTS.md`. The shared file covers other
+      projects, so the change is made there, not here (found in Stack 5)
 
 ---
 

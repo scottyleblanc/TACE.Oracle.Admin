@@ -20,6 +20,13 @@ Stack 5 of the AI Development Stack — agent instructions. In progress.
 - `Test-SeededDefect.ps1`: an `instructions` case, ten in all. A rule added to the
   standards without regenerating `AGENTS.md` fails the gate on `static` alone.
 - Decision 34: one generated `AGENTS.md`, committed and checked; no per-tool copies.
+- `Docs/audit/stack-5-agent-instructions.md`: the same generation task, three runs
+  with and three without `AGENTS.md`. Every run ended on a passing gate and met the
+  same Review rules; with the standards in the repository, the file made no
+  measurable difference.
+- `TODO.md`: a Stack 7 item for the tool-permission behaviour found while setting up
+  the comparison, and a backlog item for the rules the shared instruction file
+  repeats from `AGENTS.md`.
 
 ### Fixed
 
