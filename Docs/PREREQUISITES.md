@@ -182,7 +182,7 @@ git config core.hooksPath .githooks
 `.\Scripts\Test-SeededDefect.ps1` proves the gate works: in a temporary copy of the
 repository it plants a lint violation, secrets, a behaviour defect, a secret in a
 commit message that is already on a remote, stale integration evidence, and a review
-record that is missing, unanswered or stale, and checks that the gate fails on each with
+record that is missing, from the wrong base, unanswered or stale, and checks that the gate fails on each with
 the expected check. It takes about fifteen minutes.
 
 `.\Scripts\Test-InvariantMutation.ps1` proves the tests prove the invariants (rule I-10):

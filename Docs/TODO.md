@@ -444,7 +444,8 @@ one real pull request.
       Claude Code session, confined to a temporary worktree with read-only file tools,
       run by `Scripts\Invoke-ModelReview.ps1`; the gate's `review` check fails a missing,
       stale or unanswered `Review\LastReview.json` (decision 35). Seeded cases
-      `review missing`, `review current`, `review unanswered` and `review stale`
+      `review missing`, `review current`, `review wrong base`, `review unanswered` and
+      `review stale`
 - [x] [SEC] Seeded defect: a caller's `[string]` embedded in RMAN script text (S-11), on
       a throwaway branch. The gate passed it; three reviews of the same commit each
       reported it as High against S-11 (`Docs\audit\stack-6-independent-review.md`)

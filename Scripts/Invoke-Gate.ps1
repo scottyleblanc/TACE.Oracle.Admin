@@ -24,7 +24,7 @@
 
     In CI every commit is already on a remote, so "not yet on a remote" would check
     nothing. -Base names the branch a pull request merges into; with it, 'commits' and
-    'messages' check the commits in Base..HEAD instead, and one more check runs:
+    'messages' check the commits in Base..HEAD instead, and two more checks run:
 
       7. evidence   Rule T-14 (decision 30). When the commits since the merge base with
                     Base change Source\, Tests\Integration\LastRun.json at HEAD must

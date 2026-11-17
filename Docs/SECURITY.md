@@ -205,7 +205,10 @@ files such as the integration config are not in reach; `--restricted` removes ev
 tool that runs commands or code, and WebFetch, ignores user, project and local settings,
 and confines file tools to the worktree and its input folder; its tools are Read, Grep
 and Glob only; `--safe-mode` and `--strict-mcp-config` load no instruction file, skill,
-hook, plugin or MCP server; and the session is not saved. The script needs no secret
+hook, plugin or MCP server; and the session is not saved. [SEC] Everything the reviewer
+returns has the run's local folders and the user profile folder replaced with labels
+before the record is written, and the script refuses to write a record that still holds
+one, so no local path or account name is committed. The script needs no secret
 and CI calls no model. The author answers every finding; the human checklist in
 `.github\pull_request_template.md` follows. The gate's `review` check fails a pull
 request whose record is missing, stale or unanswered (decision 35).
@@ -213,8 +216,8 @@ request whose record is missing, stale or unanswered (decision 35).
 **Contract:** a pull request into `master` that changes any file other than the evidence
 files carries a completed review of its own commits, with every finding answered. The
 record is the author's attestation: the check proves it current and answered, not that
-the session ran as recorded. The record holds no host name, path or credential-like
-value; the gate's secret scan covers it.
+the session ran as recorded. The record holds no local path, enforced by the script,
+and no credential-like value, by the reviewer's instructions and the gate's secret scan.
 
 ---
 

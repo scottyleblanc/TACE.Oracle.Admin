@@ -31,8 +31,15 @@
         config, local instructions, credentials) are not in reach. It sits outside
         the folders whose instruction files Claude Code would load.
 
-    The record holds no host name or path. The reviewer is told never to quote a
+    [SEC] The record holds no local path. The reviewer sees its working folder and the
+    input folder, and may quote them, so every text the reviewer returns has this run's
+    worktree, input folder, temp folder and the user profile folder replaced with
+    <worktree>, <input>, <temp> and <home>, with either slash. The script refuses to write
+    a record that still contains one of them. The reviewer is told never to quote a
     credential-like value; the gate's secret scan covers the file when it is committed.
+
+    An uncommitted Review\LastReview.json with an answered finding is not overwritten
+    unless -Force is given, so a second run cannot discard the author's Responses.
 
 .PARAMETER Base
     The branch the pull request merges into, as a git revision. Default: origin/master.
@@ -45,6 +52,9 @@
 
 .PARAMETER MaxBudgetUsd
     The most the review may spend, in US dollars. Default: 10.
+
+.PARAMETER Force
+    Overwrites an uncommitted Review\LastReview.json that has answered findings.
 
 .PARAMETER KeepWorktree
     Leaves the worktree and input folder in place for inspection. Their paths are
@@ -86,6 +96,9 @@ param(
     [double]$MaxBudgetUsd = 10,
 
     [Parameter()]
+    [switch]$Force,
+
+    [Parameter()]
     [switch]$KeepWorktree
 )
 
@@ -124,6 +137,28 @@ function Assert-RunFolder {
     }
 }
 
+# Local folders that must not reach the committed record, longest first, so a folder
+# inside another is replaced before the folder that holds it.
+$localPaths = @(
+    @{ Path = $worktree; Label = '<worktree>' }
+    @{ Path = $inputDir; Label = '<input>' }
+    @{ Path = $tempRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar); Label = '<temp>' }
+    @{ Path = [Environment]::GetFolderPath('UserProfile'); Label = '<home>' }
+) | Where-Object { -not [string]::IsNullOrWhiteSpace($PSItem.Path) } | Sort-Object -Property { $PSItem.Path.Length } -Descending
+
+# Replaces every local folder in a text the reviewer returned with its label.
+function Get-ScrubbedText {
+    [OutputType([string])]
+    param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Text)
+    $scrubbed = $Text
+    foreach ($entry in $localPaths) {
+        foreach ($form in $entry.Path, ($entry.Path -replace '\\', '/'), ($entry.Path -replace '\\', '\\')) {
+            $scrubbed = [regex]::Replace($scrubbed, [regex]::Escape($form), $entry.Label, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        }
+    }
+    $scrubbed
+}
+
 # -- Preconditions ---------------------------------------------------------------
 
 $claude = Get-Command -Name claude -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -136,6 +171,23 @@ $changes = @(Invoke-RepoGit -Argument @('status', '--porcelain', '--untracked-fi
     Where-Object { $PSItem -and $evidenceFiles -notcontains $PSItem.Substring(3).Trim('"') })
 if ($changes.Count -gt 0) {
     throw "[Invoke-ModelReview] The working tree has $($changes.Count) uncommitted change(s). Commit them first: the review covers commits only."
+}
+
+if (-not $Force -and (Test-Path -LiteralPath $recordFile -PathType Leaf)) {
+    $recordState = @(Invoke-RepoGit -Argument @('status', '--porcelain', '--untracked-files=all', '--', 'Review/LastReview.json') | Where-Object { $PSItem })
+    if ($recordState.Count -gt 0) {
+        $answered = @()
+        try {
+            $existing = [System.IO.File]::ReadAllText($recordFile) | ConvertFrom-Json
+            $answered = @(@($existing.Findings) | Where-Object { $null -ne $PSItem -and $PSItem.PSObject.Properties['Response'] -and "$($PSItem.Response)".Trim() })
+        }
+        catch {
+            $answered = @()
+        }
+        if ($answered.Count -gt 0) {
+            throw "[Invoke-ModelReview] Review/LastReview.json is not committed and has $($answered.Count) answered finding(s). Commit it, or run with -Force to discard the Responses."
+        }
+    }
 }
 
 $headCommit = (Invoke-RepoGit -Argument @('rev-parse', 'HEAD')) | Select-Object -First 1
@@ -231,10 +283,10 @@ $findings = @(foreach ($finding in @($result.structured_output.findings)) {
             Severity = $finding.severity
             Step     = $finding.step
             Rule     = $finding.rule
-            File     = $finding.file -replace '\\', '/'
+            File     = (Get-ScrubbedText -Text "$($finding.file)") -replace '\\', '/'
             Line     = [int]$finding.line
-            Title    = $finding.title
-            Detail   = $finding.detail
+            Title    = Get-ScrubbedText -Text "$($finding.title)"
+            Detail   = Get-ScrubbedText -Text "$($finding.detail)"
             Response = ''
         }
     })
@@ -257,11 +309,19 @@ $record = [PSCustomObject]@{
     Turns             = [int]$result.num_turns
     CostUsd           = [math]::Round([double]$result.total_cost_usd, 2)
     PermissionDenials = @($result.permission_denials).Count
-    Summary           = $result.structured_output.summary
+    Summary           = Get-ScrubbedText -Text "$($result.structured_output.summary)"
     Findings          = $findings
 }
 
 $json = (ConvertTo-Json -InputObject $record -Depth 6) -replace "`r`n", "`n"
+# [SEC] Checked on the serialised text, so a path in any field, escaped or not, is caught.
+foreach ($entry in $localPaths) {
+    foreach ($form in $entry.Path, ($entry.Path -replace '\\', '/'), ($entry.Path -replace '\\', '\\')) {
+        if ($json.IndexOf($form, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            throw "[Invoke-ModelReview] The record still contains the $($entry.Label) folder after scrubbing. No record written."
+        }
+    }
+}
 [System.IO.File]::WriteAllText($recordFile, $json + "`n", [System.Text.UTF8Encoding]::new($false))
 
 Write-Output "[INFO] review: $($findings.Count) finding(s), $($record.Turns) turns, US`$$($record.CostUsd)"

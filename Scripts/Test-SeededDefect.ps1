@@ -31,6 +31,9 @@
       missing    record                          'review' only (decision 35)
       review     a review record naming it,      the gate with -Base passes
       current    its finding answered
+      review     the same record with a base     the gate with -Base fails on
+      wrong base other than the merge base, so    'review' only
+                 it covers none of the commits
       review     the same record with the        the gate with -Base fails on
       unanswered finding's Response empty        'review' only
       review     one more docs change after      the gate with -Base fails on
@@ -48,13 +51,13 @@
 .EXAMPLE
     .\Scripts\Test-SeededDefect.ps1
 
-    Runs the fourteen cases. Exits 0 when every case behaves as expected, 1 otherwise.
+    Runs the fifteen cases. Exits 0 when every case behaves as expected, 1 otherwise.
 
 .NOTES
     Copyright © TACE Data Management Inc.
     **Invocation:** Standalone — self-contained; safe to run with `pwsh -File`. Needs
     everything the gate needs (PREREQUISITES.md). Takes a few minutes: the gate, static
-    tier included, runs fourteen times, twice with the unit tier. The review records it
+    tier included, runs fifteen times, twice with the unit tier. The review records it
     plants are made up; no model review runs.
 #>
 [CmdletBinding()]
@@ -286,6 +289,9 @@ try {
     $null = Invoke-CopyGit -Argument @('add', '--all')
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--message', 'docs: review record')
     Add-Case -Name 'review current' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @()
+    Write-ReviewRecord -Commit $docCommit -BaseCommit $docCommit -Response 'Accepted: seeded answer.'
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: review record, wrong base')
+    Add-Case -Name 'review wrong base' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('review')
     Write-ReviewRecord -Commit $docCommit -BaseCommit $baseline -Response ''
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: review record, unanswered')
     Add-Case -Name 'review unanswered' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('review')
@@ -310,7 +316,7 @@ finally {
 }
 
 $failedCases = @($cases | Where-Object { -not $PSItem.Passed })
-if ($failedCases.Count -gt 0 -or $cases.Count -ne 14) {
+if ($failedCases.Count -gt 0 -or $cases.Count -ne 15) {
     Write-Output "[FAIL] seeded defects: $($failedCases.Count) of $($cases.Count) cases did not behave as expected"
     exit 1
 }

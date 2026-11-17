@@ -24,8 +24,8 @@ No change to module behaviour. Record in `Docs/audit/stack-6-independent-review.
 - `Invoke-Gate.ps1 -Base`: a `review` check. A pull request that changes any file other
   than the evidence files fails without a completed, current review whose every finding
   is answered.
-- `Test-SeededDefect.ps1`: cases `review missing`, `review current`, `review unanswered`
-  and `review stale`, fourteen in all.
+- `Test-SeededDefect.ps1`: cases `review missing`, `review current`, `review wrong base`,
+  `review unanswered` and `review stale`, fifteen in all.
 - Decision 35: how every pull request is examined by someone other than its author.
 - `Docs/audit/stack-6-independent-review.md`: an S-11 defect planted so that the gate
   passes it, reviewed three times; every review reported it as High against S-11. The
@@ -41,6 +41,10 @@ No change to module behaviour. Record in `Docs/audit/stack-6-independent-review.
 - The reviewer session has no command tools, no write tools, no settings, instruction
   files, memory or MCP servers, and reads only the committed files of the reviewed
   commit. CI calls no model and the workflow still holds no secret.
+- `Invoke-ModelReview.ps1` replaces the run's local folders and the user profile folder
+  in everything the reviewer returns, and refuses to write a record that still holds
+  one, so no local path or account name reaches the committed record. Found by the
+  review of this release's own pull request.
 
 ---
 
