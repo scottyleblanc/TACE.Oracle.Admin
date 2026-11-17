@@ -36,8 +36,8 @@
                     HEAD must show a completed review of a commit that HEAD contains,
                     from that merge base or an older one, and every finding must have a Response
                     that starts with Fixed:, Rejected:, Accepted: or Deferred:
-                    (Docs\REVIEW.md). Commits after the reviewed one are fixes, read in
-                    the human review. If git cannot list the changes, the check fails
+                    (Docs\REVIEW.md). Commits after the reviewed one are the author's
+                    fixes. If git cannot list the changes, the check fails
 
     Found values are never printed in full: gitleaks runs with --redact, and a pattern
     match shows only its first characters.

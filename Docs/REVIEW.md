@@ -23,7 +23,7 @@ and whether the change does what it says.
    change files. The script writes its findings to `Review\LastReview.json`.
 3. The author fixes the findings worth fixing, in new commits, and answers every
    finding in `Review\LastReview.json` (see "Answering a finding"). The fixes are not
-   reviewed again by the model; the human review reads them. Run the gate again after
+   reviewed again; the human review judges the Responses. Run the gate again after
    the fixes.
 4. When `Source\` changed, the integration run follows, and `LastRun.json` is the
    last commit of the branch (rule T-14).
@@ -49,11 +49,11 @@ the checklist does not ask for that. Each rule has an owner:
 | S-16, no real names in files or commit messages | The gate's patterns and gitleaks for known shapes, the second-model review, and the human for names they recognise as real |
 | The change does what it says, and nothing else visible | The human |
 | Each finding's Response is right, and a finding that should be fixed is fixed | The human |
-| The fix commits after the reviewed commit do what their findings asked, and nothing else | The human reads them |
-| The parts of the diff with the most at stake: credentials, RMAN or SQL text, file or backup deletion, and the gate itself | The human reads them |
+| The fix commits after the reviewed commit do what their findings asked | The author; the gate and the human's reading of the Responses |
+| The parts of the diff with the most at stake: credentials, RMAN or SQL text, file or backup deletion | The second-model review |
+| The gate passed in CI | The ruleset on `master`, which blocks the merge otherwise |
 
-The human checklist has five items: intent, findings, the fix commits, the risk read, and
-the evidence (the gate passed in CI).
+The human checklist has two items: intent, and the findings.
 
 ## Review order
 
@@ -135,8 +135,8 @@ finding is usually answered, not fixed: each fix is new code that no model revie
 
 - The record is the author's attestation, as `LastRun.json` is (decision 30). The gate
   proves it covers the branch and is answered, not that the session ran as recorded.
-- Commits after the reviewed one are not checked by the gate to be fixes. The human
-  review reads them; a large change after the review should be reviewed again.
+- Commits after the reviewed one are not checked to be fixes, by the gate or a model.
+  They are the author's; a large change after the review should be reviewed again.
 - The model reviewer is a second session of the same model family as the author. It
   shares the author's blind spots more than a different model or a person would.
 - A review can miss a defect, and the same change reviewed twice gives different

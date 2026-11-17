@@ -562,6 +562,13 @@ Not part of the stack or the OracleBackup migration. Recorded so the idea is not
       tools, no command tools, no instruction files or memory, structured output.
       Decide whether `Review\LastReview.json` holds one reviewer or several (found in
       Stack 6)
+- [ ] Re-evaluate the rigor of the review path, simplified in Stack 6 to keep it usable:
+      one review per pull request, fix commits not examined by anyone but the author,
+      and a two-item human checklist (intent, findings). Options set aside then: a
+      scoped check by the reviewer that each `Fixed:` commit addresses its finding and
+      nothing more; two independent reviews combined, for more coverage; a human read
+      of the riskiest parts of the diff. Decide with evidence from real pull requests
+      (`Docs\audit\stack-6-independent-review.md`)
 - [ ] [SEC] Seeded case: a review record that quotes a local user-profile path, raw and
       JSON-escaped, fails the gate on `static` (the S-16 pattern added in Stack 6)
 - [ ] Seeded cases for the gate's other `review` failures: a record with

@@ -211,7 +211,7 @@ that holds a Windows or macOS user-profile path, which names the machine account
 Linux `/home/<name>` path is not matched, because examples use `/home/oracle`. The script
 needs no secret and CI calls no model. The review runs once per pull request; the
 author fixes or answers every finding, and the human checklist in
-`.github\pull_request_template.md` reads the fix commits. The gate's `review` check
+`.github\pull_request_template.md` covers intent and the findings. The gate's `review` check
 fails a pull request whose record is missing, does not cover the branch from its merge
 base, or has an unanswered finding, and fails when git cannot list the changes
 (decision 35).

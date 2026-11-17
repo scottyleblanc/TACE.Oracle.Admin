@@ -155,7 +155,7 @@ checks run:
 | Check | What it runs |
 |---|---|
 | evidence | Rule T-14: when the pull request changes `Source\`, `Tests\Integration\LastRun.json` shows `Evidence = true` for a commit HEAD contains, and only that file changed since |
-| review | Decision 35: when the pull request changes any file other than the two evidence files, `Review\LastReview.json` shows a completed review from the merge base, of a commit HEAD contains, with every finding answered. Later commits are fixes, read in the human review |
+| review | Decision 35: when the pull request changes any file other than the two evidence files, `Review\LastReview.json` shows a completed review from the merge base, of a commit HEAD contains, with every finding answered. Later commits are the author's fixes |
 
 ### Review
 

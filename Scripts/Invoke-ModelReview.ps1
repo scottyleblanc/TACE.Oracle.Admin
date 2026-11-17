@@ -21,8 +21,7 @@
       5. Removes the worktree.
 
     The review runs once per pull request. Fixes for its findings are later commits,
-    answered Fixed: <commit>, and are read in the human review; they are not reviewed
-    again by the model.
+    answered Fixed: <commit>; they are not reviewed again.
 
     [SEC] The reviewer session is confined:
       - --restricted removes every tool that runs commands or code, and WebFetch; it

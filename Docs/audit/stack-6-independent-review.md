@@ -117,7 +117,7 @@ Two conclusions changed the design (decision 35):
   were in code written to fix earlier findings, or repeated a finding already answered.
 
 So the review now runs once per pull request. The author fixes what is worth fixing in
-later commits, answered `Fixed:`, and the human review reads those commits.
+later commits, answered `Fixed:`. The human checklist is intent and the findings.
 
 ## Limitations
 

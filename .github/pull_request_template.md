@@ -16,19 +16,12 @@ does not cover the branch, or has an unanswered finding. -->
 
 ## Human review
 
-Only what a person can establish. Rules checked line by line are covered by the gate, the
-mutation run and the second-model review; see "What the human review covers" in
-`Docs/REVIEW.md`. Tick an item once done; strike out one that does not apply and say why.
+The decisions only a person makes. Everything else is covered by the gate, the second-model
+review or the author; see "What the human review covers" in `Docs/REVIEW.md`.
 
 - [ ] **Intent:** the change does what this description and its TODO item or decision say,
       and nothing else I can see
 - [ ] **Findings:** I read every finding and agree with each Response
-- [ ] **Fix commits:** the commits after the reviewed commit do what their findings asked,
-      and nothing else <!-- or: no commits after the review but the evidence files -->
-- [ ] **Risk read:** I read the parts of the diff that touch credentials, RMAN or SQL text,
-      file or backup deletion, or the gate and saw nothing wrong
-      <!-- or: none of these changed -->
-- [ ] **Evidence:** the gate passed in CI
 
 ## Evidence
 
