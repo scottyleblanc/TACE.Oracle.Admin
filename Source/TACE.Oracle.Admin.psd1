@@ -8,7 +8,7 @@
 @{
     # Module identity
     RootModule        = 'TACE.Oracle.Admin.psm1'
-    ModuleVersion     = '0.2.4'
+    ModuleVersion     = '0.2.5'
     GUID              = '50e4f865-a551-4f83-beb1-329987147747'
     Author            = 'TACE Data Management Inc.'
     CompanyName       = 'TACE Data Management Inc.'
@@ -34,7 +34,7 @@
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell', 'oraset', 'oraenv')
             ProjectUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin'
             LicenseUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE'
-            ReleaseNotes = 'v0.2.4 — AI Development Stack, Stack 4 (enforced gate): the gate runs in CI on every pull request, unit tier included, and master accepts a change only through a pull request that passes it; integration evidence must be current when the source changes. No change to module behaviour. Not published to PSGallery.'
+            ReleaseNotes = 'v0.2.5 — AI Development Stack, Stack 5 (agent instructions): AGENTS.md, generated from Docs/standards and checked by the gate, gives AI agents the same rules the gate enforces; a with/without comparison is recorded. No change to module behaviour. Not published to PSGallery.'
         }
     }
 }

@@ -6,6 +6,34 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.5] - 2026-11-16
+
+Stack 5 of the AI Development Stack — agent instructions. Not published to PSGallery.
+No change to module behaviour. Record in `Docs/audit/stack-5-agent-instructions.md`.
+
+### Added
+
+- `AGENTS.md`: the instructions AI agents are given, generated from `Docs/standards/`
+  by the new `Scripts/Export-AgentInstruction.ps1`; 87 rules, carried word for word.
+  Cursor reads it directly; Claude Code reads it through a local, gitignored import.
+- `Tests/Static/AgentInstruction.Tests.ps1`: fails when the committed `AGENTS.md` does
+  not match the standards or drops a rule.
+- `Test-SeededDefect.ps1`: an `instructions` case, ten in all. A rule added to the
+  standards without regenerating `AGENTS.md` fails the gate on `static` alone.
+- Decision 34: one generated `AGENTS.md`, committed and checked; no per-tool copies.
+- `Docs/audit/stack-5-agent-instructions.md`: the same generation task, three runs
+  with and three without `AGENTS.md`. Every run ended on a passing gate and met the
+  same Review rules; with the standards in the repository, the file made no
+  measurable difference.
+- `TODO.md`: a Stack 7 item for the tool-permission behaviour found while setting up
+  the comparison, and a backlog item for the rules the shared instruction file
+  repeats from `AGENTS.md`.
+
+### Fixed
+
+- `Docs/standards/README.md`: the Status section said nothing was enforced; it now
+  states what the gate enforces.
+
 ## [0.2.4] - 2026-11-16
 
 Stack 4 of the AI Development Stack — enforced gate. Not published to PSGallery. No
