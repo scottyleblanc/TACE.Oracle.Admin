@@ -1,0 +1,48 @@
+{
+  "Label": "seed-opus-5-5-medium-2",
+  "Target": "seed",
+  "Model": "claude-opus-5-5",
+  "Effort": "medium",
+  "Ok": true,
+  "Turns": 13,
+  "CostUsd": 0.32,
+  "Seconds": 45.0,
+  "Findings": [
+    {
+      "severity": "High",
+      "step": "Implementation",
+      "rule": "S-11",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 182,
+      "title": "A caller-supplied [string] DeviceType is placed directly in the RMAN delete script, and the only check on it is that it is not empty.",
+      "detail": "Line 182 builds \"DELETE NOPROMPT OBSOLETE DEVICE TYPE $DeviceType;\". The parameter at line 50 is [string] with only [ValidateNotNullOrEmpty()]. That allows ';', spaces, newlines and any RMAN keyword. So a value such as a device name followed by a semicolon and a second DELETE NOPROMPT command runs extra, unprompted RMAN commands on the database. ShouldProcess at ConfirmImpact High only confirms 'Delete obsolete RMAN backup pieces' for the database, so the extra commands are confirmed under a false description, and backups that should be kept can be lost. S-11 says such a string is a finding unless its attribute limits it to characters that cannot end or extend a command. Fix: replace it with [ValidateSet('DISK','SBT')] (or an enum), or a strict anchored pattern such as '^(DISK|SBT|SBT_TAPE)\\z', and write the set value into the script."
+    },
+    {
+      "severity": "Medium",
+      "step": "Intent",
+      "rule": "I-02",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 96,
+      "title": "Invariant S9, the [SEC] .NOTES line and the inline [SEC] comment say DeviceType is 'validated', but nothing limits what it can contain.",
+      "detail": "S9 now reads 'fixed text apart from DeviceType, which is validated non-empty'. The .NOTES line 37 says 'fixed text apart from the validated DeviceType', and line 179 says the same. Read together, these claim a security guarantee, but the only check is non-empty, so any RMAN text can be injected (see the S-11 finding). Under I-02 the block must describe what the function does today. A security invariant was weakened into a statement that sounds safe but guarantees nothing. The same wording is copied into Docs/standards/invariants-index.md line 394. Fix the code so the guarantee holds (a closed set of device types), then reword S9 to name that set."
+    },
+    {
+      "severity": "Medium",
+      "step": "Tests",
+      "rule": "I-10",
+      "file": "Tests/Unit/Public/Remove-RmanObsoleteBackup.Tests.ps1",
+      "line": 289,
+      "title": "The S9 test only runs with the default DeviceType, so it would still pass with any injection through DeviceType.",
+      "detail": "The cited test 'S9 RMAN script is fixed text and no catalog parameter exists' calls the function without -DeviceType and checks for the exact default script. It never passes a non-default or hostile value, so it cannot fail when S9 is broken through the new parameter, which is exactly the case the change opens. No test covers the new behaviour of choosing a device type, for example SBT producing 'DEVICE TYPE SBT', and no Parameter Validation test shows DeviceType rejects a value containing ';' or a newline. Add both, and cite the rejection test on S9."
+    },
+    {
+      "severity": "Medium",
+      "step": "Tests",
+      "rule": "none",
+      "file": "Tests/Mutation/InvariantMutations.psd1",
+      "line": 246,
+      "title": "The mutation entries for S2, S5 and S9 still search for the old script literal, which no longer exists in the source.",
+      "detail": "Entries at lines 230, 242 and 246 use Find = \"$deleteScript = 'DELETE NOPROMPT OBSOLETE;'\". The change replaced that line with a double-quoted string that includes DEVICE TYPE $DeviceType. These three mutations no longer apply to the code, so the mutation script either fails on them or reports them without testing anything. The proof that the S2, S5 and S9 tests catch a broken invariant is lost. The change did not edit this file. Update the Find and Replace strings to match the new line. Add an S9 mutation that loosens the DeviceType validation."
+    }
+  ]
+}

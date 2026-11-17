@@ -1,0 +1,57 @@
+{
+  "Label": "branch-opus-5-5-medium-1",
+  "Target": "branch",
+  "Model": "claude-opus-5-5",
+  "Effort": "medium",
+  "Ok": true,
+  "Turns": 13,
+  "CostUsd": 0.75,
+  "Seconds": 88.0,
+  "Findings": [
+    {
+      "severity": "Medium",
+      "step": "Intent",
+      "rule": "S-16",
+      "file": "Scripts/Invoke-ModelReview.ps1",
+      "line": 168,
+      "title": "The reviewer gets only changes.diff and files.txt, never the commit messages, so it cannot do the commit-message checks that REVIEW.md and S-16 assign to review.",
+      "detail": "Docs/REVIEW.md, Intent, says the change is checked against 'the commit messages'. S-16 says a real name in a commit message is 'left to review', because the linter half does not cover it. But Invoke-ModelReview.ps1 writes only changes.diff and files.txt to the input folder (lines 167-168), and Review/reviewer-prompt.md (lines 8-11) lists only those two inputs. The second-model review therefore never sees the commit messages. Yet the record it produces is what the gate accepts as proof of review, for exactly the part of S-16 that nothing else checks. Fix: write `git log --format=... base..HEAD` to a commits.txt in the input folder, and name it in the prompt as an input to check for intent and S-16."
+    },
+    {
+      "severity": "Medium",
+      "step": "Implementation",
+      "rule": "S-16",
+      "file": "Scripts/Invoke-ModelReview.ps1",
+      "line": 170,
+      "title": "The prompt carries the absolute input path, which includes the local user profile name, and the reviewer's Summary and finding text go into the committed record unscrubbed.",
+      "detail": "Line 170 appends 'Input folder: $inputDir' to the prompt. $inputDir is built from GetTempPath(), which on Windows is under the user's profile folder, so it holds the local account name. The model's summary, titles and details are copied verbatim into Review/LastReview.json (lines 1247-1281 in the diff), and that file is committed to this public repository. Nothing checks or removes the temp path or the worktree path, and gitleaks does not match a file path or an account name. SECURITY.md section 11 and the script's help both state that 'the record holds no host name, path or credential-like value', but nothing enforces it; it depends on what the model chooses to write. Fix: pass the input folder as a path relative to the worktree, or refuse or redact any record text that contains $tempRoot, $worktree or $inputDir before writing it."
+    },
+    {
+      "severity": "Low",
+      "step": "Tests",
+      "rule": "none",
+      "file": "Scripts/Test-SeededDefect.ps1",
+      "line": 273,
+      "title": "The seeded review cases do not cover three of the review check's failure branches: wrong base, reviewed commit not in history, and a non-empty Response with the wrong prefix.",
+      "detail": "The review check in Invoke-Gate.ps1 fails on several separate conditions: BaseCommit is not the merge base, Commit is not an ancestor of HEAD, files changed since the reviewed commit, and a Response that does not match '^(Rejected|Accepted|Deferred): \\S'. The new cases cover only a missing record, a current record, an empty Response and a later change. If the BaseCommit comparison or the --is-ancestor test were removed, or the Response pattern were loosened to accept any non-empty text, every seeded case would still pass. Add cases for a record with a wrong BaseCommit, one naming a commit outside HEAD's history, and one with a Response such as 'Fixed' or 'Rejected:' with no reason."
+    },
+    {
+      "severity": "Low",
+      "step": "Intent",
+      "rule": "D-04",
+      "file": "Docs/VERSIONING.md",
+      "line": 55,
+      "title": "The branching strategy still says a merge to master needs only the pull request and a passing gate, with no mention of the review record or its order before the integration evidence.",
+      "detail": "VERSIONING.md holds the branching strategy (D-04). Lines 55-57 say the ruleset requires 'the pull request and a passing gate check'. After this change, a pull request also needs a current Review/LastReview.json with every finding answered. That review must also be committed before LastRun.json so the evidence stays the last commit (REVIEW.md steps 2-4, decision 35). An author following VERSIONING.md would run the integration evidence first and then the review, which makes the evidence stale. Add the review step and its place in the order to the branching strategy, linking Docs/REVIEW.md."
+    },
+    {
+      "severity": "Low",
+      "step": "Intent",
+      "rule": "D-11",
+      "file": "Scripts/Invoke-ModelReview.ps1",
+      "line": 51,
+      "title": "The help text and SECURITY.md say the review worktree 'sits outside the folders whose instruction files Claude Code would load', but the system temp folder is under the user profile.",
+      "detail": "The worktree is created under GetTempPath(), which on Windows is under the user's profile folder. Claude Code walks up from the working directory looking for instruction files. Decision 34 records that on this machine a CLAUDE.md exists in or above the project folders. So the temp location is not outside those folders by construction, and isolation from instruction files rests on --safe-mode alone, which the audit probe tested. The [SEC] note in the help (lines 50-52), SECURITY.md section 11 and the audit's Isolation section should name --safe-mode as the control rather than claim the location is outside the search path, or the worktree should go in a folder that has no ancestor instruction files."
+    }
+  ]
+}

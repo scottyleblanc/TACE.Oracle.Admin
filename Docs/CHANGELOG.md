@@ -33,7 +33,8 @@ No change to module behaviour. Record in `Docs/audit/stack-6-independent-review.
 - `Docs/audit/stack-6-independent-review.md`: an S-11 defect planted so that the gate
   passes it, reviewed three times; every review reported it as High against S-11. The
   three records are in `Docs/audit/stack-6-review/`. Also eight reviews of this
-  release's own pull request, which led to one review per pull request.
+  release's own pull request, which led to one review per pull request, and a model
+  test that set the reviewer default to `claude-opus-5-5` at `medium` effort.
 - `TODO.md` backlog items: re-evaluating the rigor of the simplified review path, a
   seeded case for a review record holding a local path,
   seeded cases for the gate's other `review` failures, and a review by a model from

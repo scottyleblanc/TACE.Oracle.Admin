@@ -1,0 +1,66 @@
+{
+  "Label": "seed-opus-5-5-medium-3",
+  "Target": "seed",
+  "Model": "claude-opus-5-5",
+  "Effort": "medium",
+  "Ok": true,
+  "Turns": 14,
+  "CostUsd": 0.38,
+  "Seconds": 50.0,
+  "Findings": [
+    {
+      "severity": "High",
+      "step": "Implementation",
+      "rule": "S-11",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 182,
+      "title": "A caller [string] with only ValidateNotNullOrEmpty is interpolated into the destructive RMAN DELETE script.",
+      "detail": "$DeviceType is declared [ValidateNotNullOrEmpty()] [string] (line 50) and placed directly into \"DELETE NOPROMPT OBSOLETE DEVICE TYPE $DeviceType;\". Nothing stops a ';', a newline or extra RMAN keywords. A value such as 'DISK; DELETE NOPROMPT BACKUP' or one with an embedded newline ends the intended command and adds another one, run with NOPROMPT under the caller's SYSBACKUP/SYSDBA connection. That could delete every backup, not just obsolete ones, after the ShouldProcess prompt has approved only 'Delete obsolete RMAN backup pieces'. S-11 says a [string] in an RMAN script is a finding unless its validation limits it to characters that cannot end or extend a command. Fix: restrict it with [ValidateSet('DISK','SBT')] (or a pattern such as '^(DISK|SBT(_TAPE)?)\\z'), or make it an enum. Add a test that a value containing ';' or a newline is refused at binding."
+    },
+    {
+      "severity": "Medium",
+      "step": "Intent",
+      "rule": "I-02",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 96,
+      "title": "S9 was weakened to allow caller text in the script, and its wording claims a validation that does not protect anything.",
+      "detail": "S9 used to guarantee that no parameter value is placed in the RMAN script. It now says the script is fixed text 'apart from DeviceType, which is validated non-empty'. The .NOTES line 37 and the comment at line 179 say 'the validated DeviceType'. Non-empty validation does nothing for script safety, so calling it 'validated' in a [SEC] statement misstates what the function guarantees. The change also drops a security guarantee that the CHANGELOG 0.2.x entry ('no longer places caller text in the RMAN script') recorded as a fix. The commit message and docs do not acknowledge this. Fix: restore the guarantee by restricting DeviceType to a fixed set, and state S9 in those terms. Otherwise record it honestly as a Limitation."
+    },
+    {
+      "severity": "Medium",
+      "step": "Tests",
+      "rule": "I-10",
+      "file": "Tests/Unit/Public/Remove-RmanObsoleteBackup.Tests.ps1",
+      "line": 289,
+      "title": "The S9 test exercises only the default DeviceType, so it would pass however caller text is embedded.",
+      "detail": "The test cited for S9 calls the function without -DeviceType and asserts the exact default script. It never passes a non-default or hostile value, so it cannot detect the injection path the change opens, and it does not prove the restriction the invariant claims. No test checks DeviceType's validation attributes through command metadata (T-06), and none shows a value with ';' or a newline being rejected. Add a metadata test of the validation attribute and a case asserting that a command-extending value is refused before Invoke-RmanProcess is called."
+    },
+    {
+      "severity": "Medium",
+      "step": "Tests",
+      "rule": "I-10",
+      "file": "Tests/Mutation/InvariantMutations.psd1",
+      "line": 230,
+      "title": "Mutations for S2, S5 and S9 still look for the old script literal, which no longer exists.",
+      "detail": "The mutations for Remove-RmanObsoleteBackup S2 (line 230), S5 (line 242) and S9 (line 246) use Find = '$deleteScript = ''DELETE NOPROMPT OBSOLETE;'''. The source line is now \"DELETE NOPROMPT OBSOLETE DEVICE TYPE $DeviceType;\". The catalogue requires Find to occur exactly once, so these mutations can no longer be applied. Either Test-InvariantMutation.ps1 fails, or these security invariants lose their mutation proof that the cited tests would fail. Update the Find/Replace text to the new line in the same change."
+    },
+    {
+      "severity": "Low",
+      "step": "Intent",
+      "rule": "D-07",
+      "file": "Docs/CHANGELOG.md",
+      "line": 11,
+      "title": "The new public parameter has no CHANGELOG entry, and the Unreleased section still says there is no change to module behaviour.",
+      "detail": "The commit adds -DeviceType to an exported, destructive function and changes the RMAN script it sends. CHANGELOG.md was not touched. Its [Unreleased] section states 'No change to module behaviour', which this change contradicts (D-11). No TODO item or decision is cited for the feature. Add an Added entry (and a Security note on S9) under [Unreleased], and correct that sentence."
+    },
+    {
+      "severity": "Low",
+      "step": "Implementation",
+      "rule": "none",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 158,
+      "title": "The ShouldProcess prompt and the WhatIf message do not name the device type being deleted from.",
+      "detail": "The confirmation text is still 'Delete obsolete RMAN backup pieces' on $DatabaseName. The WhatIf message (line 166) still says 'would delete obsolete RMAN backup pieces for <db>'. The operator approving a ConfirmImpact High deletion is not told which device type the delete applies to, so the preview does not say exactly what would happen (C-27 asks the WhatIf message to say what would happen). Include $DeviceType in the ShouldProcess action and the WhatIf message."
+    }
+  ]
+}

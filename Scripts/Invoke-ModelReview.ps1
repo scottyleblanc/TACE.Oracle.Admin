@@ -48,7 +48,9 @@
     The model the reviewer uses. Default: claude-opus-5-5.
 
 .PARAMETER Effort
-    The reviewer's effort level. Default: high.
+    The reviewer's effort level. Default: medium. In the Stack 6 model test it caught the
+    planted S-11 defect as reliably as high, for about 30% less cost and time
+    (Docs\audit\stack-6-independent-review.md).
 
 .PARAMETER MaxBudgetUsd
     The most the review may spend, in US dollars. Default: 10.
@@ -86,7 +88,7 @@ param(
 
     [Parameter()]
     [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')]
-    [string]$Effort = 'high',
+    [string]$Effort = 'medium',
 
     [Parameter()]
     [ValidateRange(0.5, 100)]

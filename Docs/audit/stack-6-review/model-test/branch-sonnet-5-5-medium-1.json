@@ -1,0 +1,30 @@
+{
+  "Label": "branch-sonnet-5-5-medium-1",
+  "Target": "branch",
+  "Model": "claude-sonnet-5-5",
+  "Effort": "medium",
+  "Ok": true,
+  "Turns": 7,
+  "CostUsd": 0.28,
+  "Seconds": 30.0,
+  "Findings": [
+    {
+      "severity": "Medium",
+      "step": "Intent",
+      "rule": "S-16",
+      "file": "Scripts/Invoke-ModelReview.ps1",
+      "line": 166,
+      "title": "The reviewer is never given the commit messages, so the review path cannot check what it says it checks.",
+      "detail": "Docs/REVIEW.md step 1 says the change must match its stated purpose, naming the commit messages first. AGENTS.md S-16 leaves commit messages to review, because the linter does not cover them. The script writes only changes.diff and files.txt to the input folder (lines 166-167). Review/reviewer-prompt.md lists only those two inputs. A git diff holds no commit messages, and the worktree is a detached checkout that the reviewer cannot run git against. So the reviewer cannot judge a commit message against the change, and a real host or account name in a message cannot be found. The review also overstates its coverage of S-16 and of intent. Fix: write a commits.txt from git log of base..head into the input folder, and list it in the prompt."
+    },
+    {
+      "severity": "Low",
+      "step": "Intent",
+      "rule": "D-11",
+      "file": "Docs/STAGES.md",
+      "line": 93,
+      "title": "Stack 6 is marked Complete (v0.2.6) while its own stage tasks are still open.",
+      "detail": "STAGES.md now says Stack 6 is Complete, and the commit message says 'Stack 6 complete in STAGES'. Docs/TODO.md in the same commit still has the Stack 6 tasks 'Take one pull request through the full path with findings attached' and 'Closing tasks' unticked. The stage goal in TODO.md is a review path shown working on one real pull request, and no real PR has gone through it: the audit record covers a discarded plant. The document states something the repository state contradicts. Tick the tasks first, or leave the stage as in progress."
+    }
+  ]
+}

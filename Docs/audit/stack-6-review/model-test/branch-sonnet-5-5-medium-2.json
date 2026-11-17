@@ -1,0 +1,39 @@
+{
+  "Label": "branch-sonnet-5-5-medium-2",
+  "Target": "branch",
+  "Model": "claude-sonnet-5-5",
+  "Effort": "medium",
+  "Ok": true,
+  "Turns": 10,
+  "CostUsd": 0.3,
+  "Seconds": 41.0,
+  "Findings": [
+    {
+      "severity": "Medium",
+      "step": "Intent",
+      "rule": "S-16",
+      "file": "Scripts/Invoke-ModelReview.ps1",
+      "line": 1186,
+      "title": "The reviewer is never given the commit messages, although REVIEW.md and S-16 make them part of the review.",
+      "detail": "Docs/REVIEW.md step 1 says the change must match its stated purpose, 'the commit messages'. S-16 covers commit messages, and AGENTS.md leaves them to review. The script writes only changes.diff and files.txt to the input folder. Review/reviewer-prompt.md lists only those two inputs. The session is confined to the worktree and input folder with Read, Grep and Glob, so it cannot run git log. A real host, account or bucket name in a commit message, or a message that misstates the change, is therefore invisible to the second-model review, and the record still reads as a completed review. Fix: write the messages of Base..HEAD to a commits.txt in the input folder, name it in the prompt, and record that it was supplied. Alternatively, remove the commit-message claims from REVIEW.md."
+    },
+    {
+      "severity": "Low",
+      "step": "Intent",
+      "rule": "D-11",
+      "file": "Docs/STAGES.md",
+      "line": 93,
+      "title": "Stack 6 is marked Complete (v0.2.6) while its TODO items 'Take one pull request through the full path' and 'Closing tasks' are still open.",
+      "detail": "The diff changes the STAGES row from 'Not started' to 'Complete (v0.2.6)'. The same diff leaves two Stack 6 items unticked in Docs/TODO.md: 'Take one pull request through the full path with findings attached' and 'Closing tasks'. The stage goal in TODO.md is a path 'shown working on one real pull request'. The audit record shows only a seeded, discarded branch. The commit message also says 'Stack 6 complete in STAGES'. The documents contradict each other about whether the stage is done. Fix: tick the tasks once they are done, or mark the stage In progress until then."
+    },
+    {
+      "severity": "Low",
+      "step": "Implementation",
+      "rule": "none",
+      "file": "Scripts/Invoke-ModelReview.ps1",
+      "line": 1131,
+      "title": "Invoke-RepoGit merges git's stderr into its output, so warnings can end up in changes.diff and in the changed-file list.",
+      "detail": "`$out = & git -C $repoRoot @Argument 2>&1` returns stderr lines together with stdout when git exits 0. The caller joins the diff output with `-join` and writes it to changes.diff. It also uses the same output as the file list for `$changed` and in the `$changed.Count` check. On Windows, git commonly prints warnings such as line-ending conversion notices to stderr on a successful diff. Those lines then appear as ErrorRecord text inside the diff the reviewer reads, or as extra entries in `files.txt`, and they inflate `FilesReviewed` in the record. Fix: capture stderr separately, or discard it on success and include it only in the failure message."
+    }
+  ]
+}

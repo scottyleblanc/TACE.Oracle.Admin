@@ -1,0 +1,48 @@
+{
+  "Label": "seed-sonnet-5-5-medium-2",
+  "Target": "seed",
+  "Model": "claude-sonnet-5-5",
+  "Effort": "medium",
+  "Ok": true,
+  "Turns": 6,
+  "CostUsd": 0.09,
+  "Seconds": 15.0,
+  "Findings": [
+    {
+      "severity": "High",
+      "step": "Implementation",
+      "rule": "S-11",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 182,
+      "title": "Caller-supplied DeviceType string is interpolated into the RMAN script with only a non-empty check.",
+      "detail": "DeviceType is a [string] with only [ValidateNotNullOrEmpty()]. It is placed straight into the script as `DELETE NOPROMPT OBSOLETE DEVICE TYPE $DeviceType;`. A value such as `DISK; DELETE NOPROMPT BACKUP;` (or one containing a newline) ends the command and adds further RMAN commands. This is a destructive command in a function that deletes backups. S-11 and REVIEW.md say a caller [string] in an RMAN script is a finding unless the attribute limits it to characters that cannot end or extend a command. Fix: use a ValidateSet of the supported device types (DISK, SBT, SBT_TAPE) or a strict pattern such as `^[A-Za-z0-9_]+\\z`. Neither this rule nor the rule's escape clause is met by a non-empty check."
+    },
+    {
+      "severity": "High",
+      "step": "Intent",
+      "rule": "I-02",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 96,
+      "title": "Invariant S9 and the index claim DeviceType is validated, but the validation does not constrain it.",
+      "detail": "The block, the [SEC] comments, the help and the index entry all say the script is fixed text apart from a \"validated\" DeviceType. The only validation is non-empty. S10 states that WalletAlias is restricted so it cannot extend a command, and DeviceType has no such restriction. The S9 text weakens the security invariant to cover a hole instead of closing it. This breaks I-02 (the block must state what the function does today) and D-11. The S9 text also reads as if it guarantees safety it does not provide."
+    },
+    {
+      "severity": "Medium",
+      "step": "Tests",
+      "rule": "I-10",
+      "file": "Tests/Unit/Public/Remove-RmanObsoleteBackup.Tests.ps1",
+      "line": 289,
+      "title": "No test covers the new DeviceType parameter or its validation.",
+      "detail": "The only test change updates the expected default script text. No test passes a non-default DeviceType, shows that it reaches the script, or shows that a value with `;` or a newline is rejected. The cited S9 test ('S9 RMAN script is fixed text and no catalog parameter exists') now asserts only the default text. It would not fail if DeviceType accepted injection. It is still cited as proof of S9, whose meaning has changed. The new behaviour has no test that would fail without it, and S9's citation proves nothing about the new parameter. The Parameter Validation context has no DeviceType check either."
+    },
+    {
+      "severity": "Low",
+      "step": "Intent",
+      "rule": "D-07",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 48,
+      "title": "Public function gains a parameter, but CHANGELOG and TODO are not updated.",
+      "detail": "The diff touches no CHANGELOG.md and no README or TODO.md. The commit adds a user-visible parameter that changes the script sent to RMAN, so it needs an Added or Changed line (D-07, D-03). The commit message is also a one-line summary with no explanation of why the security invariant was relaxed (S-16 concerns aside)."
+    }
+  ]
+}

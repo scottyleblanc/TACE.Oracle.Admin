@@ -161,8 +161,8 @@ checks run:
 
 `.\Scripts\Invoke-ModelReview.ps1` runs the second-model review (`Docs\REVIEW.md`). It
 needs Claude Code (`claude`) on `PATH`, signed in; tested with 2.1.308. It runs on the
-author's machine, not in CI, and costs about US$1 per review at the default model and
-effort; `-MaxBudgetUsd` caps it (default 10). Run it once per pull request, after the
+author's machine, not in CI, and costs US$0.30 to US$0.75 per review at the default,
+`claude-opus-5-5` at `medium` effort; `-MaxBudgetUsd` caps it (default 10). Run it once per pull request, after the
 gate passes and every change is committed, and before the integration run.
 
 ### CI

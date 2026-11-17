@@ -119,6 +119,27 @@ Two conclusions changed the design (decision 35):
 So the review now runs once per pull request. The author fixes what is worth fixing in
 later commits, answered `Fixed:`. The human checklist is intent and the findings.
 
+## Model and effort
+
+The reviewer's default was chosen by running the same confined review, with the final
+prompt, against two commits: the S-11 plant (`9ee205e`, three runs each) and the branch
+as the first review saw it (`9f46b80`, two runs each). The ten results are in
+`Docs\audit\stack-6-review\model-test\`.
+
+| Reviewer | S-11 plant reported as High | Findings per run, plant / branch | Cost per run (US$), plant / branch |
+|---|---|---|---|
+| `claude-sonnet-5-5`, medium | 3 of 3 | 3 to 4 / 2 to 3 | 0.09 to 0.12 / 0.28 to 0.30 |
+| `claude-opus-5-5`, medium | 3 of 3 | 4 to 6 / 2 to 5 | 0.32 to 0.38 / 0.63 to 0.75 |
+| `claude-opus-5-5`, high (earlier runs, earlier prompt) | 3 of 3 | 5 to 6 / 4 | 0.41 to 0.56 / 1.04 |
+
+Every reviewer caught the plant. Opus found real problems that Sonnet did not: the
+mutation list no longer matching the code (two of three plant runs), and the local path
+that could reach the record (one of two branch runs). Its extra findings were real, not
+noise. The default is `claude-opus-5-5` at `medium` effort: the depth of `high` on these
+runs, for about 30% less. The final prompt names the commit messages as an input, so every
+branch run reported that the reviewed version did not supply them; that finding does not
+compare the models.
+
 ## Limitations
 
 - Three runs, one planted defect, one model. Three of three shows the defect is caught
