@@ -30,6 +30,9 @@ No change to module behaviour. Record in `Docs/audit/stack-6-independent-review.
 - `Docs/audit/stack-6-independent-review.md`: an S-11 defect planted so that the gate
   passes it, reviewed three times; every review reported it as High against S-11. The
   three records are in `Docs/audit/stack-6-review/`.
+- `TODO.md` backlog items from the review of this release's own pull request: tests for
+  the review script's path scrub and overwrite guard, seeded cases for the gate's other
+  `review` failures, and a review by a model from another vendor.
 
 ### Changed
 

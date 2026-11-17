@@ -94,10 +94,15 @@ these, followed by the reason:
 |---|---|
 | `Rejected: <reason>` | The finding is wrong: the code already does what it asks |
 | `Accepted: <reason>` | The finding is right and is not fixed in this pull request, with the reason that is safe |
-| `Deferred: <TODO item>` | The finding is right and is recorded in `TODO.md`, in the same commit |
+| `Deferred: <TODO item>` | The finding is right and its item is already committed in `TODO.md` |
 
 The gate fails while any `Response` is empty or does not start with one of these words.
 It cannot judge the reason; the human checklist does.
+
+Only `Review\LastReview.json` and `LastRun.json` may change after the reviewed commit. A
+`TODO.md` item for a deferred finding is a change, so it is committed first and the
+review runs again; the new review either reports the finding again, answered with
+`Deferred:` and the item, or sees the item and does not report it.
 
 ## Limits
 

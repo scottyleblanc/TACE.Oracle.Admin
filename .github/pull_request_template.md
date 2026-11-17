@@ -49,7 +49,7 @@ why.
 
 - [ ] I read every finding in `Review/LastReview.json`, and each Response is right:
       a fix is a new commit and a new review, not a Response
-- [ ] Every `Deferred:` finding has its item in `TODO.md`
+- [ ] Every `Deferred:` finding names an item already committed in `TODO.md`
 
 ## Evidence
 
