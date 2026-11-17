@@ -34,7 +34,7 @@
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell', 'oraset', 'oraenv')
             ProjectUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin'
             LicenseUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE'
-            ReleaseNotes = 'v0.2.6 — AI Development Stack, Stack 6 (independent review): every pull request carries a second-model review of its own commits, run in a confined session, with each finding answered, and the gate fails a pull request whose review is missing, stale or unanswered; a human checklist follows in the pull request template. No change to module behaviour. Not published to PSGallery.'
+            ReleaseNotes = 'v0.2.6 — AI Development Stack, Stack 6 (independent review): every pull request carries one second-model review of its own commits, run in a confined session, with each finding fixed or answered, and the gate fails a pull request whose review is missing, does not cover the branch, or is unanswered; a human checklist follows in the pull request template. No change to module behaviour. Not published to PSGallery.'
         }
     }
 }

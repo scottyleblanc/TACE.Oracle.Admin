@@ -33,8 +33,9 @@
         --strict-mcp-config with no --mcp-config loads no MCP server.
       - --no-session-persistence: the session is not saved, and it cannot be resumed.
       - The worktree holds only committed files, so ignored local files (integration
-        config, local instructions, credentials) are not in reach. It sits outside
-        the folders whose instruction files Claude Code would load.
+        config, local instructions, credentials) are not in reach. It sits outside the
+        repository and its parent folders; on Windows the temp folder is inside the
+        user profile, and --safe-mode is what keeps the user's instruction files out.
 
     [SEC] The prompt names no absolute path. A record that quotes a local user-profile
     path fails the gate's S-16 hygiene check; the author removes it before committing.

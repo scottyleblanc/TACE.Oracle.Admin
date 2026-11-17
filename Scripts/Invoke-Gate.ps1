@@ -34,7 +34,7 @@
       8. review     Decision 35. When the commits since the merge base with Base change
                     any file other than the two evidence files, Review\LastReview.json at
                     HEAD must show a completed review of a commit that HEAD contains,
-                    from that same merge base, and every finding must have a Response
+                    from that merge base or an older one, and every finding must have a Response
                     that starts with Fixed:, Rejected:, Accepted: or Deferred:
                     (Docs\REVIEW.md). Commits after the reviewed one are fixes, read in
                     the human review. If git cannot list the changes, the check fails
@@ -316,7 +316,11 @@ if ($Base) {
                         $evidenceProblems.Add("the run's commit $($runCommit.Substring(0, 7)) is not in HEAD's history")
                     }
                     else {
-                        $since = @(& $git.Source -C $repoRoot diff --name-only $runCommit HEAD 2>$null | Where-Object { $PSItem -ne $evidencePath })
+                        $sinceOut = @(& $git.Source -C $repoRoot diff --name-only $runCommit HEAD 2>$null)
+                        if ($LASTEXITCODE -ne 0) {
+                            $evidenceProblems.Add("git could not list the files changed since the run's commit $($runCommit.Substring(0, 7))")
+                        }
+                        $since = @($sinceOut | Where-Object { $PSItem -and $PSItem -ne $evidencePath })
                         foreach ($path in $since) { $evidenceProblems.Add("changed after the run's commit $($runCommit.Substring(0, 7)): $path") }
                     }
                 }
@@ -372,8 +376,16 @@ if ($Base) {
                 }
                 $reviewCommit = if ($names -contains 'Commit') { "$($record.Commit)" } else { '' }
                 $reviewBase   = if ($names -contains 'BaseCommit') { "$($record.BaseCommit)" } else { '' }
-                if ($reviewBase -ne $mergeBase) {
-                    $reviewProblems.Add("the review's base is not the merge base with ${Base}: the review does not cover every commit since $Base")
+                # The review's base may be older than today's merge base: bringing the
+                # branch up to date with Base moves the merge base forward, and the
+                # review still covers every commit the branch adds.
+                $baseCovered = $false
+                if ($reviewBase -match '^[0-9a-f]{40}$') {
+                    $null = & $git.Source -C $repoRoot merge-base --is-ancestor $reviewBase $mergeBase 2>$null
+                    $baseCovered = $LASTEXITCODE -eq 0
+                }
+                if (-not $baseCovered) {
+                    $reviewProblems.Add("the review's base is not the merge base with $Base or older: the review does not cover every commit since $Base")
                 }
                 if ($reviewCommit -notmatch '^[0-9a-f]{40}$') {
                     $reviewProblems.Add("$reviewPath names no commit")
