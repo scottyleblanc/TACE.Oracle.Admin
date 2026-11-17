@@ -99,9 +99,9 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.2.4 |
-| Last audit | 2026-11-16 — Stack 4 enforced gate: the gate runs in CI on every pull request, and `master` accepts only a pull request that passes it |
-| Tests | 405 unit tests, 160 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
+| Version | 0.2.5 |
+| Last audit | 2026-11-16 — Stack 5 agent instructions: `AGENTS.md` is generated from `Docs\standards\` and checked by the gate; with and without it, every agent run ended on a passing gate |
+| Tests | 405 unit tests, 163 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
 | Open SEC items | 6 — see the Open Items in SECURITY.md |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.

@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.2.4 |
-| Last audit | 2026-11-16 — Stack 4 enforced gate |
-| Findings resolved | Stack 4: in CI the gate's commit checks would have checked nothing (every commit is on a remote); `-Base` makes them check the pull request's commits. `master` had no protection; a ruleset with no bypass now requires a passing gate |
-| Unit tests | 405 (all passing); 160 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
+| Version | 0.2.5 |
+| Last audit | 2026-11-16 — Stack 5 agent instructions |
+| Findings resolved | Stack 5: none in the module. One `[SEC]` finding in the agent tooling, open for Stack 7: in `acceptEdits` mode an agent deleted a file without asking |
+| Unit tests | 405 (all passing); 163 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
 | Open SEC items | 6 — see Open Items |
 
 The RMAN functions added at Stack 0 (v0.2.0, not on PSGallery) were copied from
@@ -226,6 +226,7 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | 2026-11-15 | 0.2.2 | 3 (1 `[SEC]`) | Stack 2 deterministic checks. `[SEC]`: `-WalletAlias` reached the RMAN `CONNECT` line unvalidated (now `ValidatePattern` ending in `\z`). A caller's `-WhatIf` skipped creating the default config and its ACL, so a first run failed (writes pinned `-WhatIf:$false`; rule C-33 checks every such call). No check compares the repository against private identifiers (deferred, Open Items). gitleaks found nothing in the full history or the working tree. Details in `CHANGELOG.md` 0.2.2 and `Docs\audit\stack-2-seeded-defects.md`. |
 | 2026-11-16 | 0.2.3 | 12 (12 `[SEC]`) | Stack 3 tests. Every security invariant's proof was broken on purpose in a copy of the repository: for 12, the cited tests still passed, through tests that compared the session environment with an already-polluted value, credential tests run with no credential, or code the test never reached. All fixed and proven by the mutation script; no defect was in the module's own security behaviour. One behaviour defect, introduced in this stack and not security-related, was found and fixed (`Invoke-OraEnv` with no instance). Integration tests against Oracle Database 21c XE pass. Details in `CHANGELOG.md` 0.2.3 and `Docs\audit\stack-3-*.md`. |
 | 2026-11-16 | 0.2.4 | 2 (2 `[SEC]`) | Stack 4 enforced gate. `[SEC]`: in a CI checkout every commit is on a remote, so the gate's `commits` and `messages` checks would have passed having checked nothing (fixed with `-Base`, decision 32). `[SEC]`: `master` accepted direct pushes from anyone with write access, so the gate was advisory (fixed with a ruleset with no bypass, decision 33). The workflow runs with a read-only token, no secrets and a SHA-pinned action; secret scanning and push protection are on. A pull request carrying the seeded defects was blocked. No change to module code. Details in `CHANGELOG.md` 0.2.4 and `Docs\audit\stack-4-enforced-gate.md`. |
+| 2026-11-16 | 0.2.5 | 1 (1 `[SEC]`, open) | Stack 5 agent instructions. No change to module code. `[SEC]`: setting up the comparison showed that Claude Code in `acceptEdits` mode let the PowerShell tool delete a file without asking, while refusing a read-only lint script that no allow rule matched; recorded for Stack 7, where the agent's run and read rules are written and tested. `AGENTS.md` carries the security standards word for word and a static test fails when it drifts. Details in `CHANGELOG.md` 0.2.5 and `Docs\audit\stack-5-agent-instructions.md`. |
 
 ---
 

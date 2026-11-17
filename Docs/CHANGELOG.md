@@ -6,9 +6,10 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.2.5] - 2026-11-16
 
-Stack 5 of the AI Development Stack — agent instructions. In progress.
+Stack 5 of the AI Development Stack — agent instructions. Not published to PSGallery.
+No change to module behaviour. Record in `Docs/audit/stack-5-agent-instructions.md`.
 
 ### Added
 
