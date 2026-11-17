@@ -13,7 +13,9 @@ and whether the change does what it says.
 ## The review path
 
 1. The author finishes the change and the gate passes locally
-   (`.\Scripts\Invoke-Gate.ps1 -Unit`). Every change is committed.
+   (`.\Scripts\Invoke-Gate.ps1 -Unit`). When the change touches an invariant block, the
+   tests it cites or the mutation list, `.\Scripts\Test-InvariantMutation.ps1` passes
+   too (rule I-10). Every change is committed.
 2. The author runs `.\Scripts\Invoke-ModelReview.ps1`. A new Claude Code session,
    with no access to the author's session, memory or instruction files, reviews the
    commits the branch adds to `master` in the order below. It can read the
@@ -36,7 +38,7 @@ the checklist does not ask for that. Each rule has an owner:
 | Rule or question | Established by |
 |---|---|
 | Rules tagged *Linter* or *Test* | The gate |
-| I-10, a cited test fails when its invariant is broken | `Scripts\Test-InvariantMutation.ps1` |
+| I-10, a cited test fails when its invariant is broken | `Scripts\Test-InvariantMutation.ps1`, which the author runs when a change touches an invariant block, its tests or `Tests\Mutation\InvariantMutations.psd1` (step 1); it is not part of the gate. The second-model review checks that the mutation list still matches the code |
 | The other rules tagged *Review*, line by line | The second-model review, in the order below |
 | S-16, no real names in files or commit messages | The gate's patterns and gitleaks for known shapes, the second-model review, and the human for names they recognise as real |
 | The change does what it says, and nothing else visible | The human |

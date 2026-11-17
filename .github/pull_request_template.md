@@ -33,5 +33,7 @@ mutation run and the second-model review; see "What the human review covers" in
 ## Evidence
 
 - [ ] `.\Scripts\Invoke-Gate.ps1 -Unit` passed locally
+- [ ] An invariant block, its tests or the mutation list changed:
+      `.\Scripts\Test-InvariantMutation.ps1` passed (I-10) <!-- or: none changed -->
 - [ ] `Source\` changed: `Tests/Integration/LastRun.json` is the last commit (T-14)
       <!-- or: Source\ not changed -->
