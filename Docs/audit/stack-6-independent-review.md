@@ -95,7 +95,7 @@ What this shows about the layers:
 ## Reviewing this stack's own pull request
 
 The first design required a new review after any change to the branch. The Stack 6
-pull request was reviewed eight times under it, about US$8 in all, with three
+pull request was reviewed eight times under it, about US$8 in all, with two
 integration runs, and every round found something new. The 23 findings, by origin:
 
 | Origin | Findings |

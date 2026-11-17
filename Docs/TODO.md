@@ -451,8 +451,15 @@ one real pull request.
 - [x] [SEC] Seeded defect: a caller's `[string]` embedded in RMAN script text (S-11), on
       a throwaway branch. The gate passed it; three reviews of the same commit each
       reported it as High against S-11 (`Docs\audit\stack-6-independent-review.md`)
-- [ ] Take one pull request through the full path with findings attached
-- [ ] Closing tasks
+- [x] Take one pull request through the full path with findings attached. PR #6, the
+      Stack 6 pull request itself: one review of `efc2364` with 7 findings (5 fixed in
+      `e7eb3bb`, 2 accepted) in `Review\LastReview.json`, the gate's `review` check
+      passing in CI, and the two-item human checklist. Its first design, a review after
+      every change, ran eight rounds first; the audit record has both
+- [x] Closing tasks
+      - [x] Record: `Docs\audit\stack-6-independent-review.md`
+      - [x] `CHANGELOG.md` 0.2.6 and tag `v0.2.6`
+      - [x] Write-up: Stack 6 post and project page row
 
 ### Stack 7 — Containment
 
