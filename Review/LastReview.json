@@ -1,99 +1,21 @@
 {
   "SchemaVersion": 1,
-  "Commit": "efc2364b5fe91ce25f6476bbba2cd3c20651035a",
-  "BaseCommit": "0f079784c9827f30aa20cda49c70acff2323c48d",
+  "Commit": "f6d5e5abe0ffbafac4c434b6eed7a3f647b6db2e",
+  "BaseCommit": "9438a63fb06233535f94511eb2c5271070e1a44b",
   "Base": "origin/master",
   "Completed": true,
-  "RunAtUtc": "2026-11-17T13:10:37Z",
+  "RunAtUtc": "2026-11-17T16:12:22Z",
   "Reviewer": {
     "Tool": "Claude Code",
     "Version": "2.1.308",
     "Model": "claude-opus-5-5",
-    "Effort": "high"
+    "Effort": "medium"
   },
   "PromptSha256": "ebf2a741564fe0498d640695edc9f69d059fe78be2dd73c56e4cb65aa81b44a2",
-  "FilesReviewed": 24,
-  "Turns": 15,
-  "CostUsd": 1.13,
+  "FilesReviewed": 2,
+  "Turns": 11,
+  "CostUsd": 0.3,
   "PermissionDenials": 0,
-  "Summary": "The change delivers Stack 6 and bumps the version to 0.2.6. It adds Docs/REVIEW.md, a pull request template with a five-item human checklist, and Scripts/Invoke-ModelReview.ps1, which runs a confined headless reviewer that writes Review/LastReview.json. It also adds a fail-closed 'review' check to Invoke-Gate.ps1 -Base, five seeded cases, decision 35, the S-11 seeded-defect audit with its three run records, and an S-16 pattern for local user-profile paths. I read REVIEW.md, AGENTS.md, commits.txt and the whole diff, then the gate's base, evidence and review logic, the hygiene linter's handling of an empty Allow, the committed LastReview.json, and decision 33. I reviewed in the order REVIEW.md gives: intent, then tests, then implementation. I did not report the STAGES/TODO mismatch again, because earlier rounds already answered it.",
-  "Findings": [
-    {
-      "Id": "F1",
-      "Severity": "Medium",
-      "Step": "Implementation",
-      "Rule": "none",
-      "File": "Scripts/Invoke-Gate.ps1",
-      "Line": 375,
-      "Title": "The review check requires the record's BaseCommit to equal the current merge base, so bringing the branch up to date with master forces a full new review, contradicting 'the review runs once per pull request'.",
-      "Detail": "Line 375 fails the check whenever the record's BaseCommit differs from 'git merge-base <Base> HEAD'. Decision 33 requires a pull request head to be up to date with master before it merges. When master moves, the author has two ways to update the branch. Merging master in moves the merge base to the new master tip, so line 375 fails. Rebasing rewrites the reviewed commit, so the ancestor check at line 382 fails. Either way the only way back to a passing gate is a new model review, followed by a new integration run so that LastRun.json stays the last commit (T-14). REVIEW.md ('A second review is the author's choice, not a rule'), decision 35 and the CHANGELOG all say the review runs once per pull request, and nothing records this case. No seeded case covers a branch updated from master. Possible fixes: accept a record whose BaseCommit is an ancestor of the current merge base and whose Commit is not, so the review still covers every branch commit up to the reviewed one; or document that updating from master requires a new review.",
-      "Response": "Fixed: e7eb3bb. The check accepts a review base that is an ancestor of the current merge base, so merging master into the branch needs no new review; 'review wrong base' still fails a base after the merge base."
-    },
-    {
-      "Id": "F2",
-      "Severity": "Medium",
-      "Step": "Implementation",
-      "Rule": "S-16",
-      "File": "Scripts/Invoke-ModelReview.ps1",
-      "Line": 173,
-      "Title": "The reviewer session still receives the author's git identity from Claude Code's own context, and efc2364 removed the only check that would catch a plain account or person name in the committed record.",
-      "Detail": "Line 173 builds commits.txt 'with no author name or email', and SECURITY.md section 11 describes the session as confined. Claude Code attaches workspace context to the session regardless of --safe-mode. This review session received, without asking for them, the git user name and the account email of the person running the script. A reviewer can therefore quote either value in Summary or Detail, and the record is committed to a public repository. The email pattern would catch the address. The person's name is plain text and matches no pattern in PublicRepoPatterns.psd1. The new user-profile pattern only catches the name inside a path, and efc2364 removed the whole-word account-name scrub. Only the human reader would catch it. Fix: state in SECURITY.md section 11 and the script's [SEC] notes that the session sees the author's git identity, tell the reviewer in reviewer-prompt.md never to name the author, and either refuse a record that contains the configured git user.name or record the gap as a stated limitation.",
-      "Response": "Accepted: the author name is already public on every commit in this repository, and an email address in the record fails the S-16 email pattern. The new pattern covers local paths, the account name's usual route into a record."
-    },
-    {
-      "Id": "F3",
-      "Severity": "Low",
-      "Step": "Intent",
-      "Rule": "D-11",
-      "File": "Docs/SECURITY.md",
-      "Line": 264,
-      "Title": "The 0.2.6 audit row and the manifest ReleaseNotes still say the gate fails a 'stale' review, which efc2364 removed.",
-      "Detail": "Commit efc2364 changed the review check so that commits after the reviewed one never fail it, and replaced the seeded case 'review stale' with 'review fixed'. The SECURITY.md audit record row for 0.2.6 still says 'the gate fails a missing, stale or unanswered review'. Source/TACE.Oracle.Admin.psd1 line 37 still says the gate fails a pull request whose review is 'missing, stale or unanswered'. Both describe the earlier design. Replace 'stale' with 'does not cover the branch from its merge base', the wording REVIEW.md and section 11 use.",
-      "Response": "Fixed: e7eb3bb. The SECURITY audit row and the manifest release notes describe the check as built."
-    },
-    {
-      "Id": "F4",
-      "Severity": "Low",
-      "Step": "Implementation",
-      "Rule": "none",
-      "File": "Scripts/Invoke-Gate.ps1",
-      "Line": 319,
-      "Title": "The evidence check still fails open on its second git listing, although the change and its CHANGELOG entry say it now fails when git cannot list the changes.",
-      "Detail": "The change adds an exit-code check to the first 'git diff --name-only' in the evidence check (line 285), and the CHANGELOG 'Fixed' entry says the check now fails when git cannot list the changed files. Line 319 runs a second listing, 'git diff --name-only $runCommit HEAD 2>$null', and never checks $LASTEXITCODE. If that diff fails, $since is empty, no 'changed after the run's commit' problem is added, and the check passes. The earlier ancestor test makes this path unlikely, but the fix is incomplete as described. Check $LASTEXITCODE after line 319 and add a problem when it is non-zero.",
-      "Response": "Fixed: e7eb3bb. The evidence check's second git listing fails closed too, so the CHANGELOG entry holds."
-    },
-    {
-      "Id": "F5",
-      "Severity": "Low",
-      "Step": "Tests",
-      "Rule": "none",
-      "File": "Scripts/Invoke-Gate.ps1",
-      "Line": 382,
-      "Title": "The review check accepts a reviewed commit that is the merge base or older, so a record that reviewed none of the branch passes, and no seeded case covers it.",
-      "Detail": "The check requires BaseCommit to equal the merge base and Commit to be an ancestor of HEAD (line 382). Any commit at or before the merge base, the merge base itself included, is an ancestor of HEAD, so a record with Commit equal to BaseCommit passes and is reported as covering the branch. Invoke-ModelReview.ps1 never writes such a record, because it refuses when nothing changed. A hand-edited or mistaken record would still pass a check whose stated purpose is that the review 'covers the branch from its merge base'. The seeded 'review wrong base' case changes only BaseCommit. Fix: also require that Commit differs from the merge base and that the merge base is an ancestor of Commit ('git merge-base --is-ancestor $mergeBase $reviewCommit' plus an inequality test). Add the case to the TODO backlog item for the gate's other review failures.",
-      "Response": "Accepted: the script refuses to review a branch with no changes, so only a hand-made record could review nothing, and the record is the author's attestation (Docs/REVIEW.md, Limits). Covered by the backlog item for seeded cases of the other review failures."
-    },
-    {
-      "Id": "F6",
-      "Severity": "Low",
-      "Step": "Intent",
-      "Rule": "D-11",
-      "File": "Scripts/Invoke-ModelReview.ps1",
-      "Line": 36,
-      "Title": "The [SEC] note says the worktree sits outside the folders whose instruction files Claude Code would load, but on Windows the default temp folder is inside the user profile.",
-      "Detail": "The worktree is created under [System.IO.Path]::GetTempPath(). On Windows that is normally under the user's AppData folder in the user profile, so the user profile folder is an ancestor of the worktree. Decision 34 says a CLAUDE.md exists above the repository on this machine. Without --safe-mode, Claude Code would load instruction files from the worktree's ancestors. The isolation actually rests on --safe-mode, which the audit's probe confirmed. The note at lines 35-36 presents the folder location as a second, independent safeguard that the default Windows configuration does not provide. Reword it to say that --safe-mode is what keeps instruction files out, or create the worktree under a root outside the user profile.",
-      "Response": "Fixed: e7eb3bb. The [SEC] note now says --safe-mode keeps the user's instruction files out, as the probe in the audit record showed."
-    },
-    {
-      "Id": "F7",
-      "Severity": "Low",
-      "Step": "Intent",
-      "Rule": "D-11",
-      "File": "Tests/Lint/PublicRepoPatterns.psd1",
-      "Line": 62,
-      "Title": "The new user-profile pattern covers Windows and macOS paths only, while SECURITY.md says it fails any committed file holding a local user-profile path.",
-      "Detail": "The pattern matches '<drive>:\\Users\\<name>' and '/Users/<name>', and the comment at lines 56-58 deliberately excludes /home paths because the docs use /home/oracle. The module and its scripts run on Linux under pwsh. There a reviewer quoting a repository or worktree path such as /home/<account>/... would pass the static tier. SECURITY.md section 11 and the CHANGELOG Security entry say the pattern covers any committed file holding a local user-profile path, with no platform limit. Either add a /home/<name> alternative that allows the documented placeholder accounts (for example oracle), or state the Windows/macOS limit in SECURITY.md section 11.",
-      "Response": "Fixed: e7eb3bb. SECURITY.md says the pattern covers Windows and macOS paths, and why Linux /home is not matched."
-    }
-  ]
+  "Summary": "The change is one docs-only commit. It ticks off the last Stack 6 tasks in Docs/TODO.md: the pull request taken through the full review path, the record, the CHANGELOG entry and tag, and the write-up. It also changes the integration-run count in Docs/audit/stack-6-independent-review.md from three to two. I read Docs/REVIEW.md, AGENTS.md, the commit message and the diff, then checked the TODO claims against the repository. Review/LastReview.json matches them: it reviews efc2364 and has 7 findings, 5 answered Fixed: e7eb3bb and 2 Accepted. The audit record's eight review rounds and 23 findings, and the CHANGELOG 0.2.6 entry, also agree with the TODO text. I could not check the new integration-run count or the external write-up from the files, and found nothing in them that contradicts either. No code, invariant, test or credential-bearing text is touched, and the commit message names no real infrastructure.",
+  "Findings": []
 }
