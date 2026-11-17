@@ -1,0 +1,33 @@
+{
+  "SchemaVersion": 1,
+  "Commit": "71b6b79a3307644c2996b3fe21bca226e22d134e",
+  "BaseCommit": "0f079784c9827f30aa20cda49c70acff2323c48d",
+  "Base": "origin/master",
+  "Completed": true,
+  "RunAtUtc": "2026-11-17T02:55:52Z",
+  "Reviewer": {
+    "Tool": "Claude Code",
+    "Version": "2.1.308",
+    "Model": "claude-opus-5-5",
+    "Effort": "high"
+  },
+  "PromptSha256": "ebf2a741564fe0498d640695edc9f69d059fe78be2dd73c56e4cb65aa81b44a2",
+  "FilesReviewed": 23,
+  "Turns": 12,
+  "CostUsd": 0.9,
+  "PermissionDenials": 0,
+  "Summary": "The change adds Stack 6's independent review: Docs/REVIEW.md (review order and severity scale), a pull request template with the human checklist, Scripts/Invoke-ModelReview.ps1 (a confined headless Claude Code reviewer that writes Review/LastReview.json and scrubs local paths and the account name from it), a 'review' check in Invoke-Gate.ps1 -Base, five new seeded cases, decision 35, the S-11 seeded-defect audit with its three run records, and the 0.2.6 version bump with no change to module behaviour. I read REVIEW.md, AGENTS.md, commits.txt and the full diff, then checked the gate's existing base/merge-base handling, the Stack 6 section of TODO.md and STAGES.md. I followed the order intent, tests, implementation. In the implementation I traced the gate's review check and the seeded cases through current, stale, wrong-base and unanswered records, and checked the scrub order, the refuse-to-write check and the overwrite guard in the review script. The only problem I found is in the documents: STAGES.md marks the stack complete while two of its tasks are still open. The missing script tests and the extra seeded cases are already deferred in TODO.md, so I did not report them.",
+  "Findings": [
+    {
+      "Id": "F1",
+      "Severity": "Low",
+      "Step": "Intent",
+      "Rule": "D-11",
+      "File": "Docs/STAGES.md",
+      "Line": 93,
+      "Title": "STAGES.md marks Stack 6 as Complete (v0.2.6) while TODO.md still has two open Stack 6 tasks, one of which is the stack's own goal.",
+      "Detail": "The change sets the Stack 6 row to 'Complete (v0.2.6)', and commit 9f46b80 says 'Stack 6 complete in STAGES'. But Docs/TODO.md lines 452-453 still show '- [ ] Take one pull request through the full path with findings attached' and '- [ ] Closing tasks'. The Stack 6 goal (TODO.md line 434-436) is a review path 'shown working on one real pull request', and that is the first of the open tasks. Every earlier stack in TODO.md has its Closing tasks ticked (record, changelog and tag, write-up) before STAGES calls it complete. So the stage table now claims something the task list contradicts, and the CHANGELOG 0.2.6 release and the README/SECURITY status rows lean on that claim. D-09's linter checks only open [SEC] tasks, so it did not catch this. Fix: leave the row as 'In progress' until the real pull request and the closing tasks are done, or finish those tasks in this branch.",
+      "Response": "Accepted: this follows the Stack 4 and Stack 5 close pattern. The close commit marks the stage complete with its version, and the pull request that carries it is the one that shows the review path working; \"Take one pull request through the full path\" and the closing tasks are ticked in the closing-tasks pull request after this one merges, as for Stacks 4 and 5."
+    }
+  ]
+}
