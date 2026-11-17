@@ -32,9 +32,10 @@
         the folders whose instruction files Claude Code would load.
 
     [SEC] The record holds no local path. The reviewer sees its working folder and the
-    input folder, and may quote them, so every text the reviewer returns has this run's
-    worktree, input folder, temp folder and the user profile folder replaced with
-    <worktree>, <input>, <temp> and <home>, with either slash. The script refuses to write
+    input folder, and the worktree's .git file names the repository folder, and it may
+    quote any of them, so every text the reviewer returns has this run's worktree, input
+    folder, the repository folder, the temp folder and the user profile folder replaced
+    with <worktree>, <input>, <repo>, <temp> and <home>, with either slash. The script refuses to write
     a record that still contains one of them. The reviewer is told never to quote a
     credential-like value; the gate's secret scan covers the file when it is committed.
 
@@ -142,6 +143,7 @@ function Assert-RunFolder {
 $localPaths = @(
     @{ Path = $worktree; Label = '<worktree>' }
     @{ Path = $inputDir; Label = '<input>' }
+    @{ Path = [System.IO.Path]::GetFullPath($repoRoot); Label = '<repo>' }
     @{ Path = $tempRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar); Label = '<temp>' }
     @{ Path = [Environment]::GetFolderPath('UserProfile'); Label = '<home>' }
 ) | Where-Object { -not [string]::IsNullOrWhiteSpace($PSItem.Path) } | Sort-Object -Property { $PSItem.Path.Length } -Descending

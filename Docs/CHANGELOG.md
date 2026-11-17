@@ -44,8 +44,8 @@ No change to module behaviour. Record in `Docs/audit/stack-6-independent-review.
 - The reviewer session has no command tools, no write tools, no settings, instruction
   files, memory or MCP servers, and reads only the committed files of the reviewed
   commit. CI calls no model and the workflow still holds no secret.
-- `Invoke-ModelReview.ps1` replaces the run's local folders and the user profile folder
-  in everything the reviewer returns, and refuses to write a record that still holds
+- `Invoke-ModelReview.ps1` replaces the run's local folders, the repository folder and
+  the user profile folder in everything the reviewer returns, and refuses to write a record that still holds
   one, so no local path or account name reaches the committed record. Found by the
   review of this release's own pull request.
 
