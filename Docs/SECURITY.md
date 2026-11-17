@@ -188,6 +188,34 @@ SHA-pinned actions, and secret scanning with push protection is on (decisions 32
 head passed every gate check, unit tier included. The record is
 `Docs\audit\stack-4-enforced-gate.md`.
 
+### 11. Independent Review
+
+**Status:** Implemented at Stack 6.
+
+**Why:** the gate checks what a machine can decide. Rules such as S-11 (only validated
+values in RMAN or SQL text) and S-16 (no real infrastructure names) need judgement, and
+an author does not reliably see the defects in their own change, whether the author is a
+person or an AI session.
+
+**How:** `Scripts\Invoke-ModelReview.ps1` reviews the commits a branch adds to `master`
+in a new Claude Code session, in the order in `Docs\REVIEW.md`, and writes
+`Review\LastReview.json`. [SEC] The reviewer session is confined: it runs in a temporary
+worktree of the reviewed commit, which holds only committed files, so ignored local
+files such as the integration config are not in reach; `--restricted` removes every
+tool that runs commands or code, and WebFetch, ignores user, project and local settings,
+and confines file tools to the worktree and its input folder; its tools are Read, Grep
+and Glob only; `--safe-mode` and `--strict-mcp-config` load no instruction file, skill,
+hook, plugin or MCP server; and the session is not saved. The script needs no secret
+and CI calls no model. The author answers every finding; the human checklist in
+`.github\pull_request_template.md` follows. The gate's `review` check fails a pull
+request whose record is missing, stale or unanswered (decision 35).
+
+**Contract:** a pull request into `master` that changes any file other than the evidence
+files carries a completed review of its own commits, with every finding answered. The
+record is the author's attestation: the check proves it current and answered, not that
+the session ran as recorded. The record holds no host name, path or credential-like
+value; the gate's secret scan covers it.
+
 ---
 
 ## Open Items

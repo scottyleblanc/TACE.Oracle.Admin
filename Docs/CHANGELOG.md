@@ -6,6 +6,40 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+Stack 6 of the AI Development Stack — independent review. No change to module behaviour.
+
+### Added
+
+- `Docs/REVIEW.md`: the review path and the review order every pull request follows,
+  intent then tests then implementation, with the Review rules each step checks, a
+  severity scale and how the author answers a finding.
+- `.github/pull_request_template.md`: the review record, the human checklist in the same
+  order, and the evidence.
+- `Scripts/Invoke-ModelReview.ps1`: the second-model review. A new headless Claude Code
+  session reviews the branch's commits in a temporary worktree and writes
+  `Review/LastReview.json`. Its prompt and output schema are in `Review/`.
+- `Invoke-Gate.ps1 -Base`: a `review` check. A pull request that changes any file other
+  than the evidence files fails without a completed, current review whose every finding
+  is answered.
+- `Test-SeededDefect.ps1`: cases `review missing`, `review current`, `review unanswered`
+  and `review stale`, fourteen in all.
+- Decision 35: how every pull request is examined by someone other than its author.
+
+### Changed
+
+- `Test-SeededDefect.ps1`: the evidence cases add a review record before the integration
+  evidence, in the order `Docs/REVIEW.md` gives; `evidence stale` now also fails `review`.
+
+### Security
+
+- The reviewer session has no command tools, no write tools, no settings, instruction
+  files, memory or MCP servers, and reads only the committed files of the reviewed
+  commit. CI calls no model and the workflow still holds no secret.
+
+---
+
 ## [0.2.5] - 2026-11-16
 
 Stack 5 of the AI Development Stack — agent instructions. Not published to PSGallery.

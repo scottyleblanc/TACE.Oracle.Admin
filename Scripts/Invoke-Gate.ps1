@@ -31,6 +31,12 @@
                     show a passing run on a clean tree (Evidence = true) of a commit
                     that HEAD contains, and nothing but that file may change between
                     that commit and HEAD. A change outside Source\ needs no evidence
+      8. review     Decision 35. When the commits since the merge base with Base change
+                    any file other than the two evidence files, Review\LastReview.json at
+                    HEAD must show a completed review of a commit that HEAD contains,
+                    from that same merge base; nothing but the evidence files may change
+                    between that commit and HEAD; and every finding must have a Response
+                    that starts with Rejected:, Accepted: or Deferred: (Docs\REVIEW.md)
 
     Found values are never printed in full: gitleaks runs with --redact, and a pattern
     match shows only its first characters.
@@ -50,7 +56,7 @@
 .PARAMETER Base
     The branch a pull request merges into, as a git revision (for example
     origin/master). Checks commits in Base..HEAD instead of the unpushed ones, and adds
-    the 'evidence' check. CI passes it; the pre-push hook does not.
+    the 'evidence' and 'review' checks. CI passes it; the pre-push hook does not.
 
 .PARAMETER Unit
     Also run the unit tier, with its coverage floor.
@@ -73,7 +79,7 @@
     .\Scripts\Invoke-Gate.ps1 -Unit -Base origin/master
 
     Runs the gate over the commits a pull request adds to master, with the evidence
-    check, then the unit tier. This is what CI runs (.github\workflows\gate.yml).
+    and review checks, then the unit tier. This is what CI runs (.github\workflows\gate.yml).
 
 .EXAMPLE
     $env:ORACLE_ADMIN_RUN_INTEGRATION = '1'
@@ -320,7 +326,83 @@ if ($Base) {
     }
 }
 
-# -- 8. unit, only with -Unit ------------------------------------------------
+# -- 8. review, only with -Base ----------------------------------------------
+
+if ($Base) {
+    $reviewPath    = 'Review/LastReview.json'
+    $evidenceFiles = @($reviewPath, 'Tests/Integration/LastRun.json')
+    if ($null -ne $notReady) {
+        Add-Result -Name 'review' -Passed $false -Summary $notReady
+    }
+    else {
+        $mergeBase = @(& $git.Source -C $repoRoot merge-base $baseCommit HEAD 2>$null) | Select-Object -First 1
+        $reviewed  = @(& $git.Source -C $repoRoot diff --name-only "$baseCommit...HEAD" 2>$null |
+            Where-Object { $PSItem -and $evidenceFiles -notcontains $PSItem })
+        if ($reviewed.Count -eq 0) {
+            Add-Result -Name 'review' -Passed $true -Summary "no file changed since $Base; no review needed"
+        }
+        else {
+            $reviewProblems = [System.Collections.Generic.List[string]]::new()
+            $json   = (& $git.Source -C $repoRoot show "HEAD:$reviewPath" 2>$null) -join "`n"
+            $record = $null
+            if ($LASTEXITCODE -ne 0 -or -not $json) {
+                $reviewProblems.Add("$reviewPath is not in HEAD: run Scripts\Invoke-ModelReview.ps1")
+            }
+            else {
+                try { $record = $json | ConvertFrom-Json } catch { $reviewProblems.Add("$reviewPath is not valid JSON") }
+            }
+            if ($null -ne $record) {
+                $names = @($record.PSObject.Properties.Name)
+                if (-not ($names -contains 'SchemaVersion' -and $record.SchemaVersion -eq 1)) {
+                    $reviewProblems.Add("$reviewPath is not schema version 1")
+                }
+                if (-not ($names -contains 'Completed' -and $record.Completed -eq $true)) {
+                    $reviewProblems.Add("$reviewPath does not show a completed review")
+                }
+                $reviewCommit = if ($names -contains 'Commit') { "$($record.Commit)" } else { '' }
+                $reviewBase   = if ($names -contains 'BaseCommit') { "$($record.BaseCommit)" } else { '' }
+                if ($reviewBase -ne $mergeBase) {
+                    $reviewProblems.Add("the review's base is not the merge base with ${Base}: the review does not cover every commit since $Base")
+                }
+                if ($reviewCommit -notmatch '^[0-9a-f]{40}$') {
+                    $reviewProblems.Add("$reviewPath names no commit")
+                }
+                else {
+                    $null = & $git.Source -C $repoRoot merge-base --is-ancestor $reviewCommit HEAD 2>$null
+                    if ($LASTEXITCODE -ne 0) {
+                        $reviewProblems.Add("the reviewed commit $($reviewCommit.Substring(0, 7)) is not in HEAD's history")
+                    }
+                    else {
+                        $since = @(& $git.Source -C $repoRoot diff --name-only $reviewCommit HEAD 2>$null |
+                            Where-Object { $PSItem -and $evidenceFiles -notcontains $PSItem })
+                        foreach ($path in $since) { $reviewProblems.Add("changed after the reviewed commit $($reviewCommit.Substring(0, 7)): $path") }
+                    }
+                }
+                if ($names -notcontains 'Findings') {
+                    $reviewProblems.Add("$reviewPath has no Findings list")
+                }
+                else {
+                    foreach ($finding in @($record.Findings | Where-Object { $null -ne $PSItem })) {
+                        $id       = if ($finding.PSObject.Properties['Id']) { "$($finding.Id)" } else { '?' }
+                        $response = if ($finding.PSObject.Properties['Response']) { "$($finding.Response)" } else { '' }
+                        if ($response -notmatch '^(Rejected|Accepted|Deferred): \S') {
+                            $reviewProblems.Add("finding $id is not answered: its Response must start with Rejected:, Accepted: or Deferred:")
+                        }
+                    }
+                }
+            }
+            $summary = if ($reviewProblems.Count -eq 0) {
+                "LastReview.json is current for $($record.Commit.Substring(0, 7)); $(@($record.Findings | Where-Object { $null -ne $PSItem }).Count) finding(s), all answered"
+            }
+            else {
+                'the review is missing, stale or not answered (decision 35)'
+            }
+            Add-Result -Name 'review' -Passed ($reviewProblems.Count -eq 0) -Summary $summary -Detail @($reviewProblems)
+        }
+    }
+}
+
+# -- 9. unit, only with -Unit ------------------------------------------------
 
 if ($Unit) {
     $unitScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-UnitTest.ps1'
@@ -338,7 +420,7 @@ if ($Unit) {
     Add-Result -Name 'unit' -Passed ($unitExit -eq 0) -Summary $summary -Detail $unitFailed
 }
 
-# -- 9. integration, only with -Integration ----------------------------------
+# -- 10. integration, only with -Integration ---------------------------------
 
 if ($Integration) {
     $integrationScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-IntegrationTest.ps1'

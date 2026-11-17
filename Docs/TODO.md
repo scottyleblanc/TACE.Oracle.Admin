@@ -435,9 +435,18 @@ is measured.
 review path — template, human checklist and a second-model review — shown working on
 one real pull request.
 
-- [ ] Add a pull request template
-- [ ] Write the review order and the human checklist
-- [ ] Choose the second-model review mechanism; add it as a script step
+- [x] Add a pull request template. `.github\pull_request_template.md`: the review
+      record, the human checklist, and the evidence
+- [x] Write the review order and the human checklist. `Docs\REVIEW.md`: intent, then
+      tests, then implementation, with the Review rules each step checks, a severity
+      scale and how a finding is answered
+- [x] Choose the second-model review mechanism; add it as a script step. A headless
+      Claude Code session, confined to a temporary worktree with read-only file tools,
+      run by `Scripts\Invoke-ModelReview.ps1`; the gate's `review` check fails a missing,
+      stale or unanswered `Review\LastReview.json` (decision 35). Seeded cases
+      `review missing`, `review current`, `review unanswered` and `review stale`
+- [ ] [SEC] Seeded defect: a caller's `[string]` embedded in RMAN script text (S-11), on
+      a throwaway branch. The gate passes it; the review must report it
 - [ ] Take one pull request through the full path with findings attached
 - [ ] Closing tasks
 

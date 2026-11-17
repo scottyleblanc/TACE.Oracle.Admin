@@ -126,9 +126,12 @@ organization's own data governance obligations.
 
 Changes reach `master` only through a pull request, and the pull request merges only
 when the gate passes in CI (`.github\workflows\gate.yml`; see the Gate section of
-[PREREQUISITES.md](PREREQUISITES.md)). A change to `Source\` also needs current
+[PREREQUISITES.md](PREREQUISITES.md)). Every pull request also needs a current
+second-model review with each finding answered, and the human checklist in the pull
+request template ([REVIEW.md](REVIEW.md)). A change to `Source\` also needs current
 integration evidence, which needs a local Oracle database.
 
+- Review order and path: [REVIEW.md](REVIEW.md)
 - Build task list: [TODO.md](TODO.md)
 - Version history: [CHANGELOG.md](CHANGELOG.md)
 - Commit and release conventions: [VERSIONING.md](VERSIONING.md)
