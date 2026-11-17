@@ -1,10 +1,10 @@
 {
   "SchemaVersion": 1,
-  "Commit": "71b6b79a3307644c2996b3fe21bca226e22d134e",
+  "Commit": "ba28275c88ba4725fc136ac1703a20c0442efff1",
   "BaseCommit": "0f079784c9827f30aa20cda49c70acff2323c48d",
   "Base": "origin/master",
   "Completed": true,
-  "RunAtUtc": "2026-11-17T02:55:52Z",
+  "RunAtUtc": "2026-11-17T12:43:33Z",
   "Reviewer": {
     "Tool": "Claude Code",
     "Version": "2.1.308",
@@ -13,21 +13,43 @@
   },
   "PromptSha256": "ebf2a741564fe0498d640695edc9f69d059fe78be2dd73c56e4cb65aa81b44a2",
   "FilesReviewed": 23,
-  "Turns": 12,
-  "CostUsd": 0.9,
+  "Turns": 15,
+  "CostUsd": 1.12,
   "PermissionDenials": 0,
-  "Summary": "The change adds Stack 6's independent review: Docs/REVIEW.md (review order and severity scale), a pull request template with the human checklist, Scripts/Invoke-ModelReview.ps1 (a confined headless Claude Code reviewer that writes Review/LastReview.json and scrubs local paths and the account name from it), a 'review' check in Invoke-Gate.ps1 -Base, five new seeded cases, decision 35, the S-11 seeded-defect audit with its three run records, and the 0.2.6 version bump with no change to module behaviour. I read REVIEW.md, AGENTS.md, commits.txt and the full diff, then checked the gate's existing base/merge-base handling, the Stack 6 section of TODO.md and STAGES.md. I followed the order intent, tests, implementation. In the implementation I traced the gate's review check and the seeded cases through current, stale, wrong-base and unanswered records, and checked the scrub order, the refuse-to-write check and the overwrite guard in the review script. The only problem I found is in the documents: STAGES.md marks the stack complete while two of its tasks are still open. The missing script tests and the extra seeded cases are already deferred in TODO.md, so I did not report them.",
+  "Summary": "The change adds Stack 6's review process. It adds Docs/REVIEW.md, a pull request template with a four-item human checklist, Scripts/Invoke-ModelReview.ps1 (a confined headless reviewer that writes Review/LastReview.json and removes local paths and the account name from it) and a 'review' check in Invoke-Gate.ps1 -Base. It also adds five seeded cases, decision 35, the S-11 seeded-defect audit with its three run records, and the version bump to 0.2.6 with no change to module behaviour. I read REVIEW.md, AGENTS.md, commits.txt and the whole diff, then the gate's base/merge-base and evidence logic, gate.yml, the committed LastReview.json and LastRun.json, and the Stack 6 section of TODO.md. I reviewed in the order intent, tests, implementation. I checked the audit's tables against the three seed-run records and traced the seeded cases through the gate's review check. I did not report the STAGES/TODO mismatch again or the deferred script tests, because the earlier record and TODO.md already answer them.",
   "Findings": [
     {
       "Id": "F1",
+      "Severity": "Medium",
+      "Step": "Implementation",
+      "Rule": "none",
+      "File": "Scripts/Invoke-ModelReview.ps1",
+      "Line": 173,
+      "Title": "The whole-word scrub of the account name silently rewrites the reviewer's text when the account name is an ordinary word, and 'oracle' is a likely one on this module's target machines.",
+      "Detail": "Line 173 builds a case-insensitive whole-word pattern from [Environment]::UserName and blocks only names shorter than three characters. Get-ScrubbedText then replaces every match in Summary, Title, Detail and File with '<user>'. 'oracle' is the conventional software-owner account on an Oracle host, and this is a DBA module. If the script runs under that account, every 'Oracle' that stands as a word in the reviewer's text becomes '<user>'. That includes 'TACE.Oracle.Admin' (dots are not word characters) and 'Oracle database'. The refuse-to-write check on the serialised record then passes, because the scrub has already removed every match. The record is written and committed with the findings' wording corrupted, and nothing warns the author. Accounts named 'admin', 'test' or 'dev' have the same problem. Possible fixes: scrub the account name only inside path-shaped text (after a path separator), or refuse to run with a clear message when the account name is a common word or appears in the repository's own files. Then record the limitation in the script help.",
+      "Response": "Accepted: the replacement can only remove text, never add a path or name, so the risk is readability, not disclosure; an account name that is an ordinary word makes some of the reviewer's words read <user>. Final round under the agreed stopping rule; recorded for the closing-tasks pull request as a follow-up (scrub the account name only inside path-like text)."
+    },
+    {
+      "Id": "F2",
+      "Severity": "Medium",
+      "Step": "Implementation",
+      "Rule": "none",
+      "File": "Scripts/Invoke-Gate.ps1",
+      "Line": 339,
+      "Title": "The review check fails open: if 'git diff base...HEAD' errors, the check passes with 'no review needed'.",
+      "Detail": "Line 339 runs '& git diff --name-only \"$baseCommit...HEAD\" 2>$null', discards stderr and never checks $LASTEXITCODE. If the diff fails, for example because there is no merge base after a shallow or partial fetch or because the histories are unrelated, $reviewed is empty. Line 342 then records review as Passed with 'no file changed since <Base>; no review needed'. A check meant to block a pull request that has no review passes exactly when it cannot work out what changed. gate.yml uses fetch-depth 0 today, so this path is uncommon. But the check should not depend on how the checkout was made, and another CI host is expected to supply only its own wrapper (decision 32). Fix: check $LASTEXITCODE after the diff, and check that $mergeBase is non-empty. If either fails, add a failed 'review' result ('could not compute the changes since <Base>'). Do not pass.",
+      "Response": "Accepted: the check can fail open only if git diff errors after -Base has already resolved to a commit, which the earlier checks need too; the evidence check from Stack 4 has the same pattern. A gate check should fail closed, so this is recorded for the closing-tasks pull request as a follow-up covering both checks."
+    },
+    {
+      "Id": "F3",
       "Severity": "Low",
       "Step": "Intent",
       "Rule": "D-11",
-      "File": "Docs/STAGES.md",
-      "Line": 93,
-      "Title": "STAGES.md marks Stack 6 as Complete (v0.2.6) while TODO.md still has two open Stack 6 tasks, one of which is the stack's own goal.",
-      "Detail": "The change sets the Stack 6 row to 'Complete (v0.2.6)', and commit 9f46b80 says 'Stack 6 complete in STAGES'. But Docs/TODO.md lines 452-453 still show '- [ ] Take one pull request through the full path with findings attached' and '- [ ] Closing tasks'. The Stack 6 goal (TODO.md line 434-436) is a review path 'shown working on one real pull request', and that is the first of the open tasks. Every earlier stack in TODO.md has its Closing tasks ticked (record, changelog and tag, write-up) before STAGES calls it complete. So the stage table now claims something the task list contradicts, and the CHANGELOG 0.2.6 release and the README/SECURITY status rows lean on that claim. D-09's linter checks only open [SEC] tasks, so it did not catch this. Fix: leave the row as 'In progress' until the real pull request and the closing tasks are done, or finish those tasks in this branch.",
-      "Response": "Accepted: this follows the Stack 4 and Stack 5 close pattern. The close commit marks the stage complete with its version, and the pull request that carries it is the one that shows the review path working; \"Take one pull request through the full path\" and the closing tasks are ticked in the closing-tasks pull request after this one merges, as for Stacks 4 and 5."
+      "File": "Scripts/Invoke-ModelReview.ps1",
+      "Line": 61,
+      "Title": "The -Force help still describes only the answered-findings case, although ba28275 made -Force also overwrite an unreadable record.",
+      "Detail": "Commit ba28275 extended the overwrite guard so that an uncommitted LastReview.json that cannot be parsed is also kept unless -Force is given. The .DESCRIPTION paragraph and the thrown message were updated to match. The .PARAMETER Force text at line 61 still reads only 'Overwrites an uncommitted Review\\LastReview.json that has answered findings.', so it no longer describes what the switch does. Update it to say it also discards an uncommitted record that cannot be read as JSON.",
+      "Response": "Accepted: help text only; the behaviour is described in the script's .DESCRIPTION. Recorded for the closing-tasks pull request with F1."
     }
   ]
 }
