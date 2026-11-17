@@ -1,0 +1,77 @@
+{
+  "SchemaVersion": 1,
+  "Commit": "9ee205ed91aaa4647fd50a2dd673230115b3b070",
+  "BaseCommit": "6bff32ce17f344056b77d7ee8cc4928783ac60ec",
+  "Base": "v0.2.6-dev",
+  "Completed": true,
+  "RunAtUtc": "2026-11-17T02:24:18Z",
+  "Reviewer": {
+    "Tool": "Claude Code",
+    "Version": "2.1.308",
+    "Model": "claude-opus-5-5",
+    "Effort": "high"
+  },
+  "PromptSha256": "dd8021b2265ccc0918879613af2d7c4eb6e2a338cd79a328386cbc8fe76bf22a",
+  "FilesReviewed": 3,
+  "Turns": 15,
+  "CostUsd": 0.43,
+  "PermissionDenials": 0,
+  "Summary": "The change adds a -DeviceType parameter (default 'DISK') to Remove-RmanObsoleteBackup and interpolates it into the RMAN script, which becomes \"DELETE NOPROMPT OBSOLETE DEVICE TYPE <value>;\". It also rewords invariant S9 and the [SEC] notes, and updates the one exact-match test for the default value. I reviewed it in the order Docs\\REVIEW.md gives. For intent, I compared the commit message, the S9 wording, CHANGELOG.md and SECURITY.md. For tests, I checked the Parameter validation and Security contexts in the test file. For implementation, I read the new parameter's attributes against S-11. The central defect is that a caller [string], validated only as non-empty, now reaches the destructive RMAN script.",
+  "Findings": [
+    {
+      "Id": "F1",
+      "Severity": "High",
+      "Step": "Implementation",
+      "Rule": "S-11",
+      "File": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "Line": 182,
+      "Title": "The caller's DeviceType string is put directly into the destructive RMAN DELETE script, with only ValidateNotNullOrEmpty to check it.",
+      "Detail": "Line 50 declares [ValidateNotNullOrEmpty()] [string]$DeviceType, and line 182 builds \"DELETE NOPROMPT OBSOLETE DEVICE TYPE $DeviceType;\". The script goes to RMAN's stdin. ValidateNotNullOrEmpty accepts semicolons, spaces, quotes and newlines. A value such as \"DISK; DELETE NOPROMPT BACKUP\" ends the intended command and appends a second one. A value with an embedded newline can add a HOST command. Any of these runs with NOPROMPT after one ShouldProcess approval, so a single confirmed call could delete every backup, not only the obsolete ones. S-11 calls a caller [string] in an RMAN script a finding unless its attribute limits it to characters that cannot end or extend a command. Fix: restrict the value to the device types RMAN accepts, for example [ValidateSet('DISK','SBT')], or a pattern anchored with \\z that allows only letters, as WalletAlias does. Then add a test that refuses an injection value at the call.",
+      "Response": ""
+    },
+    {
+      "Id": "F2",
+      "Severity": "Medium",
+      "Step": "Tests",
+      "Rule": "I-10",
+      "File": "Tests/Unit/Public/Remove-RmanObsoleteBackup.Tests.ps1",
+      "Line": 278,
+      "Title": "The S9 test only runs the default DeviceType, so it would still pass if DeviceType accepted injected RMAN text.",
+      "Detail": "S9 now promises that the script is fixed text apart from a validated DeviceType. The cited test 'S9 RMAN script is fixed text and no catalog parameter exists' checks that the catalog parameters are absent, then calls the function without -DeviceType and asserts the script with DISK. It never passes a non-default value. Nothing reads the DeviceType parameter's validation attributes (T-06), and nothing proves that a value with ';', a space or a newline is refused at the call. The Parameter validation context has no DeviceType test at all. Removing or weakening the validation would leave every test green. Add a metadata test for the DeviceType attribute and a 'refuses <Case> at the call' test, matching the S10 WalletAlias tests. Cite both on S9, or on a new invariant.",
+      "Response": ""
+    },
+    {
+      "Id": "F3",
+      "Severity": "Medium",
+      "Step": "Intent",
+      "Rule": "I-02",
+      "File": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "Line": 96,
+      "Title": "S9 and the [SEC] note still call the RMAN script 'fixed text', but it now holds caller text that is only checked for being non-empty.",
+      "Detail": "The reworded S9 (and the same line in invariants-index.md) says the script is 'fixed text apart from DeviceType, which is validated non-empty'. The .NOTES [SEC] line 37 and the comment at line 179 say 'the validated DeviceType'. Being non-empty is not a security property. These lines present an arbitrary string as if it were safe, where the earlier S9 promised that no parameter value reaches the script. I-02 requires the block to say what the code does today, and a reader of S9 would assume the value is constrained. The new parameter also has no invariant entry (I-08). Once DeviceType is restricted, state that set or pattern in S9, or in a new S11 with a Type: line and a proof line. Do not describe a non-empty check as validation.",
+      "Response": ""
+    },
+    {
+      "Id": "F4",
+      "Severity": "Medium",
+      "Step": "Intent",
+      "Rule": "none",
+      "File": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "Line": 50,
+      "Title": "Defaulting DeviceType to DISK quietly narrows what an existing call deletes.",
+      "Detail": "Before this change, the script was 'DELETE NOPROMPT OBSOLETE;'. RMAN applies that across every configured device type. Now every call without -DeviceType sends 'DEVICE TYPE DISK', so on a database with an SBT channel, obsolete tape backups are no longer removed and the function still returns Success = $true. Existing callers change behaviour with no warning. The help text, the WhatIf message (\"would delete obsolete RMAN backup pieces for '<db>'\") and the success Message never mention the device scope, and Data does not record DeviceType. Either leave the default as all devices (no DEVICE TYPE clause when the parameter is not passed), or record this as a breaking change and put the device type in the WhatIf message, the Message and Data.",
+      "Response": ""
+    },
+    {
+      "Id": "F5",
+      "Severity": "Low",
+      "Step": "Intent",
+      "Rule": "D-07",
+      "File": "Docs/CHANGELOG.md",
+      "Line": 11,
+      "Title": "The changelog has no entry for this change in module behaviour and still says the unreleased work does not change module behaviour.",
+      "Detail": "The commit adds a public parameter and changes the RMAN script sent by a destructive function. CHANGELOG.md is not in files.txt. The [Unreleased] section still reads 'No change to module behaviour.', which this change makes false (D-11). D-07 requires the changelog to change in the same commit as the code. The gate passed, so the D-07 check missed this case. Add an Added entry for -DeviceType, a Changed or Security entry for the new script text and the narrowed default, and correct the Unreleased summary line.",
+      "Response": ""
+    }
+  ]
+}

@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.2.5 |
-| Last audit | 2026-11-16 — Stack 5 agent instructions |
-| Findings resolved | Stack 5: none in the module. One `[SEC]` finding in the agent tooling, open for Stack 7: in `acceptEdits` mode an agent deleted a file without asking |
+| Version | 0.2.6 |
+| Last audit | 2026-11-16 — Stack 6 independent review |
+| Findings resolved | Stack 6: none in the module. A planted S-11 defect that the gate passed was reported as High by every review. The Stack 5 `[SEC]` finding in the agent tooling stays open for Stack 7 |
 | Unit tests | 405 (all passing); 163 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
 | Open SEC items | 6 — see Open Items |
 
@@ -255,6 +255,7 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | 2026-11-16 | 0.2.3 | 12 (12 `[SEC]`) | Stack 3 tests. Every security invariant's proof was broken on purpose in a copy of the repository: for 12, the cited tests still passed, through tests that compared the session environment with an already-polluted value, credential tests run with no credential, or code the test never reached. All fixed and proven by the mutation script; no defect was in the module's own security behaviour. One behaviour defect, introduced in this stack and not security-related, was found and fixed (`Invoke-OraEnv` with no instance). Integration tests against Oracle Database 21c XE pass. Details in `CHANGELOG.md` 0.2.3 and `Docs\audit\stack-3-*.md`. |
 | 2026-11-16 | 0.2.4 | 2 (2 `[SEC]`) | Stack 4 enforced gate. `[SEC]`: in a CI checkout every commit is on a remote, so the gate's `commits` and `messages` checks would have passed having checked nothing (fixed with `-Base`, decision 32). `[SEC]`: `master` accepted direct pushes from anyone with write access, so the gate was advisory (fixed with a ruleset with no bypass, decision 33). The workflow runs with a read-only token, no secrets and a SHA-pinned action; secret scanning and push protection are on. A pull request carrying the seeded defects was blocked. No change to module code. Details in `CHANGELOG.md` 0.2.4 and `Docs\audit\stack-4-enforced-gate.md`. |
 | 2026-11-16 | 0.2.5 | 1 (1 `[SEC]`, open) | Stack 5 agent instructions. No change to module code. `[SEC]`: setting up the comparison showed that Claude Code in `acceptEdits` mode let the PowerShell tool delete a file without asking, while refusing a read-only lint script that no allow rule matched; recorded for Stack 7, where the agent's run and read rules are written and tested. `AGENTS.md` carries the security standards word for word and a static test fails when it drifts. Details in `CHANGELOG.md` 0.2.5 and `Docs\audit\stack-5-agent-instructions.md`. |
+| 2026-11-16 | 0.2.6 | 0 | Stack 6 independent review. No change to module code. Every pull request now carries a second-model review of its own commits, from a session that can read only the committed files of the reviewed commit and can run nothing; the gate fails a missing, stale or unanswered review (section 11, decision 35). A planted defect that the gate passed, a caller's `[string]` in RMAN script text (S-11), was reported as High in each of three reviews. Details in `CHANGELOG.md` 0.2.6 and `Docs\audit\stack-6-independent-review.md`. |
 
 ---
 

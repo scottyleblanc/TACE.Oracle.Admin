@@ -445,8 +445,9 @@ one real pull request.
       run by `Scripts\Invoke-ModelReview.ps1`; the gate's `review` check fails a missing,
       stale or unanswered `Review\LastReview.json` (decision 35). Seeded cases
       `review missing`, `review current`, `review unanswered` and `review stale`
-- [ ] [SEC] Seeded defect: a caller's `[string]` embedded in RMAN script text (S-11), on
-      a throwaway branch. The gate passes it; the review must report it
+- [x] [SEC] Seeded defect: a caller's `[string]` embedded in RMAN script text (S-11), on
+      a throwaway branch. The gate passed it; three reviews of the same commit each
+      reported it as High against S-11 (`Docs\audit\stack-6-independent-review.md`)
 - [ ] Take one pull request through the full path with findings attached
 - [ ] Closing tasks
 
@@ -551,6 +552,13 @@ Not part of the stack or the OracleBackup migration. Recorded so the idea is not
       different wording. Decide whether the shared file drops its rule copy where a
       repository has its own generated `AGENTS.md`. The shared file covers other
       projects, so the change is made there, not here (found in Stack 5)
+- [ ] Independent review by a different model: run the second-model review with a
+      model from another vendor, alone or alongside the current one, so the reviewer
+      does not share the author's model family and its blind spots (`Docs\REVIEW.md`,
+      Limits). Needs that vendor's CLI with equivalent confinement: read-only file
+      tools, no command tools, no instruction files or memory, structured output.
+      Decide whether `Review\LastReview.json` holds one reviewer or several (found in
+      Stack 6)
 - [ ] Integration helper module lookup: `Tests\Integration\IntegrationTestHelpers.ps1`
       calls `Get-Module -Name 'TACE.Oracle.Admin'` three times. When the session has
       already loaded another copy of the module, such as from a profile, each call

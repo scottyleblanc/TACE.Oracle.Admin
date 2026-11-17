@@ -6,9 +6,10 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.2.6] - 2026-11-16
 
-Stack 6 of the AI Development Stack — independent review. No change to module behaviour.
+Stack 6 of the AI Development Stack — independent review. Not published to PSGallery.
+No change to module behaviour. Record in `Docs/audit/stack-6-independent-review.md`.
 
 ### Added
 
@@ -26,6 +27,9 @@ Stack 6 of the AI Development Stack — independent review. No change to module 
 - `Test-SeededDefect.ps1`: cases `review missing`, `review current`, `review unanswered`
   and `review stale`, fourteen in all.
 - Decision 35: how every pull request is examined by someone other than its author.
+- `Docs/audit/stack-6-independent-review.md`: an S-11 defect planted so that the gate
+  passes it, reviewed three times; every review reported it as High against S-11. The
+  three records are in `Docs/audit/stack-6-review/`.
 
 ### Changed
 
