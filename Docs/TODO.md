@@ -435,9 +435,22 @@ is measured.
 review path — template, human checklist and a second-model review — shown working on
 one real pull request.
 
-- [ ] Add a pull request template
-- [ ] Write the review order and the human checklist
-- [ ] Choose the second-model review mechanism; add it as a script step
+- [x] Add a pull request template. `.github\pull_request_template.md`: the review
+      record, the human checklist, and the evidence
+- [x] Write the review order and the human checklist. `Docs\REVIEW.md`: intent, then
+      tests, then implementation, with the Review rules each step checks, a severity
+      scale and how a finding is answered. The human checklist asks only what a person
+      can establish; every other rule is assigned to the gate, the mutation run or the
+      second-model review
+- [x] Choose the second-model review mechanism; add it as a script step. A headless
+      Claude Code session, confined to a temporary worktree with read-only file tools,
+      run by `Scripts\Invoke-ModelReview.ps1` once per pull request; the gate's `review`
+      check fails a `Review\LastReview.json` that is missing, does not cover the branch
+      or has an unanswered finding (decision 35). Seeded cases `review missing`,
+      `review current`, `review wrong base`, `review unanswered` and `review fixed`
+- [x] [SEC] Seeded defect: a caller's `[string]` embedded in RMAN script text (S-11), on
+      a throwaway branch. The gate passed it; three reviews of the same commit each
+      reported it as High against S-11 (`Docs\audit\stack-6-independent-review.md`)
 - [ ] Take one pull request through the full path with findings attached
 - [ ] Closing tasks
 
@@ -542,6 +555,26 @@ Not part of the stack or the OracleBackup migration. Recorded so the idea is not
       different wording. Decide whether the shared file drops its rule copy where a
       repository has its own generated `AGENTS.md`. The shared file covers other
       projects, so the change is made there, not here (found in Stack 5)
+- [ ] Independent review by a different model: run the second-model review with a
+      model from another vendor, alone or alongside the current one, so the reviewer
+      does not share the author's model family and its blind spots (`Docs\REVIEW.md`,
+      Limits). Needs that vendor's CLI with equivalent confinement: read-only file
+      tools, no command tools, no instruction files or memory, structured output.
+      Decide whether `Review\LastReview.json` holds one reviewer or several (found in
+      Stack 6)
+- [ ] Re-evaluate the rigor of the review path, simplified in Stack 6 to keep it usable:
+      one review per pull request, fix commits not examined by anyone but the author,
+      and a two-item human checklist (intent, findings). Options set aside then: a
+      scoped check by the reviewer that each `Fixed:` commit addresses its finding and
+      nothing more; two independent reviews combined, for more coverage; a human read
+      of the riskiest parts of the diff. Decide with evidence from real pull requests
+      (`Docs\audit\stack-6-independent-review.md`)
+- [ ] [SEC] Seeded case: a review record that quotes a local user-profile path, raw and
+      JSON-escaped, fails the gate on `static` (the S-16 pattern added in Stack 6)
+- [ ] Seeded cases for the gate's other `review` failures: a record with
+      `Completed = false`, another schema version, a reviewed commit outside HEAD's
+      history, no `Findings` list, and a `Response` with a wrong or bare prefix such as
+      `Done: ...` or `Accepted:` (found by the Stack 6 review of its own pull request)
 - [ ] Integration helper module lookup: `Tests\Integration\IntegrationTestHelpers.ps1`
       calls `Get-Module -Name 'TACE.Oracle.Admin'` three times. When the session has
       already loaded another copy of the module, such as from a profile, each call

@@ -1,0 +1,88 @@
+{
+  "SchemaVersion": 1,
+  "Commit": "9ee205ed91aaa4647fd50a2dd673230115b3b070",
+  "BaseCommit": "6bff32ce17f344056b77d7ee8cc4928783ac60ec",
+  "Base": "v0.2.6-dev",
+  "Completed": true,
+  "RunAtUtc": "2026-11-17T02:23:12Z",
+  "Reviewer": {
+    "Tool": "Claude Code",
+    "Version": "2.1.308",
+    "Model": "claude-opus-5-5",
+    "Effort": "high"
+  },
+  "PromptSha256": "dd8021b2265ccc0918879613af2d7c4eb6e2a338cd79a328386cbc8fe76bf22a",
+  "FilesReviewed": 3,
+  "Turns": 15,
+  "CostUsd": 0.56,
+  "PermissionDenials": 0,
+  "Summary": "The change adds a `-DeviceType` parameter to `Remove-RmanObsoleteBackup`, defaulting to DISK. It places the value in the RMAN script as `DELETE NOPROMPT OBSOLETE DEVICE TYPE <value>;`. The S9 invariant, the `.NOTES` and the generated index are reworded to say the script is \"fixed text apart from the validated DeviceType\", and the S9 test's expected string is updated. I read REVIEW.md, AGENTS.md and the diff, then the full source and test file, the mutation data in `Tests\\Mutation\\InvariantMutations.psd1`, `Docs\\SECURITY.md` and `Docs\\README.md`. I reviewed in the order intent, tests, implementation. The main defect is that a caller's `[string]` is embedded in RMAN text with only `ValidateNotNullOrEmpty`, which S-11 forbids. The tests and mutation data don't catch it.",
+  "Findings": [
+    {
+      "Id": "F1",
+      "Severity": "High",
+      "Step": "Implementation",
+      "Rule": "S-11",
+      "File": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "Line": 182,
+      "Title": "The caller's `[string]$DeviceType` goes into the RMAN script with only `ValidateNotNullOrEmpty`, so it can end the command and add new ones.",
+      "Detail": "`DeviceType` is declared `[ValidateNotNullOrEmpty()] [string]$DeviceType = 'DISK'` (line 50). It is interpolated into `\"DELETE NOPROMPT OBSOLETE DEVICE TYPE $DeviceType;\"`, which goes to RMAN's stdin through Invoke-RmanProcess. A value such as `DISK; DELETE NOPROMPT BACKUP` or one containing a newline and a `HOST` command passes validation. RMAN then runs it inside a function whose only confirmation is ShouldProcess, and NOPROMPT suppresses RMAN's own prompt. S-11 states that a `[string]` placed in an RMAN script is a finding unless its attribute limits it to characters that cannot end or extend a command. `ValidateNotNullOrEmpty` does not. Fix: use `[ValidateSet('DISK', 'SBT')]`, or an anchored pattern such as `'^(DISK|SBT|SBT_TAPE)\\z'`. Add a test that a value with `;`, a space or a newline is refused at the call, as S10 does for WalletAlias.",
+      "Response": ""
+    },
+    {
+      "Id": "F2",
+      "Severity": "Medium",
+      "Step": "Intent",
+      "Rule": "I-02",
+      "File": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "Line": 96,
+      "Title": "S9 and the `[SEC]` note call DeviceType \"validated\", which presents a non-empty check as a security guarantee.",
+      "Detail": "S9 now reads \"fixed text apart from DeviceType, which is validated non-empty\". The `.NOTES` line 37 and the comment at line 179 say \"[SEC] ... apart from the validated DeviceType\". Being non-empty does not make the value safe to embed, so the security invariant guarantees nothing about injection. It reads as though the script is still safe. Under I-02 the block must state what the function does today. Either constrain the parameter and state the constraint, with a test (I-11), or record the gap as a `Limitation:`.",
+      "Response": ""
+    },
+    {
+      "Id": "F3",
+      "Severity": "Medium",
+      "Step": "Tests",
+      "Rule": "I-10",
+      "File": "Tests/Unit/Public/Remove-RmanObsoleteBackup.Tests.ps1",
+      "Line": 289,
+      "Title": "The S9 test only checks the default DISK script, so it would still pass if DeviceType accepted anything.",
+      "Detail": "S9 cites 'S9 RMAN script is fixed text and no catalog parameter exists'. The test checks that no catalog parameters exist and that a default call produces exactly `DELETE NOPROMPT OBSOLETE DEVICE TYPE DISK;`. It never passes `-DeviceType` and never checks what values the parameter accepts or refuses. Removing all validation from DeviceType, or letting it carry `;` and a newline, leaves the test green. So the cited test cannot fail when the part of S9 this change adds is broken. No test proves that a non-default DeviceType reaches the script either. Add a Parameter Validation test that reads the attribute from metadata (T-06). Add a refusal test for injection characters and a test that `-DeviceType SBT` produces the SBT script.",
+      "Response": ""
+    },
+    {
+      "Id": "F4",
+      "Severity": "Medium",
+      "Step": "Tests",
+      "Rule": "I-10",
+      "File": "Tests/Mutation/InvariantMutations.psd1",
+      "Line": 246,
+      "Title": "The S2, S5 and S9 mutations still look for the old script line, so the mutation run that proves those citations now stops with an error.",
+      "Detail": "Three mutation entries use `Find = '$deleteScript = ''DELETE NOPROMPT OBSOLETE;'''`: S2 'NOPROMPT dropped' (line 230), S5 'script carries the named credential' (line 242) and S9 'parameter value placed in the script' (line 246). That text no longer occurs in the source, which is now `\"DELETE NOPROMPT OBSOLETE DEVICE TYPE $DeviceType;\"`. `Scripts\\Test-InvariantMutation.ps1` line 203 throws when Find does not occur exactly once, so the I-10 proof for these security invariants can no longer run. The change should update the three Find and Replace strings. It should also add an S9 mutation that loosens the DeviceType validation.",
+      "Response": ""
+    },
+    {
+      "Id": "F5",
+      "Severity": "Medium",
+      "Step": "Intent",
+      "Rule": "none",
+      "File": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "Line": 50,
+      "Title": "The DISK default silently narrows what a call with no new parameter deletes, and nothing records the change.",
+      "Detail": "Before this change the script was `DELETE NOPROMPT OBSOLETE;`, which removes obsolete backups on every configured device. With the default `DISK`, existing callers who back up to SBT/tape stop removing obsolete tape backups, with no warning and the same success Message. The commit calls this a feature, not a breaking change. The diff touches no CHANGELOG or TODO entry, and the `.DESCRIPTION` and README row (`Docs/README.md` line 44, 'Runs RMAN `DELETE NOPROMPT OBSOLETE`') still describe the unscoped command. Either keep the old behaviour when `-DeviceType` is not given (no DEVICE TYPE clause), or record the change as breaking and update the help and README (D-11).",
+      "Response": ""
+    },
+    {
+      "Id": "F6",
+      "Severity": "Low",
+      "Step": "Intent",
+      "Rule": "D-02",
+      "File": "Docs/SECURITY.md",
+      "Line": 104,
+      "Title": "SECURITY.md's Input Validation section doesn't cover the new caller value that now reaches the RMAN script.",
+      "Detail": "Section 6 describes how each caller value that reaches RMAN is constrained (the WalletAlias pattern and why `\\z` is used). The change adds a second caller value written to RMAN's stdin, `DeviceType`, but SECURITY.md isn't updated to say how it is validated or why that is safe. The earlier CHANGELOG entry also still says the function \"no longer places caller text in the RMAN script\". D-02 requires the mechanism to be described as built in the change that alters it.",
+      "Response": ""
+    }
+  ]
+}

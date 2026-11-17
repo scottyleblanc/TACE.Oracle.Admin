@@ -53,6 +53,17 @@
             Because = 'a real address identifies a person or an account (S-16)'
         }
         @{
+            Id      = 'S-16'
+            Title   = 'no local user-profile path'
+            # A Windows or macOS user folder, with one or two slashes so a JSON-escaped
+            # path is caught too. The folder name is the account name. Example paths
+            # elsewhere use C:\app or /home/oracle, which do not match; nor does this
+            # pattern's own text, since '[' cannot start a folder name here.
+            Pattern = '(?i)\b[A-Z]:[\\/]{1,2}Users[\\/]{1,2}[A-Za-z0-9._-]+|(?<![\w.])/Users/[A-Za-z0-9._-]+'
+            Allow   = ''
+            Because = 'a local path names the machine account; a review record quoting one is edited before it is committed (S-16)'
+        }
+        @{
             Id      = 'S-04'
             Title   = 'no private key block'
             Pattern = '-----BEGIN [A-Z ]*PRIVATE KEY-----'

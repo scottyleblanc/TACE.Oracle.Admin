@@ -21,10 +21,23 @@
       ci no base a token in a commit message,    the gate passes: nothing is unpushed,
                  and that commit on a remote     which is why CI must pass -Base
       ci message the same, gate with -Base       the gate fails on 'messages'
-      evidence   a Source\ change, then          the gate with -Base passes
-      current    LastRun.json naming it
+      evidence   a Source\ change, a review      the gate with -Base passes
+      current    naming it, then LastRun.json
+                 naming the review commit
       evidence   one more Source\ change after   the gate with -Base fails on
-      stale      the evidence commit             'evidence' only (rule T-14)
+      stale      the evidence commit             'evidence' only (rule T-14); a fix
+                                                 after the review needs no new review
+      review     a docs change with no review    the gate with -Base fails on
+      missing    record                          'review' only (decision 35)
+      review     a review record naming it,      the gate with -Base passes
+      current    its finding answered
+      review     the same record with a base     the gate with -Base fails on
+      wrong base other than the merge base, so    'review' only
+                 it covers none of the commits
+      review     the same record with the        the gate with -Base fails on
+      unanswered finding's Response empty        'review' only
+      review     a fix committed after the       the gate with -Base passes: a fix
+      fixed      review, answered Fixed:         needs no new review
 
     Each case starts from the clean copy. The planted token is generated at random in
     the GitHub token format, so it is no real credential; it is never printed. This
@@ -38,13 +51,14 @@
 .EXAMPLE
     .\Scripts\Test-SeededDefect.ps1
 
-    Runs the ten cases. Exits 0 when every case behaves as expected, 1 otherwise.
+    Runs the fifteen cases. Exits 0 when every case behaves as expected, 1 otherwise.
 
 .NOTES
     Copyright © TACE Data Management Inc.
     **Invocation:** Standalone — self-contained; safe to run with `pwsh -File`. Needs
     everything the gate needs (PREREQUISITES.md). Takes a few minutes: the gate, static
-    tier included, runs ten times, twice with the unit tier.
+    tier included, runs fifteen times, twice with the unit tier. The review records it
+    plants are made up; no model review runs.
 #>
 [CmdletBinding()]
 [OutputType([string])]
@@ -100,6 +114,30 @@ function Get-FakeToken {
     param()
     $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.ToCharArray()
     'ghp_' + -join (1..36 | ForEach-Object { $alphabet | Get-Random })
+}
+
+# Plants Review\LastReview.json in the copy: a completed review of $Commit from
+# $BaseCommit with one finding, answered with $Response.
+function Write-ReviewRecord {
+    [OutputType([void])]
+    param(
+        [Parameter(Mandatory)] [string] $Commit,
+        [Parameter(Mandatory)] [string] $BaseCommit,
+        [Parameter(Mandatory)] [AllowEmptyString()] [string] $Response
+    )
+    $path = Join-Path -Path $copy -ChildPath 'Review' -AdditionalChildPath 'LastReview.json'
+    Assert-InCopy -Path $path
+    $null = New-Item -Path (Split-Path -Path $path -Parent) -ItemType Directory -Force
+    $record = [PSCustomObject]@{
+        SchemaVersion = 1
+        Commit        = $Commit
+        BaseCommit    = $BaseCommit
+        Base          = 'seeded'
+        Completed     = $true
+        Summary       = 'Seeded review record.'
+        Findings      = @([PSCustomObject]@{ Id = 'F1'; Severity = 'Low'; Rule = 'none'; Title = 'Seeded finding.'; Response = $Response })
+    }
+    [System.IO.File]::WriteAllText($path, (ConvertTo-Json -InputObject $record -Depth 5) + "`n", [System.Text.UTF8Encoding]::new($false))
 }
 
 $cases = [System.Collections.Generic.List[object]]::new()
@@ -211,14 +249,19 @@ try {
     $null = Invoke-CopyGit -Argument @('reset', '--quiet', '--hard', $baseline)
 
     # -- evidence: rule T-14 ---------------------------------------------------
-    # A Source\ change, then LastRun.json naming it: current. One more Source\ change
-    # after the evidence commit: stale.
+    # A Source\ change, its review, then LastRun.json naming the review commit, in the
+    # order Docs\REVIEW.md gives: current. One more Source\ change after the evidence
+    # commit: the integration evidence is stale; the review still covers the branch.
     $sourceFile = Join-Path -Path $copy -ChildPath 'Source' -AdditionalChildPath 'Private', 'Test-WindowsPlatform.ps1'
     $evidence   = Join-Path -Path $copy -ChildPath 'Tests' -AdditionalChildPath 'Integration', 'LastRun.json'
     Assert-InCopy -Path $sourceFile
     Assert-InCopy -Path $evidence
     [System.IO.File]::AppendAllText($sourceFile, "# seeded change 1`n", [System.Text.UTF8Encoding]::new($false))
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'fix: a source change')
+    $sourceCommit = (Invoke-CopyGit -Argument @('rev-parse', 'HEAD')) | Select-Object -First 1
+    Write-ReviewRecord -Commit $sourceCommit -BaseCommit $baseline -Response 'Rejected: seeded answer.'
+    $null = Invoke-CopyGit -Argument @('add', '--all')
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--message', 'docs: review record')
     $run = [System.IO.File]::ReadAllText($evidence) | ConvertFrom-Json
     $run.Commit = (Invoke-CopyGit -Argument @('rev-parse', 'HEAD')) | Select-Object -First 1
     [System.IO.File]::WriteAllText($evidence, (ConvertTo-Json -InputObject $run -Depth 5) + "`n", [System.Text.UTF8Encoding]::new($false))
@@ -227,6 +270,35 @@ try {
     [System.IO.File]::AppendAllText($sourceFile, "# seeded change 2`n", [System.Text.UTF8Encoding]::new($false))
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'fix: a later source change')
     Add-Case -Name 'evidence stale' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('evidence')
+    $null = Invoke-CopyGit -Argument @('reset', '--quiet', '--hard', $baseline)
+
+    # -- review: decision 35 ---------------------------------------------------
+    # A docs change needs no integration evidence, so only 'review' can fail. Any
+    # review record the copy holds names a commit outside its history; it is removed.
+    $docFile = Join-Path -Path $copy -ChildPath 'Docs' -AdditionalChildPath 'REVIEW.md'
+    Assert-InCopy -Path $docFile
+    [System.IO.File]::AppendAllText($docFile, "`nSeeded docs change 1.`n", [System.Text.UTF8Encoding]::new($false))
+    $recordRelative = 'Review/LastReview.json'
+    if (Test-Path -LiteralPath (Join-Path -Path $copy -ChildPath $recordRelative)) {
+        $null = Invoke-CopyGit -Argument @('rm', '--quiet', '--', $recordRelative)
+    }
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: a docs change')
+    $docCommit = (Invoke-CopyGit -Argument @('rev-parse', 'HEAD')) | Select-Object -First 1
+    Add-Case -Name 'review missing' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('review')
+    Write-ReviewRecord -Commit $docCommit -BaseCommit $baseline -Response 'Accepted: seeded answer.'
+    $null = Invoke-CopyGit -Argument @('add', '--all')
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--message', 'docs: review record')
+    Add-Case -Name 'review current' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @()
+    Write-ReviewRecord -Commit $docCommit -BaseCommit $docCommit -Response 'Accepted: seeded answer.'
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: review record, wrong base')
+    Add-Case -Name 'review wrong base' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('review')
+    Write-ReviewRecord -Commit $docCommit -BaseCommit $baseline -Response ''
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: review record, unanswered')
+    Add-Case -Name 'review unanswered' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('review')
+    [System.IO.File]::AppendAllText($docFile, "Seeded fix for F1.`n", [System.Text.UTF8Encoding]::new($false))
+    Write-ReviewRecord -Commit $docCommit -BaseCommit $baseline -Response 'Fixed: seeded fix commit.'
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: fix F1 after the review')
+    Add-Case -Name 'review fixed' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @()
     $null = Invoke-CopyGit -Argument @('reset', '--quiet', '--hard', $baseline)
 }
 finally {
@@ -244,7 +316,7 @@ finally {
 }
 
 $failedCases = @($cases | Where-Object { -not $PSItem.Passed })
-if ($failedCases.Count -gt 0 -or $cases.Count -ne 10) {
+if ($failedCases.Count -gt 0 -or $cases.Count -ne 15) {
     Write-Output "[FAIL] seeded defects: $($failedCases.Count) of $($cases.Count) cases did not behave as expected"
     exit 1
 }

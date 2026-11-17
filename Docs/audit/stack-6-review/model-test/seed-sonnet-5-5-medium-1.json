@@ -1,0 +1,48 @@
+{
+  "Label": "seed-sonnet-5-5-medium-1",
+  "Target": "seed",
+  "Model": "claude-sonnet-5-5",
+  "Effort": "medium",
+  "Ok": true,
+  "Turns": 7,
+  "CostUsd": 0.12,
+  "Seconds": 17.0,
+  "Findings": [
+    {
+      "severity": "High",
+      "step": "Implementation",
+      "rule": "S-11",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 182,
+      "title": "Caller-supplied DeviceType string is interpolated into the RMAN script with only a non-empty check.",
+      "detail": "$deleteScript is built as \"DELETE NOPROMPT OBSOLETE DEVICE TYPE $DeviceType;\". DeviceType is a [string] with only [ValidateNotNullOrEmpty()]. That allows a semicolon, a newline or extra RMAN commands, for example 'DISK; DELETE NOPROMPT BACKUP;'. This is the injection S-11 forbids, and it sits on a command that deletes backups. Fix it with [ValidateSet('DISK','SBT_TAPE')] or a pattern that excludes ; and whitespace. Even better, use a fixed mapping from the validated value to the literal text."
+    },
+    {
+      "severity": "Medium",
+      "step": "Intent",
+      "rule": "I-02",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 96,
+      "title": "S9 and the SEC comments call DeviceType validated, but the validation does not limit its content.",
+      "detail": "S9, the .NOTES [SEC] line, the inline comment and the invariants index all say the script is fixed text apart from the validated DeviceType. The only validation is non-empty, so the claim misstates what the code guarantees (I-02, D-11). The invariant block has no entry for the new parameter. The S9 text also gives no Type: or Guard: line for it. Its only Test: line is the existing S9 test, which does not exercise the parameter."
+    },
+    {
+      "severity": "Medium",
+      "step": "Tests",
+      "rule": "I-10",
+      "file": "Tests/Unit/Public/Remove-RmanObsoleteBackup.Tests.ps1",
+      "line": 289,
+      "title": "No test covers the new DeviceType parameter.",
+      "detail": "The only test change updates the expected script for the default DISK value. Nothing tests a non-default DeviceType, rejection of empty or malicious values, or that the value reaches the script. The cited S9 test would still pass if DeviceType accepted injected text, so it does not prove the changed invariant. Parameter Validation has no case for DeviceType."
+    },
+    {
+      "severity": "Low",
+      "step": "Intent",
+      "rule": "D-07",
+      "file": "Docs/CHANGELOG.md",
+      "line": 0,
+      "title": "No CHANGELOG entry for the new parameter or the changed RMAN behaviour.",
+      "detail": "The diff touches no CHANGELOG.md or TODO.md. A new public parameter changes the RMAN command from the unqualified DELETE OBSOLETE to DEVICE TYPE DISK, so the default behaviour changes too. The commit message is a single line with no explanation or reference to a TODO item. The default behaviour change should also be documented and its effect on existing callers stated."
+    }
+  ]
+}

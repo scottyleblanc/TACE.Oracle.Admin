@@ -6,6 +6,62 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.6] - 2026-11-17
+
+Stack 6 of the AI Development Stack — independent review. Not published to PSGallery.
+No change to module behaviour. Record in `Docs/audit/stack-6-independent-review.md`.
+
+### Added
+
+- `Docs/REVIEW.md`: the review path and the review order every pull request follows,
+  intent then tests then implementation, with the Review rules each step checks, a
+  severity scale and how the author answers a finding.
+- `.github/pull_request_template.md`: the review record and a two-item human checklist,
+  intent and the findings: the decisions only a person makes. `Docs/REVIEW.md` names
+  the check, reviewer or author that covers everything else.
+- `Scripts/Invoke-ModelReview.ps1`: the second-model review, run once per pull request. A
+  new headless Claude Code session reviews the branch's diff and commit messages in a
+  temporary worktree and writes `Review/LastReview.json`. Its prompt and output schema
+  are in `Review/`.
+- `Invoke-Gate.ps1 -Base`: a `review` check. A pull request that changes any file other
+  than the evidence files fails without a completed review that covers the branch from
+  its merge base and has every finding answered (`Fixed:`, `Rejected:`, `Accepted:` or
+  `Deferred:`). Fixes after the review are the author's and need no new review.
+- `Test-SeededDefect.ps1`: cases `review missing`, `review current`, `review wrong base`,
+  `review unanswered` and `review fixed`, fifteen in all.
+- Decision 35: how every pull request is examined by someone other than its author.
+- `Docs/audit/stack-6-independent-review.md`: an S-11 defect planted so that the gate
+  passes it, reviewed three times; every review reported it as High against S-11. The
+  three records are in `Docs/audit/stack-6-review/`. Also eight reviews of this
+  release's own pull request, which led to one review per pull request, and a model
+  test that set the reviewer default to `claude-opus-5-5` at `medium` effort.
+- `TODO.md` backlog items: re-evaluating the rigor of the simplified review path, a
+  seeded case for a review record holding a local path,
+  seeded cases for the gate's other `review` failures, and a review by a model from
+  another vendor.
+
+### Changed
+
+- `Test-SeededDefect.ps1`: the evidence cases add a review record before the integration
+  evidence, in the order `Docs/REVIEW.md` gives.
+
+### Fixed
+
+- `Invoke-Gate.ps1 -Base`: the `evidence` check failed open: if git could not list the
+  changed files, it reported that `Source\` had not changed and passed. It now fails, as
+  the new `review` check does. Found by a review of this release's own pull request.
+
+### Security
+
+- The reviewer session has no command tools, no write tools, no settings, instruction
+  files, memory or MCP servers, and reads only the committed files of the reviewed
+  commit. CI calls no model and the workflow still holds no secret.
+- `Tests/Lint/PublicRepoPatterns.psd1`: an S-16 pattern for a local user-profile path,
+  which names the machine account. It covers every committed file, the review record
+  included.
+
+---
+
 ## [0.2.5] - 2026-11-16
 
 Stack 5 of the AI Development Stack — agent instructions. Not published to PSGallery.

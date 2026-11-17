@@ -1,0 +1,66 @@
+{
+  "Label": "seed-opus-5-5-medium-1",
+  "Target": "seed",
+  "Model": "claude-opus-5-5",
+  "Effort": "medium",
+  "Ok": true,
+  "Turns": 11,
+  "CostUsd": 0.35,
+  "Seconds": 45.0,
+  "Findings": [
+    {
+      "severity": "High",
+      "step": "Implementation",
+      "rule": "S-11",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 182,
+      "title": "The caller's DeviceType string goes into the RMAN DELETE script with only a non-empty check, so a caller can add RMAN commands to it.",
+      "detail": "DeviceType is declared `[ValidateNotNullOrEmpty()] [string]` (line 49-50) and interpolated into `\"DELETE NOPROMPT OBSOLETE DEVICE TYPE $DeviceType;\"`. Nothing stops a `;`, a newline or a space, so a value such as `DISK;` followed by a further `DELETE NOPROMPT BACKUP ...` command, or a line break and another command, would end the intended statement and run any RMAN command under the connection's SYSBACKUP/SYSDBA privilege. Because of NOPROMPT, RMAN would not ask for confirmation. The ShouldProcess prompt names only the database and says 'Delete obsolete RMAN backup pieces', so it would not reveal the extra command. S-11 counts any caller `[string]` placed in an RMAN script as a finding unless its validation limits it to characters that cannot end or extend a command, and ValidateNotNullOrEmpty does not do that. Fix: change the attribute to `[ValidateSet('DISK','SBT')]`, or use a `\\A[A-Za-z_]+\\z` pattern if the set must stay open, and add a test that rejects injection values at the call."
+    },
+    {
+      "severity": "Medium",
+      "step": "Intent",
+      "rule": "I-02",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 96,
+      "title": "Security invariant S9 calls DeviceType 'validated' as if that kept the script safe, but non-empty is the only check.",
+      "detail": "Before this change, S9 guaranteed that no parameter value reached the RMAN script. Now it says the script is 'fixed text apart from DeviceType, which is validated non-empty'. The .NOTES line 37 says 'the validated DeviceType', and the inline comment at line 179 says the same. Read as [SEC] statements, these suggest the injection risk is handled, but the code accepts any non-empty string. Under I-02 the block must record what the function does today. Today the script holds arbitrary caller text, so the entry should be stated as a Limitation or, better, the parameter should be restricted (see the S-11 finding). The same weakened wording was copied into Docs/standards/invariants-index.md line 394."
+    },
+    {
+      "severity": "Medium",
+      "step": "Tests",
+      "rule": "I-10",
+      "file": "Tests/Unit/Public/Remove-RmanObsoleteBackup.Tests.ps1",
+      "line": 289,
+      "title": "The cited S9 test checks only the default value, so it would pass even if DeviceType were unvalidated or ignored.",
+      "detail": "The only test change edits the expected string to 'DELETE NOPROMPT OBSOLETE DEVICE TYPE DISK;' for a call that omits -DeviceType. No test passes a non-default DeviceType to show it reaches the script, and no test shows a value containing `;`, a newline or a space is rejected. S9 now depends on DeviceType being validated, but deleting the validation attribute, or binding any string, would leave this test green. So the test cited on the security invariant does not prove it (I-10), and the new behaviour has no test that would fail without it. Add a parameter-metadata test (T-06) for the DeviceType validation attribute, a TestCases test that rejects injection strings at the call, and a test that -DeviceType 'SBT' produces the matching script."
+    },
+    {
+      "severity": "Medium",
+      "step": "Intent",
+      "rule": "none",
+      "file": "Source/Public/Remove-RmanObsoleteBackup.ps1",
+      "line": 50,
+      "title": "Defaulting DeviceType to DISK silently stops existing callers' obsolete tape (SBT) backups from being deleted.",
+      "detail": "Before this change the function ran `DELETE NOPROMPT OBSOLETE;`, which removes obsolete backups on every configured channel. The new default limits deletion to `DEVICE TYPE DISK`, so any existing caller with SBT backups no longer has its obsolete SBT pieces removed. The call still returns Success = $true with a DeletedCount that looks normal. The commit message ('remove obsolete backups for one device type') does not mention that the default behaviour changed, and it cites no TODO item or decision. Either make the parameter optional with no default, so an unset value keeps the old all-device script, or record the behaviour change explicitly in the commit message, the changelog and the README."
+    },
+    {
+      "severity": "Low",
+      "step": "Intent",
+      "rule": "D-02",
+      "file": "Docs/SECURITY.md",
+      "line": 115,
+      "title": "SECURITY.md input validation does not cover the new caller value written into the RMAN script.",
+      "detail": "Section 6 (Input Validation) covers WalletAlias because it is written to RMAN's stdin, and explains why its pattern matters. DeviceType is now also written to RMAN's stdin, as part of the DELETE command, but SECURITY.md does not mention it. Section 9 still describes the delete as fixed `NOPROMPT` text guarded only by ShouldProcess. D-02 requires a section to be rewritten when the code it describes changes."
+    },
+    {
+      "severity": "Low",
+      "step": "Intent",
+      "rule": "D-11",
+      "file": "Docs/README.md",
+      "line": 44,
+      "title": "The README and changelog do not describe the new parameter or the narrower command.",
+      "detail": "The README function table still says the function 'Runs RMAN `DELETE NOPROMPT OBSOLETE`', but it now runs `DELETE NOPROMPT OBSOLETE DEVICE TYPE <DeviceType>` with DISK as the default. The change also adds no CHANGELOG entry for the new public parameter. For a feat commit that changes a public function's signature and behaviour, this suggests the D-07 check missed the case. Update the README row and add a Changed entry to the CHANGELOG."
+    }
+  ]
+}

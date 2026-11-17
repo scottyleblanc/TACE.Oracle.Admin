@@ -90,7 +90,7 @@ soak tests run locally against an Oracle database; they do not run in public CI.
 | 3 | Tests | 4 | Complete (v0.2.3) |
 | 4 | Enforced gate | 6 | Complete (v0.2.4) |
 | 5 | Agent instructions | 2 | Complete (v0.2.5) |
-| 6 | Independent review | 5 | Not started |
+| 6 | Independent review | 5 | Complete (v0.2.6) |
 | 7 | Containment | 7 | Not started |
 | 8 | Release | 8 | Not started |
 | 9 | Feedback loop | 9 | Not started |

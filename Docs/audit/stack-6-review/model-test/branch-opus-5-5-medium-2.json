@@ -1,0 +1,30 @@
+{
+  "Label": "branch-opus-5-5-medium-2",
+  "Target": "branch",
+  "Model": "claude-opus-5-5",
+  "Effort": "medium",
+  "Ok": true,
+  "Turns": 10,
+  "CostUsd": 0.63,
+  "Seconds": 56.0,
+  "Findings": [
+    {
+      "severity": "Medium",
+      "step": "Intent",
+      "rule": "S-16",
+      "file": "Scripts/Invoke-ModelReview.ps1",
+      "line": 167,
+      "title": "The model review is never given the commit messages, so it cannot check S-16 in commit messages or judge intent against them, though REVIEW.md tells it to do both.",
+      "detail": "Invoke-ModelReview.ps1 writes only changes.diff and files.txt to the input folder (lines 167-168). Review/reviewer-prompt.md (lines 8-12) lists only those two inputs. The reviewer has no command tools, so it cannot run git log, and the diff holds no commit messages. Yet Docs/REVIEW.md tells the reviewer to check 'the commit messages' under Intent, and S-16 under Implementation. AGENTS.md gives S-16 in commit messages to review explicitly: 'A real name that matches no pattern, and commit messages, are left to review.' So a real host or account name in a commit message passes the gate and is never shown to the model reviewer. That leaves the human checklist as the only check, even though SECURITY.md section 11 and decision 35 present the model review as covering S-16. Fix: write the output of `git log --format=... base..head` to a commits.txt in the input folder, list it in reviewer-prompt.md as an input, and say that commit messages are reviewed (this changes the prompt hash, which is recorded anyway)."
+    },
+    {
+      "severity": "Low",
+      "step": "Tests",
+      "rule": "none",
+      "file": "Scripts/Test-SeededDefect.ps1",
+      "line": 289,
+      "title": "No seeded case covers a review record whose BaseCommit is not the merge base, or whose Commit is not in HEAD's history, so removing either gate check leaves every case passing.",
+      "detail": "The new review check in Invoke-Gate.ps1 rejects a record whose BaseCommit differs from the merge base (around line 365). Without this check, a review of only the last commit of a multi-commit branch would be accepted as covering the whole branch. It also rejects a record whose Commit is not an ancestor of HEAD. The four new cases (review missing, current, unanswered, stale) all write the record with BaseCommit equal to the baseline and Commit equal to a commit on the branch. Neither path is exercised, so deleting either check leaves all fourteen cases passing. REVIEW.md asks that 'a behaviour the change adds has a test that would fail without it'. Fix: add a 'review partial' case that writes a record whose BaseCommit is a later commit on the branch rather than the baseline, and expects 'review' to fail."
+    }
+  ]
+}
