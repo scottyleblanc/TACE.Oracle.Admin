@@ -1,9 +1,10 @@
 # Review — TACE.Oracle.Admin
 
 Every pull request is examined by someone other than its author before it merges: a
-second-model review, then the human checklist in the pull request template. This file
-is the review order both of them follow. The model reviewer is told to read it; the
-pull request template links it.
+second-model review, then a human review using the checklist in the pull request
+template. The model reviewer follows the review order below, rule by rule; it is told to
+read this file. The human review covers what only a person can establish (see "What the
+human review covers").
 
 The gate has already run when review starts. Review does not repeat what the gate
 checks. It covers what only judgement can: the rules tagged *Review* in `AGENTS.md`,
@@ -23,9 +24,27 @@ and whether the change does what it says.
    fix is a new commit, and the review runs again on it.
 4. When `Source\` changed, the integration run follows, and `LastRun.json` is the
    last commit of the branch (rule T-14).
-5. The author opens the pull request. The template's checklist is the human review,
-   done in the same order. CI runs the gate with `-Base`, and its `review` check fails
-   when the record is missing, stale or has an unanswered finding.
+5. The author opens the pull request. CI runs the gate with `-Base`, and its `review`
+   check fails when the record is missing, stale or has an unanswered finding. The
+   maintainer does the human review with the template's checklist.
+
+## What the human review covers
+
+A person reading a pull request cannot establish rule by rule that every line holds, so
+the checklist does not ask for that. Each rule has an owner:
+
+| Rule or question | Established by |
+|---|---|
+| Rules tagged *Linter* or *Test* | The gate |
+| I-10, a cited test fails when its invariant is broken | `Scripts\Test-InvariantMutation.ps1` |
+| The other rules tagged *Review*, line by line | The second-model review, in the order below |
+| S-16, no real names in files or commit messages | The gate's patterns and gitleaks for known shapes, the second-model review, and the human for names they recognise as real |
+| The change does what it says, and nothing else visible | The human |
+| Each finding's Response is right, and a finding that should be fixed is fixed | The human |
+| The parts of the diff with the most at stake: credentials, RMAN or SQL text, file or backup deletion, and the gate itself | The human reads them |
+
+The human checklist has four items: intent, findings, the risk read, and the evidence
+(the gate passed in CI, and the record names the branch's last code commit).
 
 ## Review order
 

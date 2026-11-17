@@ -439,7 +439,9 @@ one real pull request.
       record, the human checklist, and the evidence
 - [x] Write the review order and the human checklist. `Docs\REVIEW.md`: intent, then
       tests, then implementation, with the Review rules each step checks, a severity
-      scale and how a finding is answered
+      scale and how a finding is answered. The human checklist asks only what a person
+      can establish; every other rule is assigned to the gate, the mutation run or the
+      second-model review
 - [x] Choose the second-model review mechanism; add it as a script step. A headless
       Claude Code session, confined to a temporary worktree with read-only file tools,
       run by `Scripts\Invoke-ModelReview.ps1`; the gate's `review` check fails a missing,

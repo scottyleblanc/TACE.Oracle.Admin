@@ -16,8 +16,10 @@ No change to module behaviour. Record in `Docs/audit/stack-6-independent-review.
 - `Docs/REVIEW.md`: the review path and the review order every pull request follows,
   intent then tests then implementation, with the Review rules each step checks, a
   severity scale and how the author answers a finding.
-- `.github/pull_request_template.md`: the review record, the human checklist in the same
-  order, and the evidence.
+- `.github/pull_request_template.md`: the review record, a four-item human checklist
+  (intent, findings, a read of the riskiest parts of the diff, evidence), and the
+  evidence. It asks only what a person can establish; `Docs/REVIEW.md` names the check
+  or reviewer that covers every other rule.
 - `Scripts/Invoke-ModelReview.ps1`: the second-model review. A new headless Claude Code
   session reviews the branch's commits in a temporary worktree and writes
   `Review/LastReview.json`. Its prompt and output schema are in `Review/`.

@@ -16,40 +16,19 @@ stale or has an unanswered finding. -->
 
 ## Human review
 
-The review order is in [Docs/REVIEW.md](../Docs/REVIEW.md): intent, then tests, then
-implementation. Tick each item once checked; strike out one that does not apply and say
-why.
+Only what a person can establish. Rules checked line by line are covered by the gate, the
+mutation run and the second-model review; see "What the human review covers" in
+`Docs/REVIEW.md`. Tick an item once done; strike out one that does not apply and say why.
 
-### 1. Intent
-
-- [ ] The change does what this description and its TODO item or decision say
-- [ ] Every document the change touches describes what the code now does (D-11)
-- [ ] Invariant blocks state today's behaviour, no ID is renumbered or reused, and a
-      behaviour change updated its block (I-02, I-04, I-08)
-- [ ] A function that connects to Oracle states its privilege and named account (S-14, S-15)
-
-### 2. Tests
-
-- [ ] Each cited test would fail if its invariant were broken (I-10)
-- [ ] Unit tests use `TestDrive:\`, mock every Oracle binary, read parameter metadata,
-      use real tool output in mocks and the environment sentinel (T-04 to T-07, T-11)
-- [ ] New behaviour has a test that fails without it
-
-### 3. Implementation
-
-- [ ] No caller-supplied string reaches RMAN or SQL text unless its validation limits it
-      to characters that cannot end or extend a command (S-11)
-- [ ] Plaintext is extracted only inline at the stdin write (S-03)
-- [ ] No real host, account, bucket or infrastructure name, in files or commit messages (S-16)
-- [ ] Pipeline results used as arrays are wrapped in `@()`, arrays reach `ConvertTo-Json`
-      by `-InputObject`, callers check `Success` before `Data`, and security comments
-      carry `[SEC]` (C-12, C-13, C-20, C-24)
-
-### Findings
-
-- [ ] I read every finding in `Review/LastReview.json`, and each Response is right:
-      a fix is a new commit and a new review, not a Response
-- [ ] Every `Deferred:` finding names an item already committed in `TODO.md`
+- [ ] **Intent:** the change does what this description and its TODO item or decision say,
+      and nothing else I can see
+- [ ] **Findings:** I read every finding and agree with each Response. One I disagree with
+      is fixed in a new commit, followed by a new review
+- [ ] **Risk read:** I read the parts of the diff that touch credentials, RMAN or SQL text,
+      file or backup deletion, or the gate and saw nothing wrong
+      <!-- or: none of these changed -->
+- [ ] **Evidence:** the gate passed in CI, and the review record names this branch's last
+      code commit
 
 ## Evidence
 
