@@ -206,11 +206,10 @@ tool that runs commands or code, and WebFetch, ignores user, project and local s
 and confines file tools to the worktree and its input folder; its tools are Read, Grep
 and Glob only; `--safe-mode` and `--strict-mcp-config` load no instruction file, skill,
 hook, plugin or MCP server; and the session is not saved. [SEC] Everything the reviewer
-returns has the run's local folders, the repository folder and the user profile folder
-replaced with labels
-before the record is written, and the script refuses to write a record that still holds
-one, so no local path or account name is committed. The script needs no secret
-and CI calls no model. The author answers every finding; the human checklist in
+returns has the run's local folders, the repository folder, the user profile folder and
+the account name, as a whole word, replaced with labels before the record is written,
+and the script refuses to write a record that still holds one, so no local path or
+account name is committed. The script needs no secret and CI calls no model. The author answers every finding; the human checklist in
 `.github\pull_request_template.md` follows. The gate's `review` check fails a pull
 request whose record is missing, stale or unanswered (decision 35).
 

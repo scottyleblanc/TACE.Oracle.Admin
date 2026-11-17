@@ -10,8 +10,9 @@
       1. Refuses to run unless every change is committed. The two evidence files,
          Review\LastReview.json and Tests\Integration\LastRun.json, do not count.
       2. Checks out HEAD into a new git worktree under the system temp folder, and
-         writes the diff from the merge base with Base, and the list of changed files,
-         to a second temp folder. The evidence files are left out of the diff.
+         writes the diff from the merge base with Base, the list of changed files and
+         the branch's commit messages to a second temp folder. The evidence files are
+         left out of the diff.
       3. Runs claude -p in that worktree with Review\reviewer-prompt.md, and requires
          the answer to match Review\review-output.schema.json.
       4. Writes Review\LastReview.json: the commit and merge base reviewed, the
@@ -35,8 +36,9 @@
     input folder, and the worktree's .git file names the repository folder, and it may
     quote any of them, so every text the reviewer returns has this run's worktree, input
     folder, the repository folder, the temp folder and the user profile folder replaced
-    with <worktree>, <input>, <repo>, <temp> and <home>, with either slash. The script refuses to write
-    a record that still contains one of them. The reviewer is told never to quote a
+    with <worktree>, <input>, <repo>, <temp> and <home>, with either slash, and the account
+    name, as a whole word, with <user>. The script refuses to write a record that still
+    contains one of them. The reviewer is told never to quote a
     credential-like value; the gate's secret scan covers the file when it is committed.
 
     An uncommitted Review\LastReview.json with an answered finding is not overwritten
@@ -158,8 +160,16 @@ function Get-ScrubbedText {
             $scrubbed = [regex]::Replace($scrubbed, [regex]::Escape($form), $entry.Label, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
         }
     }
+    if ($null -ne $accountPattern) {
+        $scrubbed = [regex]::Replace($scrubbed, $accountPattern, '<user>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    }
     $scrubbed
 }
+
+# The account name as a whole word, so a path in an unexpected form, or the name on its
+# own, is caught too. A name shorter than three characters would match ordinary words.
+$accountName    = [Environment]::UserName
+$accountPattern = if ($accountName -and $accountName.Length -ge 3) { '(?<![A-Za-z0-9])' + [regex]::Escape($accountName) + '(?![A-Za-z0-9])' } else { $null }
 
 # -- Preconditions ---------------------------------------------------------------
 
@@ -220,6 +230,9 @@ try {
     $diff = (Invoke-RepoGit -Argument (@('diff', '--no-color', $baseCommit, $headCommit, '--', '.') + $exclude)) -join "`n"
     [System.IO.File]::WriteAllText((Join-Path -Path $inputDir -ChildPath 'changes.diff'), $diff + "`n", [System.Text.UTF8Encoding]::new($false))
     [System.IO.File]::WriteAllText((Join-Path -Path $inputDir -ChildPath 'files.txt'), ($changed -join "`n") + "`n", [System.Text.UTF8Encoding]::new($false))
+    # Messages only, oldest first: no author name or email.
+    $messages = (Invoke-RepoGit -Argument @('log', '--reverse', '--format=commit %h%n%B', "$baseCommit..$headCommit")) -join "`n"
+    [System.IO.File]::WriteAllText((Join-Path -Path $inputDir -ChildPath 'commits.txt'), $messages + "`n", [System.Text.UTF8Encoding]::new($false))
 
     $prompt = [System.IO.File]::ReadAllText($promptFile) + "`nInput folder: $inputDir`n"
 
@@ -323,6 +336,9 @@ foreach ($entry in $localPaths) {
             throw "[Invoke-ModelReview] The record still contains the $($entry.Label) folder after scrubbing. No record written."
         }
     }
+}
+if ($null -ne $accountPattern -and [regex]::IsMatch($json, $accountPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+    throw '[Invoke-ModelReview] The record still contains the account name after scrubbing. No record written.'
 }
 [System.IO.File]::WriteAllText($recordFile, $json + "`n", [System.Text.UTF8Encoding]::new($false))
 

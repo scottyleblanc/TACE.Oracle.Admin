@@ -10,12 +10,15 @@ Inputs, in the input folder named at the end of this prompt:
 - `changes.diff` is the full diff of the change, from the merge base with the target
   branch to the commit under review.
 - `files.txt` lists the files the change touches.
+- `commits.txt` holds the message of each commit in the change, oldest first. Commit
+  messages are part of the review: what they claim, and rule S-16.
 
 Do this:
 
 1. Read `Docs\REVIEW.md`. It is the review order and the list of rules you check.
 2. Read `AGENTS.md` for the full text of each rule.
-3. Read `changes.diff`. Open any file in the repository you need for context.
+3. Read `commits.txt` and `changes.diff`. Open any file in the repository you need for
+   context.
 4. Review in the order `Docs\REVIEW.md` gives: intent, then tests, then implementation.
 
 Rules for findings:
