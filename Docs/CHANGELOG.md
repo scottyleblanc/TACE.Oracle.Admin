@@ -6,7 +6,16 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.2.7] - 2026-11-18
+
+Stack 7 of the AI Development Stack — containment. Not published to PSGallery.
+No change to module behaviour. Record in `Docs/audit/stack-7-containment.md`.
+
+### Added
+
+- `Docs/audit/stack-7-containment.md`: the committed settings tested headless against
+  planted credential files, for Claude Code and the Cursor CLI.
+- `SECURITY.md` section 12, Agent Containment.
 
 ### Security
 

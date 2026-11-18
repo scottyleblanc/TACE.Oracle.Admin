@@ -99,10 +99,10 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.2.6 |
-| Last audit | 2026-11-16 — Stack 6 independent review: every pull request carries a gate-checked second-model review; a planted S-11 defect the gate passed was reported as High by each of three reviews |
+| Version | 0.2.7 |
+| Last audit | 2026-11-18 — Stack 7 containment: committed permission settings for Claude Code and the Cursor CLI; Claude Code refused every attempt to read planted credential files; the Cursor CLI enforced its Shell rules but no read rule |
 | Tests | 405 unit tests, 164 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
-| Open SEC items | 6 — see the Open Items in SECURITY.md |
+| Open SEC items | 7 — see the Open Items in SECURITY.md |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.
 
