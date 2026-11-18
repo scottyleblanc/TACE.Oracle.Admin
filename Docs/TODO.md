@@ -482,7 +482,10 @@ material is outside its reach, and a planted attempt to read it is blocked.
 - [x] Cursor CLI permission settings: `.cursor/cli.json`, Shell rules only. Tested
       headless (Cursor CLI 2026.11.17): the Shell rules work; no `Read(...)` deny rule
       was enforced, so none is committed, and the gap is an open item in `SECURITY.md`
-- [ ] Closing tasks
+- [x] Closing tasks
+      - [x] Record: `Docs\audit\stack-7-containment.md`
+      - [x] `CHANGELOG.md` 0.2.7 and tag `v0.2.7`
+      - [x] Write-up: Stack 7 post and project page row
 
 ### Stack 8 — Release
 
