@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(pwsh:-NoProfile -File ./Scripts/*)",
+      "Shell(pwsh:-NoProfile -File ./Tests/Lint/*)",
+      "Shell(git:status*)",
+      "Shell(git:diff*)",
+      "Shell(git:log*)",
+      "Shell(git:show*)"
+    ],
+    "deny": [
+      "Shell(git:push*)",
+      "Shell(rm)",
+      "Shell(rmdir)"
+    ]
+  }
+}

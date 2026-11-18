@@ -479,6 +479,9 @@ material is outside its reach, and a planted attempt to read it is blocked.
 - [x] Seeded defect: a headless run asked to read planted credential files with Read,
       Grep and Bash `cat` was refused every time, and no planted value appeared in its
       output
+- [x] Cursor CLI permission settings: `.cursor/cli.json`, Shell rules only. Tested
+      headless (Cursor CLI 2026.11.17): the Shell rules work; no `Read(...)` deny rule
+      was enforced, so none is committed, and the gap is an open item in `SECURITY.md`
 - [ ] Closing tasks
 
 ### Stack 8 — Release

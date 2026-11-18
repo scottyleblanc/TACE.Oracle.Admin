@@ -246,6 +246,14 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
   before touching the config or RMAN (rule C-07); Linux support is not built.
 - The copied code has had the Stack 1 invariant review, not a STIG assessment. The
   STIG table below reflects the module before Stack 0.
+- The Cursor agent is not kept away from credential material (Stack 7). On Windows,
+  Cursor CLI 2026.11.17 did not enforce any `Read(...)` deny rule in
+  `.cursor/cli.json`: relative, glob, exact, absolute and home-folder forms were all
+  read by its file-read and search tools. Its sandbox, which the Cursor docs list only
+  for macOS and Linux, did not start. `.cursor/cli.json` therefore holds only the
+  Shell rules, which were tested and work. The Cursor IDE agent's controls are user
+  settings and are not set from this repository. The Claude Code read deny rules in
+  `.claude/settings.json` are enforced.
 
 ---
 

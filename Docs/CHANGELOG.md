@@ -17,6 +17,11 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   `pwsh -NoProfile -File ./Scripts/*` or `./Tests/Lint/*`, and read-only git. Any
   other command asks first. Allow rules apply only after the workspace trust prompt
   is accepted; deny rules apply always.
+- `.cursor/cli.json`: Cursor CLI permission settings with the same Shell rules: deny
+  `git push`, `rm` and `rmdir`; allow repository scripts through
+  `pwsh -NoProfile -File ./Scripts/*` or `./Tests/Lint/*`, and read-only git. It holds
+  no `Read` rules: Cursor CLI 2026.11.17 on Windows did not enforce them. Recorded as
+  an open item in `SECURITY.md`.
 
 ---
 
