@@ -6,6 +6,20 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Security
+
+- `.claude/settings.json`: committed Claude Code permission settings. The agent cannot
+  read `Config/`, `Tests/Integration/IntegrationConfig.local.ps1`, `~/.aws`, `~/.ssh` or
+  `~/.claude/.credentials.json`; cannot use the PowerShell tool, `git push`, `rm` or
+  `rmdir`; may run repository scripts through the Bash tool as
+  `pwsh -NoProfile -File ./Scripts/*` or `./Tests/Lint/*`, and read-only git. Any
+  other command asks first. Allow rules apply only after the workspace trust prompt
+  is accepted; deny rules apply always.
+
+---
+
 ## [0.2.6] - 2026-11-17
 
 Stack 6 of the AI Development Stack — independent review. Not published to PSGallery.

@@ -466,16 +466,19 @@ one real pull request.
 **Goal:** the AI agent can run and read only what its committed rules allow; credential
 material is outside its reach, and a planted attempt to read it is blocked.
 
-- [ ] Commit agent permission settings
-- [ ] [SEC] Add ignore files covering credential material
-- [ ] [SEC] Write the rules for what the agent may run or read. Found in Stack 5
-      (Claude Code 2.1.308, headless): in `acceptEdits` mode the PowerShell tool ran
-      `Remove-Item .\README.md` without asking, while no allow rule matched a repository
-      script called by path in that tool, so a read-only lint script was refused. The
-      only form an allow rule matched was the Bash tool running
-      `pwsh -NoProfile -File ./Scripts/...`. Test the rules against the commands the
-      agent actually issues, and do not rely on `acceptEdits` to stop file deletion
-- [ ] Seeded defect: an attempt to read ignored material
+- [x] Commit agent permission settings: `.claude/settings.json`
+- [x] [SEC] Deny rules covering credential material: `Config/`,
+      `Tests/Integration/IntegrationConfig.local.ps1`, `~/.aws`, `~/.ssh`,
+      `~/.claude/.credentials.json`
+- [x] [SEC] Write the rules for what the agent may run or read: the PowerShell tool,
+      `git push`, `rm` and `rmdir` denied; the Bash tool allowed to run repository
+      scripts as `pwsh -NoProfile -File ./Scripts/*` or `./Tests/Lint/*` and read-only
+      git; everything else asks. Tested against the commands the agent issues (Claude
+      Code 2.1.308, headless, `acceptEdits`): `rm` ran without asking until denied, and
+      allow rules apply only once the workspace trust prompt is accepted
+- [x] Seeded defect: a headless run asked to read planted credential files with Read,
+      Grep and Bash `cat` was refused every time, and no planted value appeared in its
+      output
 - [ ] Closing tasks
 
 ### Stack 8 — Release
