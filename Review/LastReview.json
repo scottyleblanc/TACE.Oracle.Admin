@@ -1,10 +1,10 @@
 {
   "SchemaVersion": 1,
-  "Commit": "f6d5e5abe0ffbafac4c434b6eed7a3f647b6db2e",
-  "BaseCommit": "9438a63fb06233535f94511eb2c5271070e1a44b",
+  "Commit": "7fefc00ffc3d6725bf28d25dc94aa0b9977ed544",
+  "BaseCommit": "d87083af284e69c42f876ce5c59b514d0038449d",
   "Base": "origin/master",
   "Completed": true,
-  "RunAtUtc": "2026-11-17T16:12:22Z",
+  "RunAtUtc": "2026-11-18T22:28:31Z",
   "Reviewer": {
     "Tool": "Claude Code",
     "Version": "2.1.308",
@@ -12,10 +12,66 @@
     "Effort": "medium"
   },
   "PromptSha256": "ebf2a741564fe0498d640695edc9f69d059fe78be2dd73c56e4cb65aa81b44a2",
-  "FilesReviewed": 2,
-  "Turns": 11,
-  "CostUsd": 0.3,
+  "FilesReviewed": 13,
+  "Turns": 15,
+  "CostUsd": 0.59,
   "PermissionDenials": 0,
-  "Summary": "The change is one docs-only commit. It ticks off the last Stack 6 tasks in Docs/TODO.md: the pull request taken through the full review path, the record, the CHANGELOG entry and tag, and the write-up. It also changes the integration-run count in Docs/audit/stack-6-independent-review.md from three to two. I read Docs/REVIEW.md, AGENTS.md, the commit message and the diff, then checked the TODO claims against the repository. Review/LastReview.json matches them: it reviews efc2364 and has 7 findings, 5 answered Fixed: e7eb3bb and 2 Accepted. The audit record's eight review rounds and 23 findings, and the CHANGELOG 0.2.6 entry, also agree with the TODO text. I could not check the new integration-run count or the external write-up from the files, and found nothing in them that contradicts either. No code, invariant, test or credential-bearing text is touched, and the commit message names no real infrastructure.",
-  "Findings": []
+  "Summary": "The change closes Stack 7 (containment). It commits Claude Code permission settings (`.claude/settings.json`) and Cursor CLI Shell-only settings (`.cursor/cli.json`), adds the audit record `Docs/audit/stack-7-containment.md` and SECURITY.md section 12 with a new open item, updates TODO, STAGES, CHANGELOG and the README/SECURITY status blocks, and bumps the version to 0.2.7 with no change to module behaviour. I read REVIEW.md, AGENTS.md, the commit messages and the diff, then checked the settings against the contract the documents give and against `.gitignore`. I also checked the Open Items count and where the module keeps its config. The version bump, the open-item count (now 7) and the commit messages are consistent and contain no real infrastructure names. The findings below cover gaps in the permission rules and places where the documents claim more than the settings deliver.",
+  "Findings": [
+    {
+      "Id": "F1",
+      "Severity": "High",
+      "Step": "Implementation",
+      "Rule": "none",
+      "File": ".claude/settings.json",
+      "Line": 5,
+      "Title": "The allow rules let the agent write a script under Scripts/ or Tests/Lint/ and run it without asking, which gets around every read and delete deny rule.",
+      "Detail": "The allow rules `Bash(pwsh -NoProfile -File ./Scripts/*)` and `Bash(pwsh -NoProfile -File ./Tests/Lint/*)` match any file under those folders, and the trailing wildcard also matches a path such as `./Scripts/../<anything>.ps1`. In the `acceptEdits` mode the audit tested, the agent can create or edit a file in Scripts/ without asking and then run it under the allow rule. That script runs with the user's rights and can read Config/, IntegrationConfig.local.ps1 or ~/.ssh, delete files, or push. The Limits section only says that a repository script the agent runs has the user's rights. It does not say the agent can write that script itself, so the TODO goal ('credential material is outside its reach') and SECURITY.md section 12 ('Implemented') claim more than the settings deliver. The same applies to the Shell allow rules in `.cursor/cli.json`. Fix: add deny rules for Edit and Write on `./Scripts/**` and `./Tests/Lint/**` (or narrow the allow rules to named scripts), test that, and record the result. If it is accepted instead, state the bypass plainly in section 12 and the audit Limits.",
+      "Response": "Accepted: asking before edits to Scripts/ and Tests/Lint/ would stop routine work on the gate and lint scripts, so the maintainer chose not to; the edit-then-run path is stated in SECURITY.md section 12 and the audit Limits (b12a627)."
+    },
+    {
+      "Id": "F2",
+      "Severity": "Medium",
+      "Step": "Intent",
+      "Rule": "D-06",
+      "File": "Docs/TODO.md",
+      "Line": 470,
+      "Title": "The open [SEC] task 'Add ignore files covering credential material' was reworded to describe deny rules and ticked, so the stage closes without the ignore files.",
+      "Detail": "Before this change the item read '[SEC] Add ignore files covering credential material'. The change replaces it with '[x] [SEC] Deny rules covering credential material', and no ignore file (for example `.cursorignore` or a Claude ignore pattern) is added. None of the commit messages say the task was dropped or replaced. This matters because an agent ignore file is the obvious mechanism for the gap this change leaves open: the Cursor agent reading credential material, which the new SECURITY.md open item records. Rewording a [SEC] task to match what was built, then marking the stage Complete, gets around D-09. Fix: either add the ignore files and test them, or keep the original task open (or defer it to a named stage) and say so in the commit message and STAGES.",
+      "Response": "Rejected: the maintainer set Stack 7 to permission settings only, with no ignore files; the task was reworded to the deny rules that were built and tested."
+    },
+    {
+      "Id": "F3",
+      "Severity": "Medium",
+      "Step": "Implementation",
+      "Rule": "none",
+      "File": ".claude/settings.json",
+      "Line": 20,
+      "Title": "Only commands named `rm` and `rmdir` are denied, but the documents say file deletion is denied.",
+      "Detail": "The audit found that `acceptEdits` mode treats `rm` as a file edit and runs it without asking. The fix denies `Bash(rm *)` and `Bash(rmdir *)` only. That mode also auto-accepts other filesystem commands such as `mv`, and those were not tested: `mv LICENSE /tmp/` would remove a file from the repository without a prompt. A full-path or wrapped call (`/usr/bin/rm x`, `command rm x`, `git rm`, `git clean`) does not match the deny pattern either. Yet the release notes in `Source/TACE.Oracle.Admin.psd1` say the settings 'deny file deletion', and the SECURITY.md audit row says the `rm` finding is fixed. Fix: test the other commands `acceptEdits` auto-accepts and deny them (at least `mv`, `git rm` and `git clean`), or narrow the claim in the release notes, SECURITY.md and CHANGELOG to `rm` and `rmdir` only.",
+      "Response": "Fixed: b12a627 narrows the release notes, SECURITY.md section 12 and the audit Limits to rm and rmdir, and states that mv, git rm and git clean are not denied or tested."
+    },
+    {
+      "Id": "F4",
+      "Severity": "Low",
+      "Step": "Tests",
+      "Rule": "none",
+      "File": ".cursor/cli.json",
+      "Line": 1,
+      "Title": "No static check protects the committed permission settings, so the gate passes if a deny rule is removed.",
+      "Detail": "The change adds two security-relevant config files but no static test. The test counts stay at 405 unit tests and 164 static checks. A later commit could drop `Read(./Config/**)`, `PowerShell` or `Bash(rm *)`, or widen an allow rule, and the gate would still pass. The only check would be review. Fix: add a static test that parses both files and asserts the documented deny and allow lists, so SECURITY.md section 12 and the settings cannot drift apart.",
+      "Response": "Deferred: TODO.md Backlog, [SEC] Static check on the agent permission settings."
+    },
+    {
+      "Id": "F5",
+      "Severity": "Low",
+      "Step": "Intent",
+      "Rule": "D-11",
+      "File": ".gitignore",
+      "Line": 2,
+      "Title": "`.gitignore` still ignores `.claude/` with the comment 'not committed to git', which contradicts the committed `.claude/settings.json`.",
+      "Detail": "Line 1 says Claude instruction files are not committed, and line 2 ignores the whole `.claude/` folder. The change commits `.claude/settings.json` anyway, which needs `git add -f`. Someone who deletes and recreates the file, or a fresh contributor adding a sibling project setting, will find it silently left out of the commit. The comment also no longer describes what the repository does. Fix: narrow the rule (for example ignore `.claude/*` and un-ignore `!.claude/settings.json`) and update the comment, as is already done for `.vscode/settings.json`.",
+      "Response": "Accepted: .gitignore is out of scope for Stack 7 by the maintainer's direction; .claude/settings.json was force-added on purpose and is tracked, so later edits are committed normally."
+    }
+  ]
 }
