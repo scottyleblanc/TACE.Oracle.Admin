@@ -10,6 +10,10 @@
 @{
     Mutations = @(
         # --- Assert-OracleEnvironment --------------------------------------------------
+        @{ Function = 'Assert-OracleEnvironment'; Id = 'S10'; Label = 'exception text not scrubbed'
+            File = 'Source/Private/Assert-OracleEnvironment.ps1'
+            Find = '$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message'
+            Replace = '$safeMessage = $PSItem.Exception.Message' }
         @{ Function = 'Assert-OracleEnvironment'; Id = 'S1'; Label = 'home existence check removed'
             File = 'Source/Private/Assert-OracleEnvironment.ps1'
             Find = 'if (-not (Test-Path -Path $resolvedHome -PathType Container)) {'
@@ -38,18 +42,14 @@
             File = 'Source/Private/Assert-OracleEnvironment.ps1'
             Find = 'if (-not [string]::IsNullOrWhiteSpace($WalletAlias)) {'
             Replace = 'if ($false) {' }
-        @{ Function = 'Assert-OracleEnvironment'; Id = 'S7'; Label = 'tnsping stdout not scrubbed'
+        @{ Function = 'Assert-OracleEnvironment'; Id = 'S7'; Label = 'tnsping output reaches the caller unscrubbed'
             File = 'Source/Private/Assert-OracleEnvironment.ps1'
-            Find = '$tnsOutScrubbed = Invoke-CredentialScrub -Content $tnsResult.StdOut'
-            Replace = '$tnsOutScrubbed = $tnsResult.StdOut' }
-        @{ Function = 'Assert-OracleEnvironment'; Id = 'S7'; Label = 'tnsping stderr not scrubbed'
-            File = 'Source/Private/Assert-OracleEnvironment.ps1'
-            Find = '$tnsErrScrubbed = Invoke-CredentialScrub -Content $tnsResult.StdErr'
-            Replace = '$tnsErrScrubbed = $tnsResult.StdErr' }
+            Find = '$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message'
+            Replace = '$safeMessage = $PSItem.Exception.Message' }
         @{ Function = 'Assert-OracleEnvironment'; Id = 'T1'; Label = 'throw prefix changed'
             File = 'Source/Private/Assert-OracleEnvironment.ps1'
-            Find = 'throw "Oracle environment validation failed: $($PSItem.Exception.Message)"'
-            Replace = 'throw "Oracle environment check failed: $($PSItem.Exception.Message)"' }
+            Find = 'throw "Oracle environment validation failed: $safeMessage"'
+            Replace = 'throw "Oracle environment check failed: $safeMessage"' }
         @{ Function = 'Assert-OracleEnvironment'; Id = 'L1'; Label = 'ORACLE_HOME fallback removed'
             File = 'Source/Private/Assert-OracleEnvironment.ps1'
             Find = '$resolvedHome = $env:ORACLE_HOME'
@@ -60,19 +60,27 @@
             Replace = '        $env:ORACLE_HOME = $resolvedHome; return $binaryPath' }
 
         # --- ConvertFrom-SecureStringToPlaintext ---------------------------------------
+        @{ Function = 'ConvertFrom-SecureStringToPlaintext'; Id = 'S6'; Label = 'exception text not scrubbed'
+            File = 'Source/Private/ConvertFrom-SecureStringToPlaintext.ps1'
+            Find = '$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message'
+            Replace = '$safeMessage = $PSItem.Exception.Message' }
         @{ Function = 'ConvertFrom-SecureStringToPlaintext'; Id = 'S4'; Label = 'moved to Source\Public, so exported'
             File = 'Source/Private/ConvertFrom-SecureStringToPlaintext.ps1'
             MoveTo = 'Source/Public/ConvertFrom-SecureStringToPlaintext.ps1' }
         @{ Function = 'ConvertFrom-SecureStringToPlaintext'; Id = 'S5'; Label = 'throw echoes the converted value'
             File = 'Source/Private/ConvertFrom-SecureStringToPlaintext.ps1'
-            Find = 'throw "Failed to convert SecureString: $($PSItem.Exception.Message)"'
-            Replace = 'throw "Failed to convert SecureString: $($PSItem.Exception.Message) $(if ($ptr -ne [IntPtr]::Zero) { [System.Runtime.InteropServices.Marshal]::PtrToStringUni($ptr) })"' }
+            Find = 'throw "Failed to convert SecureString: $safeMessage"'
+            Replace = 'throw "Failed to convert SecureString: $safeMessage $(if ($ptr -ne [IntPtr]::Zero) { [System.Runtime.InteropServices.Marshal]::PtrToStringUni($ptr) })"' }
         @{ Function = 'ConvertFrom-SecureStringToPlaintext'; Id = 'T1'; Label = 'throw prefix changed'
             File = 'Source/Private/ConvertFrom-SecureStringToPlaintext.ps1'
-            Find = 'throw "Failed to convert SecureString: $($PSItem.Exception.Message)"'
-            Replace = 'throw "Error. Failed to convert SecureString: $($PSItem.Exception.Message)"' }
+            Find = 'throw "Failed to convert SecureString: $safeMessage"'
+            Replace = 'throw "Error. Failed to convert SecureString: $safeMessage"' }
 
         # --- Get-OracleBackupConfigStore -----------------------------------------------
+        @{ Function = 'Get-OracleBackupConfigStore'; Id = 'S5'; Label = 'exception text not scrubbed'
+            File = 'Source/Private/Get-OracleBackupConfigStore.ps1'
+            Find = '$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message'
+            Replace = '$safeMessage = $PSItem.Exception.Message' }
         @{ Function = 'Get-OracleBackupConfigStore'; Id = 'S1'; Label = 'ACL not applied to a new config file'
             File = 'Source/Private/Get-OracleBackupConfigStore.ps1'
             Find = 'Set-RestrictiveAcl -Path $configPath'
@@ -92,6 +100,10 @@
             File = 'Source/Private/Invoke-CredentialScrub.ps1'
             Find = '''$1/***SCRUBBED***@$3'''
             Replace = '''$1/$2@$3''' }
+        @{ Function = 'Invoke-CredentialScrub'; Id = 'S1'; Label = 'password ends at the first @'
+            File = 'Source/Private/Invoke-CredentialScrub.ps1'
+            Find = '''(\w+)/(\S+)@([^@\s]+)'''
+            Replace = '''(\w+)/([^@\s]+)@(\S+)''' }
         @{ Function = 'Invoke-CredentialScrub'; Id = 'R1'; Label = 'empty content returned as null'
             File = 'Source/Private/Invoke-CredentialScrub.ps1'
             Find = 'if ([string]::IsNullOrEmpty($Content)) { return $Content }'
@@ -162,6 +174,10 @@
             Replace = '$null = 0' }
 
         # --- Set-RestrictiveAcl --------------------------------------------------------
+        @{ Function = 'Set-RestrictiveAcl'; Id = 'S5'; Label = 'exception text not scrubbed'
+            File = 'Source/Private/Set-RestrictiveAcl.ps1'
+            Find = '$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message'
+            Replace = '$safeMessage = $PSItem.Exception.Message' }
         @{ Function = 'Set-RestrictiveAcl'; Id = 'S1'; Label = 'inheritance kept'
             File = 'Source/Private/Set-RestrictiveAcl.ps1'
             Find = '$acl.SetAccessRuleProtection($true, $false)'
@@ -185,6 +201,10 @@
             Replace = 'throw "Could not apply restrictive ACL to' }
 
         # --- Get-OracleDatabaseList ----------------------------------------------------
+        @{ Function = 'Get-OracleDatabaseList'; Id = 'S2'; Label = 'exception text not scrubbed'
+            File = 'Source/Public/Get-OracleDatabaseList.ps1'
+            Find = '$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message'
+            Replace = '$safeMessage = $PSItem.Exception.Message' }
         @{ Function = 'Get-OracleDatabaseList'; Id = 'R1'; Label = 'unsupported platform returns an extra property'
             File = 'Source/Public/Get-OracleDatabaseList.ps1'
             Find = 'Message = "Oracle instance discovery is not supported on platform'
@@ -261,6 +281,10 @@
             Replace = '    Write-Host "[Invoke-OraEnv] calling Set-OracleEnv"; $result = Set-OracleEnv @callParams' }
 
         # --- Set-OracleEnv -------------------------------------------------------------
+        @{ Function = 'Set-OracleEnv'; Id = 'S3'; Label = 'exception text not scrubbed'
+            File = 'Source/Public/Set-OracleEnv.ps1'
+            Find = '$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message'
+            Replace = '$safeMessage = $PSItem.Exception.Message' }
         @{ Function = 'Set-OracleEnv'; Id = 'S1'; Label = 'the instance list is cached in the module'
             File = 'Source/Public/Set-OracleEnv.ps1'
             Find = '$listResult = Get-OracleDatabaseList'

@@ -73,6 +73,10 @@ function ConvertFrom-SecureStringToPlaintext {
     #       'S4 is not callable outside module scope'.
     #   [SEC] S5 A throw does not contain the plaintext.
     #       Static: 'ConvertFrom-SecureStringToPlaintext S5 the catch block refers to neither the buffer nor the input'.
+    #   [SEC] S6 The catch block scrubs the exception message before it is re-thrown
+    #       (rule S-07).
+    #       Guard: Invoke-CredentialScrub in the catch block.
+    #       Static: 'ConvertFrom-SecureStringToPlaintext S6 reads exception text only through Invoke-CredentialScrub'.
     #
     # POST-CONDITIONS
     #   R1 Returns the exact plaintext, including an empty string and special characters.
@@ -92,7 +96,8 @@ function ConvertFrom-SecureStringToPlaintext {
         return [System.Runtime.InteropServices.Marshal]::PtrToStringUni($ptr)
     }
     catch {
-        throw "Failed to convert SecureString: $($PSItem.Exception.Message)"
+        $safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message
+        throw "Failed to convert SecureString: $safeMessage"
     }
     finally {
         # Always zero and free the unmanaged memory, even if an exception occurred.

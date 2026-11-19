@@ -6,6 +6,40 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.9] - 2026-11-19
+
+Stack 9 of the AI Development Stack — feedback loop. Not published to PSGallery.
+Records in `Docs/audit/escaped-defects.md` and `Docs/audit/stack-9-feedback-loop.md`.
+
+### Added
+
+- `Docs/audit/escaped-defects.md`: the escaped-defect log. Every entry ends in a check
+  that now fails on the defect; five entries (E1 to E5).
+- `Docs/audit/stack-9-feedback-loop.md`: the ownership drill. A headless agent given
+  only the committed files found and fixed a planted scrub defect.
+- `Test-SeededDefect.ps1`: case `permission`; 20 cases.
+
+### Security
+
+- Rule S-17 and the static check `Tests\Static\AgentPermissions.Tests.ps1`: the gate
+  fails when `.claude/settings.json` or `.cursor/cli.json` drops a deny rule listed in
+  `Tests\Lint\AgentPermissions.psd1`, holds an allow rule the list does not, or holds
+  a setting key the list does not name, such as `defaultMode` (decision 37). Found by the Stack 7 review (F4); escaped-defect entry E3.
+- `Invoke-CredentialScrub`: a password holding an `@` is now replaced whole. The scrub
+  ended the password at its first `@`, so `user/S3cr3tP@ss!@SVC` kept `ss!` in the
+  output. Unit test S1 now asserts the exact scrubbed text; escaped-defect entry E4.
+- Exception text is now scrubbed everywhere it leaves a function (rule S-07):
+  `Set-OracleEnv` and `Get-OracleDatabaseList` scrub it before `Message`, and
+  `Assert-OracleEnvironment`, `ConvertFrom-SecureStringToPlaintext`,
+  `Get-OracleBackupConfigStore` and `Set-RestrictiveAcl` before they re-throw. The static
+  check `Tests\Static\ExceptionScrub.Tests.ps1` fails on any `.Exception.Message` in
+  `Source\` read outside `Invoke-CredentialScrub`. `Set-OracleEnv` S3 and
+  `Get-OracleDatabaseList` S2 change from accepted limitations to proven invariants,
+  and the four private helpers gain a matching `[SEC]` entry each. In
+  `Assert-OracleEnvironment` the separate tnsping scrub is removed: the catch block now
+  scrubs every message, tnsping output included (S7). Found by the ownership drill;
+  escaped-defect entry E5.
+
 ## [0.2.8] - 2026-11-19
 
 Stack 8 of the AI Development Stack — release. Not published to PSGallery.

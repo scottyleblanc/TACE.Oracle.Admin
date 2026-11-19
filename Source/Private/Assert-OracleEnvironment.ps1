@@ -30,8 +30,8 @@
 .PARAMETER WalletAlias
     Optional. When non-empty, tnsping.exe is invoked against this alias.
     A hard failure if the alias cannot be resolved or if tnsping.exe is not
-    found under ORACLE_HOME\bin. tnsping stdout is scrubbed via
-    Invoke-CredentialScrub before inclusion in any error message.
+    found under ORACLE_HOME\bin. tnsping output in an error message is scrubbed by
+    the catch block, which passes every message through Invoke-CredentialScrub.
 
 .OUTPUTS
     [string] — the fully resolved, validated binary path.
@@ -51,8 +51,8 @@
     and on a valid signature whose subject does not contain 'Oracle'.
 
     [SEC] AD-026 — WalletAlias validated by tnsping before RMAN invocation
-    (APSC-DV-002000). tnsping stdout scrubbed via Invoke-CredentialScrub before
-    any error message.
+    (APSC-DV-002000). tnsping output reaches an error message only through the
+    catch block's Invoke-CredentialScrub call.
 
     [SEC] Environment variable $env:ORACLE_HOME is used only as a fallback
     default when OracleHome config value is empty. It is validated before use
@@ -115,13 +115,18 @@ function Assert-OracleEnvironment {
     #   [SEC] S6 A WalletAlias is resolved with tnsping before the function returns.
     #       Test: 'S6 throws when tnsping exits with a non-zero exit code',
     #       'S6 throws when tnsping stdout contains a TNS-NNNNN error code'.
-    #   [SEC] S7 tnsping output is scrubbed before it is placed in an error message.
+    #   [SEC] S7 tnsping output placed in an error message is scrubbed: it reaches the caller
+    #       only through the catch block, which scrubs every message (S10).
     #       Test: 'S7 a credential in tnsping stdout or stderr is scrubbed from the error message (<Stream>)'.
     #   [SEC] S8 The current session environment is not changed.
     #       Test: 'S8 the session environment is unchanged when all checks pass'.
     #   [SEC] S9 tnsping.exe is checked to exist, but its signature is not checked.
     #       Limitation: accepted. tnsping.exe is unsigned like every Oracle binary (S4),
     #       so the same check would not detect a replacement.
+    #   [SEC] S10 The catch block scrubs the exception message before it is re-thrown
+    #       (rule S-07).
+    #       Guard: Invoke-CredentialScrub in the catch block.
+    #       Static: 'Assert-OracleEnvironment S10 reads exception text only through Invoke-CredentialScrub'.
     #
     # POST-CONDITIONS
     #   R1 Returns the full path of the validated binary.
@@ -185,7 +190,7 @@ function Assert-OracleEnvironment {
 
         # [SEC] AD-026 — WalletAlias validation via tnsping.
         # When WalletAlias is provided, validate that the alias resolves before
-        # RMAN is invoked. tnsping output is scrubbed before inclusion in any message.
+        # RMAN is invoked. The catch block scrubs tnsping output in the error (S7).
         if (-not [string]::IsNullOrWhiteSpace($WalletAlias)) {
             Write-Verbose "[Assert-OracleEnvironment] Validating wallet alias '$WalletAlias' via tnsping"
 
@@ -201,15 +206,11 @@ function Assert-OracleEnvironment {
             }
             $tnsResult = Invoke-TnspingProcess @tnspingParams
 
-            # [SEC] Scrub tnsping output before inclusion in any error message
-            $tnsOutScrubbed = Invoke-CredentialScrub -Content $tnsResult.StdOut
-            $tnsErrScrubbed = Invoke-CredentialScrub -Content $tnsResult.StdErr
-
             if ($tnsResult.ExitCode -ne 0 -or
                 $tnsResult.StdOut -match 'TNS-\d{5}' -or
                 $tnsResult.StdErr -match 'TNS-\d{5}') {
-                $detail = if ($tnsResult.StdOut -match 'TNS-\d{5}') { $tnsOutScrubbed.Trim() }
-                          elseif ($tnsResult.StdErr -match 'TNS-\d{5}') { $tnsErrScrubbed.Trim() }
+                $detail = if ($tnsResult.StdOut -match 'TNS-\d{5}') { $tnsResult.StdOut.Trim() }
+                          elseif ($tnsResult.StdErr -match 'TNS-\d{5}') { $tnsResult.StdErr.Trim() }
                           else { "tnsping exit code: $($tnsResult.ExitCode)" }
                 throw "TNS alias '$WalletAlias' could not be resolved by tnsping: $detail"
             }
@@ -220,6 +221,7 @@ function Assert-OracleEnvironment {
         return $binaryPath
     }
     catch {
-        throw "Oracle environment validation failed: $($PSItem.Exception.Message)"
+        $safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message
+        throw "Oracle environment validation failed: $safeMessage"
     }
 }

@@ -36,7 +36,7 @@ function Get-OracleDatabaseList {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.2.8
+        Version : 0.2.9
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -65,9 +65,10 @@ function Get-OracleDatabaseList {
     # SECURITY INVARIANTS
     #   [SEC] S1 No Oracle connection is made and no credential is read.
     #       Static: 'Get-OracleDatabaseList S1 makes no Oracle connection and reads no credential'.
-    #   [SEC] S2 The catch block places the raw exception message in Message.
-    #       Limitation: not scrubbed. Accepted because nothing in this function
-    #       handles a credential.
+    #   [SEC] S2 The catch block scrubs the exception message before it is placed in
+    #       Message (rule S-07).
+    #       Guard: Invoke-CredentialScrub in the catch block.
+    #       Static: 'Get-OracleDatabaseList S2 reads exception text only through Invoke-CredentialScrub'.
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws.
@@ -220,10 +221,11 @@ function Get-OracleDatabaseList {
         }
     }
     catch {
+        $safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message
         return [PSCustomObject]@{
             Success = $false
             Data    = $null
-            Message = "Failed to query Oracle database services: $($PSItem.Exception.Message)"
+            Message = "Failed to query Oracle database services: $safeMessage"
         }
     }
 }

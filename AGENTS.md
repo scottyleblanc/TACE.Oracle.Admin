@@ -131,7 +131,7 @@ This file states the rules.
 - **S-06** — Output captured from an Oracle tool is scrubbed before it is returned, stored or logged.
   Example: `$stdOut = Invoke-CredentialScrub -Content $stdOut`. *Test.*
 - **S-07** — An exception message is scrubbed before it is re-thrown or placed in `Message`.
-  Example: `$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message`. *Test.*
+  Example: `$safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message`. *Test and Linter.* The linter half is `Tests\Static\ExceptionScrub.Tests.ps1`: every `.Exception.Message` read in `Source\` is an argument of `Invoke-CredentialScrub`. Exception text reached another way, such as `"$PSItem"`, is left to review.
 - **S-08** — Verbose output holds no password or credential value at any verbosity level.
   Example: `Write-Verbose "[Invoke-RmanProcess] NamedCredential: user='$($Credential.UserName)'"` logs the user name, never the password. *Test.*
 - **S-09** — No function writes an object that carries a credential to the pipeline.
@@ -159,6 +159,8 @@ This file states the rules.
 
 - **S-16** — This repo is public: no credentials, account identifiers or infrastructure detail are committed, in files or commit messages.
   Example: a placeholder such as `<ORACLE_HOME>` in a document, or a `-S3Bucket` parameter, never a real host or bucket name. *Linter and Review.* The linter half is `Tests\Static\PublicRepoHygiene.Tests.ps1`: account IDs, ARNs, access keys, literal S3 targets, email addresses and private keys. A real name that matches no pattern, and commit messages, are left to review. A cross-check against a private identifier list is deferred until its design is decided across all public repositories (`TODO.md`, Stack 2).
+- **S-17** — The committed agent permission files keep every documented deny rule, allow nothing beyond the documented allow rules, and hold no setting beyond the documented keys.
+  Example: removing `Bash(git push *)` from the deny list of `.claude/settings.json` fails the gate until `Tests\Lint\AgentPermissions.psd1` and `SECURITY.md` section 12 change with it. *Linter.* The check is `Tests\Static\AgentPermissions.Tests.ps1`; a file may add deny rules.
 
 ## Testing Standards
 

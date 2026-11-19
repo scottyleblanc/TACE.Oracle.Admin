@@ -8,12 +8,12 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 | Measure | Count |
 |---|--:|
 | Functions | 14 |
-| Invariants | 160 |
-| Security invariants | 55 |
-| Proven (a cited test or static check) | 139 |
+| Invariants | 164 |
+| Security invariants | 59 |
+| Proven (a cited test or static check) | 145 |
 | Unproven (test or static check not written yet) | 0 |
 | Unproven security invariants | 0 |
-| Accepted limitations | 21 |
+| Accepted limitations | 19 |
 
 ## Source/Private/Assert-OracleEnvironment.ps1
 
@@ -42,11 +42,13 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S6** `[SEC]` A WalletAlias is resolved with tnsping before the function returns. *(Test)*
   - Test: 'S6 throws when tnsping exits with a non-zero exit code'
   - Test: 'S6 throws when tnsping stdout contains a TNS-NNNNN error code'
-- **S7** `[SEC]` tnsping output is scrubbed before it is placed in an error message. *(Test)*
+- **S7** `[SEC]` tnsping output placed in an error message is scrubbed: it reaches the caller only through the catch block, which scrubs every message (S10). *(Test)*
   - Test: 'S7 a credential in tnsping stdout or stderr is scrubbed from the error message (<Stream>)'
 - **S8** `[SEC]` The current session environment is not changed. *(Test)*
   - Test: 'S8 the session environment is unchanged when all checks pass'
 - **S9** `[SEC]` tnsping.exe is checked to exist, but its signature is not checked. *(Limitation)*
+- **S10** `[SEC]` The catch block scrubs the exception message before it is re-thrown (rule S-07). *(Guard; Static)*
+  - Static: 'Assert-OracleEnvironment S10 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns the full path of the validated binary. *(Test)*
   - Test: 'R1 returns the binary path when all checks pass'
 - **T1** Every throw starts with 'Oracle environment validation failed:'. *(Test)*
@@ -100,6 +102,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'S4 is not callable outside module scope'
 - **S5** `[SEC]` A throw does not contain the plaintext. *(Static)*
   - Static: 'ConvertFrom-SecureStringToPlaintext S5 the catch block refers to neither the buffer nor the input'
+- **S6** `[SEC]` The catch block scrubs the exception message before it is re-thrown (rule S-07). *(Guard; Static)*
+  - Static: 'ConvertFrom-SecureStringToPlaintext S6 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns the exact plaintext, including an empty string and special characters. *(Test)*
   - Test: 'R1 returns the correct plaintext for a standard password'
   - Test: 'R1 returns an empty string for an empty SecureString'
@@ -120,6 +124,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S3** `[SEC]` OracleHome read from the config is untrusted until checked. *(Limitation)*
 - **S4** `[SEC]` No environment variable or caller input decides where the config is read from or created. Only the module-scoped test override can change the path. *(Test)*
   - Test: 'S4 ORACLE_BACKUP_CONFIG_PATH does not change the config path'
+- **S5** `[SEC]` The catch block scrubs the exception message before it is re-thrown (rule S-07). *(Guard; Static)*
+  - Static: 'Get-OracleBackupConfigStore S5 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns an object with all eight settings. A setting missing from the file takes its default. *(Test)*
   - Test: 'R1 a setting missing from the file takes its default'
 - **R2** When the file does not exist it is written with the defaults, and the defaults are returned. *(Test)*
@@ -135,7 +141,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 
 - **P1** Content is a string, and may be empty. *(Type; Test)*
   - Test: 'P1 Content is a mandatory string that accepts an empty string'
-- **S1** `[SEC]` The password in every user/password@service pattern is replaced with ***SCRUBBED***. The user name and the service name are kept. *(Test)*
+- **S1** `[SEC]` The password in every user/password@service pattern is replaced with ***SCRUBBED***, whole, including any @ it holds. The user name and the service name are kept. *(Test)*
   - Test: 'S1 scrubs credential fragment matching user/pass@service'
 - **S2** `[SEC]` A credential in any other format passes through unchanged. *(Limitation)*
 - **R1** Empty content is returned unchanged. *(Test)*
@@ -252,6 +258,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'S3 child file created inside a secured directory inherits the restrictive ACEs (SEC-07)'
   - Test: 'S3 file ACEs use InheritanceFlags::None (files have no child objects)'
 - **S4** `[SEC]` On a platform other than Windows nothing is changed. *(Limitation)*
+- **S5** `[SEC]` The catch block scrubs the exception message before it is re-thrown (rule S-07). *(Guard; Static)*
+  - Static: 'Set-RestrictiveAcl S5 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns nothing. *(Type; Test)*
   - Test: 'R1 returns nothing'
 - **T1** Every throw starts with 'Failed to apply restrictive ACL to' and names the path. *(Test)*
@@ -275,7 +283,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'P1 throws a parameter error for an unknown platform value'
 - **S1** `[SEC]` No Oracle connection is made and no credential is read. *(Static)*
   - Static: 'Get-OracleDatabaseList S1 makes no Oracle connection and reads no credential'
-- **S2** `[SEC]` The catch block places the raw exception message in Message. *(Limitation)*
+- **S2** `[SEC]` The catch block scrubs the exception message before it is placed in Message (rule S-07). *(Guard; Static)*
+  - Static: 'Get-OracleDatabaseList S2 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns Success, Data and Message on every path, and never throws. *(Test)*
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, on Windows when <Path>'
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, on <Platform> when <Path>'
@@ -422,7 +431,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'S1 every call discovers the instances afresh; nothing is remembered'
 - **S2** `[SEC]` Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are changed. Nothing is written to disk, the registry or another process. *(Static)*
   - Static: 'Set-OracleEnv S2 changes only ORACLE_SID, ORACLE_HOME and ORACLE_BASE, and writes nothing to disk, the registry or another process'
-- **S3** `[SEC]` The catch block places the raw exception message in Message. *(Limitation)*
+- **S3** `[SEC]` The catch block scrubs the exception message before it is placed in Message (rule S-07). *(Guard; Static)*
+  - Static: 'Set-OracleEnv S3 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns Success, Data and Message on every path, and never throws. *(Test)*
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, when <Path>'
 - **R2** On success Data has SID, OracleHome, OracleBase and Applied. *(Test)*

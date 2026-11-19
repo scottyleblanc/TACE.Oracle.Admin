@@ -47,7 +47,7 @@ function Set-OracleEnv {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.2.8
+        Version : 0.2.9
         For the interactive menu use Invoke-OraEnv (aliases oraset, oraenv).
     #>
     [CmdletBinding(SupportsShouldProcess)]
@@ -80,9 +80,10 @@ function Set-OracleEnv {
     #   [SEC] S2 Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are
     #       changed. Nothing is written to disk, the registry or another process.
     #       Static: 'Set-OracleEnv S2 changes only ORACLE_SID, ORACLE_HOME and ORACLE_BASE, and writes nothing to disk, the registry or another process'.
-    #   [SEC] S3 The catch block places the raw exception message in Message.
-    #       Limitation: not scrubbed. Accepted because nothing in this function
-    #       handles a credential.
+    #   [SEC] S3 The catch block scrubs the exception message before it is placed in
+    #       Message (rule S-07).
+    #       Guard: Invoke-CredentialScrub in the catch block.
+    #       Static: 'Set-OracleEnv S3 reads exception text only through Invoke-CredentialScrub'.
     #
     # POST-CONDITIONS
     #   R1 Returns Success, Data and Message on every path, and never throws.
@@ -223,10 +224,11 @@ function Set-OracleEnv {
         }
     }
     catch {
+        $safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message
         return [PSCustomObject]@{
             Success = $false
             Data    = $null
-            Message = "Set-OracleEnv failed: $($PSItem.Exception.Message)"
+            Message = "Set-OracleEnv failed: $safeMessage"
         }
     }
 }

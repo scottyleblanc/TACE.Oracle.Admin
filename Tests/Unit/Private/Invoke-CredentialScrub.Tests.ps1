@@ -58,8 +58,8 @@ Describe 'Invoke-CredentialScrub' {
             InModuleScope TACE.Oracle.Admin {
                 $raw = 'CONNECT TARGET backup_user/S3cr3tP@ss!@ORCL_SVC; BACKUP DATABASE;'
                 $scrubbed = Invoke-CredentialScrub -Content $raw
-                $scrubbed | Should -Not -Match 'S3cr3tP@ss!'
-                $scrubbed | Should -Match '\*\*\*SCRUBBED\*\*\*'
+                # The password holds an @: no part of it may remain (escaped defect E4).
+                $scrubbed | Should -BeExactly 'CONNECT TARGET backup_user/***SCRUBBED***@ORCL_SVC; BACKUP DATABASE;'
             }
         }
 

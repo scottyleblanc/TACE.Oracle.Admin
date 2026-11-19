@@ -5,12 +5,13 @@
 
 .DESCRIPTION
     Private helper that sanitises text before it is stored, returned or logged:
-    RMAN stdout and stderr (Invoke-RmanProcess), tnsping output (Assert-OracleEnvironment),
-    and exception messages (Invoke-RmanProcess, Get-RmanBackupStatus,
-    Remove-RmanObsoleteBackup).
+    RMAN stdout and stderr (Invoke-RmanProcess), and the exception text every function
+    re-throws or places in Message (rule S-07), which includes tnsping output in an
+    Assert-OracleEnvironment error.
 
     One pattern is scrubbed: a connect string of the form user/password@service, whose
-    password is replaced with ***SCRUBBED***. The user and service names are kept. The
+    password, up to the last @ in the token, is replaced with ***SCRUBBED***, so a
+    password holding an @ is replaced whole. The user and service names are kept. The
     @service suffix is required, so dates (02/27), O/S labels and paths are not matched.
 
 .PARAMETER Content
@@ -53,7 +54,8 @@ function Invoke-CredentialScrub {
     #
     # SECURITY INVARIANTS
     #   [SEC] S1 The password in every user/password@service pattern is replaced with
-    #       ***SCRUBBED***. The user name and the service name are kept.
+    #       ***SCRUBBED***, whole, including any @ it holds. The user name and the
+    #       service name are kept.
     #       Test: 'S1 scrubs credential fragment matching user/pass@service'.
     #   [SEC] S2 A credential in any other format passes through unchanged.
     #       Limitation: one pattern only. The main defence is that a credential is never
@@ -71,7 +73,9 @@ function Invoke-CredentialScrub {
     # Scrub patterns: RMAN catalog connect strings (user/password@service)
     # Requires @service suffix to be present — avoids matching dates (02/27),
     # OS error labels (O/S), version strings, and Windows path separators.
-    $scrubbed = $Content -replace '(\w+)/([^@\s]+)@(\S+)', '$1/***SCRUBBED***@$3'
+    # [SEC] The password runs to the last @ in the token, so a password that holds an @
+    # is replaced whole; the service name holds no @.
+    $scrubbed = $Content -replace '(\w+)/(\S+)@([^@\s]+)', '$1/***SCRUBBED***@$3'
 
     return $scrubbed
 }
