@@ -10,10 +10,10 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 | Functions | 14 |
 | Invariants | 160 |
 | Security invariants | 55 |
-| Proven (a cited test or static check) | 139 |
+| Proven (a cited test or static check) | 141 |
 | Unproven (test or static check not written yet) | 0 |
 | Unproven security invariants | 0 |
-| Accepted limitations | 21 |
+| Accepted limitations | 19 |
 
 ## Source/Private/Assert-OracleEnvironment.ps1
 
@@ -135,7 +135,7 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 
 - **P1** Content is a string, and may be empty. *(Type; Test)*
   - Test: 'P1 Content is a mandatory string that accepts an empty string'
-- **S1** `[SEC]` The password in every user/password@service pattern is replaced with ***SCRUBBED***. The user name and the service name are kept. *(Test)*
+- **S1** `[SEC]` The password in every user/password@service pattern is replaced with ***SCRUBBED***, whole, including any @ it holds. The user name and the service name are kept. *(Test)*
   - Test: 'S1 scrubs credential fragment matching user/pass@service'
 - **S2** `[SEC]` A credential in any other format passes through unchanged. *(Limitation)*
 - **R1** Empty content is returned unchanged. *(Test)*
@@ -275,7 +275,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'P1 throws a parameter error for an unknown platform value'
 - **S1** `[SEC]` No Oracle connection is made and no credential is read. *(Static)*
   - Static: 'Get-OracleDatabaseList S1 makes no Oracle connection and reads no credential'
-- **S2** `[SEC]` The catch block places the raw exception message in Message. *(Limitation)*
+- **S2** `[SEC]` The catch block scrubs the exception message before it is placed in Message (rule S-07). *(Guard; Static)*
+  - Static: 'Get-OracleDatabaseList S2 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns Success, Data and Message on every path, and never throws. *(Test)*
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, on Windows when <Path>'
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, on <Platform> when <Path>'
@@ -422,7 +423,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'S1 every call discovers the instances afresh; nothing is remembered'
 - **S2** `[SEC]` Only ORACLE_SID, ORACLE_HOME and ORACLE_BASE of the current session are changed. Nothing is written to disk, the registry or another process. *(Static)*
   - Static: 'Set-OracleEnv S2 changes only ORACLE_SID, ORACLE_HOME and ORACLE_BASE, and writes nothing to disk, the registry or another process'
-- **S3** `[SEC]` The catch block places the raw exception message in Message. *(Limitation)*
+- **S3** `[SEC]` The catch block scrubs the exception message before it is placed in Message (rule S-07). *(Guard; Static)*
+  - Static: 'Set-OracleEnv S3 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns Success, Data and Message on every path, and never throws. *(Test)*
   - Test: 'R1 returns exactly Success, Data and Message, without throwing, when <Path>'
 - **R2** On success Data has SID, OracleHome, OracleBase and Applied. *(Test)*

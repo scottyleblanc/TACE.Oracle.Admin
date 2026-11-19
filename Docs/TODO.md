@@ -522,11 +522,17 @@ changelog, or whose package contains a file not listed in `FileList`.
 docs and tests alone are shown to be enough to find and fix a planted defect.
 
 - [x] Start the escaped-defect log in `Docs\audit\`: `Docs\audit\escaped-defects.md`,
-      entries E1 to E3; every entry ends in a check
+      entries E1 to E5; every entry ends in a check
 - [x] [SEC] Convert at least one entry into a check: E3, the agent permission settings
       (Stack 7 review F4). Rule S-17, `Tests\Static\AgentPermissions.Tests.ps1` against
       `Tests\Lint\AgentPermissions.psd1`; seeded case `permission`. The log's rule is not
       enforced by the gate
+- [x] [SEC] Found along the way, E4: `Invoke-CredentialScrub` ended the password at its
+      first `@`, leaving the rest in the output. The password now runs to the last `@`
+      in the token; unit test S1 asserts the exact scrubbed text
+- [x] [SEC] Found by the drill, E5: six places read exception text without the scrub
+      (rule S-07). All six now scrub; `Tests\Static\ExceptionScrub.Tests.ps1` fails on
+      any `.Exception.Message` in `Source\` read outside `Invoke-CredentialScrub`
 - [ ] Run one ownership drill; record the result
 - [ ] Closing tasks
 

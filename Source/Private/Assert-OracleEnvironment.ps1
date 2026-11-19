@@ -220,6 +220,7 @@ function Assert-OracleEnvironment {
         return $binaryPath
     }
     catch {
-        throw "Oracle environment validation failed: $($PSItem.Exception.Message)"
+        $safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message
+        throw "Oracle environment validation failed: $safeMessage"
     }
 }

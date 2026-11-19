@@ -11,7 +11,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ### Added
 
 - `Docs/audit/escaped-defects.md`: the escaped-defect log. Every entry ends in a check
-  that now fails on the defect; three entries (E1 to E3).
+  that now fails on the defect; five entries (E1 to E5).
 - `Test-SeededDefect.ps1`: case `permission`; 20 cases.
 
 ### Security
@@ -20,6 +20,18 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   fails when `.claude/settings.json` or `.cursor/cli.json` drops a deny rule listed in
   `Tests\Lint\AgentPermissions.psd1`, or holds an allow rule the list does not
   (decision 37). Found by the Stack 7 review (F4); escaped-defect entry E3.
+- `Invoke-CredentialScrub`: a password holding an `@` is now replaced whole. The scrub
+  ended the password at its first `@`, so `user/S3cr3tP@ss!@SVC` kept `ss!` in the
+  output. Unit test S1 now asserts the exact scrubbed text; escaped-defect entry E4.
+- Exception text is now scrubbed everywhere it leaves a function (rule S-07):
+  `Set-OracleEnv` and `Get-OracleDatabaseList` scrub it before `Message`, and
+  `Assert-OracleEnvironment`, `ConvertFrom-SecureStringToPlaintext`,
+  `Get-OracleBackupConfigStore` and `Set-RestrictiveAcl` before they re-throw. The static
+  check `Tests\Static\ExceptionScrub.Tests.ps1` fails on any `.Exception.Message` in
+  `Source\` read outside `Invoke-CredentialScrub`. `Set-OracleEnv` S3 and
+  `Get-OracleDatabaseList` S2 change from accepted limitations to proven invariants.
+  Found by the ownership drill; escaped-defect entry E5.
+
 ## [0.2.8] - 2026-11-19
 
 Stack 8 of the AI Development Stack — release. Not published to PSGallery.

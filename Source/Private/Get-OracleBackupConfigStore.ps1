@@ -147,6 +147,7 @@ function Get-OracleBackupConfigStore {
         return $merged
     }
     catch {
-        throw "Failed to load OracleBackup configuration from '$configPath': $($PSItem.Exception.Message)"
+        $safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message
+        throw "Failed to load OracleBackup configuration from '$configPath': $safeMessage"
     }
 }

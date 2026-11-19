@@ -92,7 +92,8 @@ function ConvertFrom-SecureStringToPlaintext {
         return [System.Runtime.InteropServices.Marshal]::PtrToStringUni($ptr)
     }
     catch {
-        throw "Failed to convert SecureString: $($PSItem.Exception.Message)"
+        $safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message
+        throw "Failed to convert SecureString: $safeMessage"
     }
     finally {
         # Always zero and free the unmanaged memory, even if an exception occurred.

@@ -8,6 +8,7 @@
 
 BeforeAll {
     $script:repoRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
+    . (Join-Path -Path $script:repoRoot -ChildPath 'Tests' -AdditionalChildPath 'Lint', 'Find-UnscrubbedExceptionText.ps1')
 
     # Types whose use means a file, process, registry, network or environment change.
     $script:sideEffectTypes = 'IO\.File$|IO\.Directory$|IO\.StreamWriter$|IO\.FileStream$|Diagnostics\.Process|^System\.Environment$|^Environment$|Microsoft\.Win32|Registry|^System\.Net\.|^Net\.'
@@ -291,9 +292,15 @@ Describe 'Source invariants' -Tag 'Static' {
         @($function.Body.ParamBlock.Parameters | Where-Object { $PSItem.StaticType -in @([securestring], [pscredential]) }) | Should -BeNullOrEmpty
     }
 
+    It 'Get-OracleDatabaseList S2 reads exception text only through Invoke-CredentialScrub' -Tag 'SEC' {
+        $function = Get-SourceFunction -RelativePath (Get-SourcePath 'Public' 'Get-OracleDatabaseList') -Name 'Get-OracleDatabaseList'
+        $function | Should -Not -BeNullOrEmpty
+        (@(Find-UnscrubbedExceptionText -Ast $function.Body) -join "`n") | Should -BeNullOrEmpty
+    }
+
     It 'Get-OracleDatabaseList L1 is read-only: every command it calls only reads' {
         $function = Get-SourceFunction -RelativePath (Get-SourcePath 'Public' 'Get-OracleDatabaseList') -Name 'Get-OracleDatabaseList'
-        $readers = @('Set-StrictMode', 'Get-CimInstance', 'Get-Content', 'Get-Process', 'Get-Date', 'Test-Path', 'Split-Path', 'ForEach-Object', 'Write-Verbose')
+        $readers = @('Set-StrictMode', 'Get-CimInstance', 'Get-Content', 'Get-Process', 'Get-Date', 'Test-Path', 'Split-Path', 'ForEach-Object', 'Write-Verbose', 'Invoke-CredentialScrub')
         @(Get-CommandName -Ast $function.Body | Where-Object { $PSItem -notin $readers }) | Should -BeNullOrEmpty
         @(Get-AssignedScope -Ast $function.Body) | Should -BeNullOrEmpty
         @(Get-MemberName -Ast $function.Body | Where-Object { $PSItem -match $script:writeMembers }) | Should -BeNullOrEmpty
@@ -343,6 +350,12 @@ Describe 'Source invariants' -Tag 'Static' {
         @(Get-CommandName -Ast $function.Body | Where-Object { $PSItem -in $writers -or $PSItem -match '\.exe$' }) | Should -BeNullOrEmpty
         @(Get-MemberName -Ast $function.Body | Where-Object { $PSItem -match $script:writeMembers -or $PSItem -eq 'SetEnvironmentVariable' }) | Should -BeNullOrEmpty
         @(Get-TypeName -Ast $function.Body | Where-Object { $PSItem -match $script:sideEffectTypes }) | Should -BeNullOrEmpty
+    }
+
+    It 'Set-OracleEnv S3 reads exception text only through Invoke-CredentialScrub' -Tag 'SEC' {
+        $function = Get-SourceFunction -RelativePath (Get-SourcePath 'Public' 'Set-OracleEnv') -Name 'Set-OracleEnv'
+        $function | Should -Not -BeNullOrEmpty
+        (@(Find-UnscrubbedExceptionText -Ast $function.Body) -join "`n") | Should -BeNullOrEmpty
     }
 
     It 'Set-OracleEnv L3 calls neither Read-Host nor Write-Host' {

@@ -131,9 +131,13 @@ with tests.
 **Status:** Implemented at Stack 0 for the RMAN functions; best-effort.
 
 **How:** `Invoke-CredentialScrub` replaces the password in any
-`user/password@service` pattern. `Invoke-RmanProcess` applies it to RMAN stdout,
+`user/password@service` pattern. The password runs to the last `@` in the token, so a
+password that holds an `@` is replaced whole. `Invoke-RmanProcess` applies it to RMAN stdout,
 stderr and exception messages before they are returned or re-thrown. The public
-RMAN functions apply it again to exception text placed in `Message`.
+RMAN functions apply it again to exception text placed in `Message`. [SEC] Every
+function scrubs exception text before it re-throws it or places it in `Message`
+(rule S-07); the static check `Tests\Static\ExceptionScrub.Tests.ps1` fails on any
+`.Exception.Message` in `Source\` read outside `Invoke-CredentialScrub`.
 
 **Contract:** `Message` on every return object must be safe to write to a log.
 The primary defence is that credentials are never placed where they could be

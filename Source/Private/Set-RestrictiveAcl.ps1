@@ -156,6 +156,7 @@ function Set-RestrictiveAcl {
         Write-Verbose "[Set-RestrictiveAcl] Restrictive ACL applied to: $Path"
     }
     catch {
-        throw "Failed to apply restrictive ACL to '$Path': $($PSItem.Exception.Message)"
+        $safeMessage = Invoke-CredentialScrub -Content $PSItem.Exception.Message
+        throw "Failed to apply restrictive ACL to '$Path': $safeMessage"
     }
 }
