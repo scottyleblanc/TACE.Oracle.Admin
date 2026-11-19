@@ -1,10 +1,10 @@
 {
   "SchemaVersion": 1,
-  "Commit": "25942cf959b38df762ac1cc1723c0d0d82cd4042",
-  "BaseCommit": "677cfb820d10fe47d36f7eda012bb6b9fe17eb7b",
+  "Commit": "72c399e9ca336858a57510158616877a8ea31b7b",
+  "BaseCommit": "bb6645ba5069ccc3c56a3ecd09aa652f157129c4",
   "Base": "origin/master",
   "Completed": true,
-  "RunAtUtc": "2026-11-19T16:44:45Z",
+  "RunAtUtc": "2026-11-19T20:40:33Z",
   "Reviewer": {
     "Tool": "Claude Code",
     "Version": "2.1.308",
@@ -12,55 +12,55 @@
     "Effort": "medium"
   },
   "PromptSha256": "ebf2a741564fe0498d640695edc9f69d059fe78be2dd73c56e4cb65aa81b44a2",
-  "FilesReviewed": 20,
-  "Turns": 13,
-  "CostUsd": 0.76,
+  "FilesReviewed": 30,
+  "Turns": 22,
+  "CostUsd": 1.13,
   "PermissionDenials": 0,
-  "Summary": "The change closes Stack 8 and bumps the module to 0.2.8. It adds two gate checks: `version` (D-10 agreement across the manifest, the root module, the public .NOTES blocks, the CHANGELOG and, with -Base, the tags) and `package` (the .nupkg must hold exactly the files in FileList). It also adds a FileList check to Publish-ToGallery.ps1, makes its -ApiKey a SecureString that is extracted inline, tightens the `review` check so it refuses a record left by an earlier pull request, and adds four seeded cases, with documentation to match. I read REVIEW.md, AGENTS.md, the commit messages and the full diff in that order: intent, then tests, then implementation. I also read Build-Module.ps1, Publish-ToGallery.ps1, the relevant parts of Invoke-Gate.ps1 and the CI workflow (full fetch, so tags are present). The S-01/S-03 handling of the API key is correct, and the review-stale fix behaves as described. The findings are gaps in the new [SEC] file-list checks, a tag rule narrower than what it claims to protect, and a TODO item ticked before it can be done.",
+  "Summary": "The change closes Stack 9 and bumps the version to 0.2.9. It adds an escaped-defect log and an ownership-drill record. It adds rule S-17 with a static check that compares the agent permission files against Tests\\Lint\\AgentPermissions.psd1. It fixes Invoke-CredentialScrub so that a password holding an @ is scrubbed whole. It makes six functions scrub exception text before it goes into Message or is re-thrown, with a new static check on .Exception.Message (S-07). I read REVIEW.md, AGENTS.md, the commit messages and the full diff. I then opened the changed source, the invariant mutation list, the permission files and SECURITY.md section 12, and reviewed in order: intent, tests, implementation. The new scrub regex, the S1 exact-text test and the static S-07 check hold up. The problems are: the mutation list was not updated for the rewritten catch blocks; the private helpers' invariant blocks were not updated; the permission check ignores the permission mode; and the scrub helper's help text is stale.",
   "Findings": [
     {
       "Id": "F1",
       "Severity": "Medium",
-      "Step": "Implementation",
-      "Rule": "none",
-      "File": "Scripts/Publish-ToGallery.ps1",
-      "Line": 78,
-      "Title": "The FileList check lists the version folder without -Force, so a hidden file passes the check but is still packaged and published.",
-      "Detail": "`Get-ChildItem -LiteralPath $stagingDir -File -Recurse` leaves out items with the Hidden or System attribute unless -Force is given. The comment next to the check, and the audit record, say that Publish-PSResource packages every file in the version folder, so a hidden file in that folder is not in `$onDisk`, does not show up in `$extra`, and goes to PSGallery, where a version can never be removed. This is the last check before publishing, and it runs on a local folder that the gate's `package` check never saw. Fix: add `-Force` to the Get-ChildItem call. Better still, compare against the entries of the package Publish-PSResource actually builds, as Build-Module.ps1 does.",
-      "Response": "Fixed: 1858ee6. Get-ChildItem now lists the version folder with -Force, so a hidden or system file is compared with FileList before publishing."
+      "Step": "Tests",
+      "Rule": "I-10",
+      "File": "Tests/Mutation/InvariantMutations.psd1",
+      "Line": 51,
+      "Title": "Three mutation entries look for catch-block text that this change removed, so Test-InvariantMutation.ps1 now throws instead of checking those invariants.",
+      "Detail": "The change rewrites the catch blocks in Assert-OracleEnvironment (line 223-224) and ConvertFrom-SecureStringToPlaintext (line 95-96) to throw with $safeMessage. Three mutation entries still use the old text as their Find string: 'throw \"Oracle environment validation failed: $($PSItem.Exception.Message)\"' for Assert-OracleEnvironment T1 (line 51), and 'throw \"Failed to convert SecureString: $($PSItem.Exception.Message)\"' for ConvertFrom-SecureStringToPlaintext S5 (line 68) and T1 (line 72). Scripts/Test-InvariantMutation.ps1 throws when a Find text does not occur exactly once (line 203), so the mutation run now stops at these entries. The three cited tests, one of them for a [SEC] invariant (S5), are no longer shown to fail when their invariant breaks. The change touches invariant blocks, so REVIEW.md step 1 requires this script to pass, and Tests/Mutation/InvariantMutations.psd1 is not in the changed files. Fix: rewrite the three Find and Replace strings against the new catch blocks. Also consider adding entries for the newly proven Set-OracleEnv S3 and Get-OracleDatabaseList S2, and for the E4 regex fix: no current mutation restores the old first-@ pattern.",
+      "Response": "Fixed: 98a7b73. The three entries now find the $safeMessage catch lines; new mutations cover the E4 first-@ pattern and each new scrub invariant. The run then showed Assert-OracleEnvironment S7 surviving, because the catch-block scrub made the separate tnsping scrub unobservable; that scrub is removed and S7 holds through the catch block. 82 of 82 mutations caught."
     },
     {
       "Id": "F2",
-      "Severity": "Low",
-      "Step": "Implementation",
-      "Rule": "none",
-      "File": "Scripts/Build-Module.ps1",
-      "Line": 355,
-      "Title": "The package comparison drops some entries before it compares, so a stray file whose path matches those filters is never seen.",
-      "Detail": "`$packaged` is built from `$entries`, which already leaves out any entry under `_rels/` or `package/`, any entry whose name starts with `[`, and any entry ending in `.nuspec` at any depth. That filter was written to tidy the contents listing. It now also feeds the new [SEC] check, so a file in the version folder such as `package/x`, `notes.nuspec` or `[draft].txt` would be packaged and still pass the 'exactly the FileList files' check. Fix: exclude only the exact NuGet metadata entries (the root `[Content_Types].xml`, `_rels/.rels`, `package/services/metadata/...` and the root `<id>.nuspec`), and compare everything else.",
-      "Response": "Fixed: 1858ee6. The comparison now leaves out only the exact entries NuGet adds ([Content_Types].xml, _rels/.rels, the root TACE.Oracle.Admin.nuspec and the core-properties .psmdcp); every other entry is compared with FileList."
+      "Severity": "Medium",
+      "Step": "Intent",
+      "Rule": "I-08",
+      "File": "Source/Private/Assert-OracleEnvironment.ps1",
+      "Line": 222,
+      "Title": "Four private helpers now scrub exception text before they re-throw it, but none of their invariant blocks records this.",
+      "Detail": "Assert-OracleEnvironment, ConvertFrom-SecureStringToPlaintext, Get-OracleBackupConfigStore and Set-RestrictiveAcl each gain an Invoke-CredentialScrub call in their catch block, a security behaviour change. None of their INVARIANTS blocks is changed. They have no [SEC] entry saying the re-thrown text is scrubbed (compare Invoke-RmanProcess S5), and their T1 entries still describe only the prefix. The public functions Set-OracleEnv S3 and Get-OracleDatabaseList S2 were updated in the same commit, so the omission is inconsistent with the change itself. The guarantee also does not appear in Docs/standards/invariants-index.md for these functions. Fix: add a [SEC] S entry to each block (next unused ID per I-04) stating that exception text is scrubbed before the re-throw. Cite the ExceptionScrub static check or a per-function check as its proof.",
+      "Response": "Fixed: 98a7b73. Assert-OracleEnvironment S10, ConvertFrom-SecureStringToPlaintext S6, Get-OracleBackupConfigStore S5 and Set-RestrictiveAcl S5 state the catch-block scrub, each proven by a cited static check in SourceInvariants.Tests.ps1."
     },
     {
       "Id": "F3",
-      "Severity": "Low",
-      "Step": "Implementation",
-      "Rule": "D-11",
-      "File": "Scripts/Invoke-Gate.ps1",
-      "Line": 349,
-      "Title": "The tag rule treats a released version as changed only when files under Source/ change, but the package also depends on README.md, LICENSE and Build-Module.ps1.",
-      "Detail": "Decision 36 and SECURITY section 13 say the tag rule keeps a released number from labelling different code or contents. The check looks only at `Source/*` in `$baseCommit...HEAD`. Build-Module.ps1 merges Source into the shipped .psm1 and copies README.md and LICENSE (`$rootFiles`) into the package. A pull request that edits the build script's merge logic or the README, without bumping the version, produces a different package under an already-tagged version and passes `version`. Fix: count changes to `README.md`, `LICENSE` and `Scripts/Build-Module.ps1` as well, or narrow the wording in the documents to 'Source\\'.",
-      "Response": "Fixed: 1858ee6. The tag rule now counts README.md, LICENSE and Scripts/Build-Module.ps1 as well as Source/, the files the package is made from; decision 36, SECURITY section 13, PREREQUISITES, VERSIONING and the CHANGELOG say so."
+      "Severity": "Medium",
+      "Step": "Tests",
+      "Rule": "S-17",
+      "File": "Tests/Static/AgentPermissions.Tests.ps1",
+      "Line": 858,
+      "Title": "The S-17 check reads only the allow and deny lists, so a committed defaultMode that bypasses permission prompts passes the gate.",
+      "Detail": "The check compares permissions.allow against the documented allow list and checks that every documented deny rule is present. It never reads permissions.defaultMode or any other key in the permissions block. A committed .claude/settings.json with defaultMode set to bypassPermissions or dontAsk would let the agent run any command without asking, yet both tests would still pass. SECURITY.md section 12 (line 243) says any command outside the allow list asks first, and S-17 says the files 'allow nothing beyond the documented allow rules'. A change of mode breaks both, and the check meant to enforce S-17 misses it. That is the 'allow rule widened' escape the check (decision 37, entry E3) was added to close. Fix: record the expected defaultMode (or its absence), and any other permission keys, in Tests/Lint/AgentPermissions.psd1, and fail when the file differs.",
+      "Response": "Fixed: 98a7b73. Tests/Lint/AgentPermissions.psd1 lists the top-level and permissions keys each file may hold, and the S-17 check fails on any other key; shown to fail on permissions.defaultMode = bypassPermissions in a scratch copy. S-17, decision 37 and SECURITY section 12 say so."
     },
     {
       "Id": "F4",
       "Severity": "Low",
       "Step": "Intent",
-      "Rule": "D-06",
-      "File": "Docs/TODO.md",
-      "Line": 516,
-      "Title": "TODO marks tag v0.2.8 as done, but the documents say the tag is made by hand after the merge, so it cannot exist at this commit.",
-      "Detail": "SECURITY.md (section 13 and step 2 of the release procedure), PREREQUISITES and decision 36 all say the tag goes on the merge commit after the pull request merges, and the gate's own tag-rule comment says a release's pull request passes with its version not yet tagged. The TODO line '[x] `CHANGELOG.md` 0.2.8 and tag `v0.2.8`' therefore records work that has not been done, and STAGES already marks Stack 8 'Complete (v0.2.8)'. Fix: leave the tag as an open item until it is made, or reword the line so it says the tag follows the merge.",
-      "Response": "Rejected: under the close-once pattern the closing tasks are ticked in the stack pull request, and the tag is made on the merge commit immediately after it merges, as for v0.2.7. Leaving the line open would need a follow-up pull request only to tick it."
+      "Rule": "D-11",
+      "File": "Source/Private/Invoke-CredentialScrub.ps1",
+      "Line": 9,
+      "Title": "The .DESCRIPTION still names only the three RMAN functions as scrubbing exception messages, although six more now call the scrub.",
+      "Detail": "Lines 7-10 list the callers that scrub exception messages as Invoke-RmanProcess, Get-RmanBackupStatus and Remove-RmanObsoleteBackup. This change makes Set-OracleEnv, Get-OracleDatabaseList, Assert-OracleEnvironment, ConvertFrom-SecureStringToPlaintext, Get-OracleBackupConfigStore and Set-RestrictiveAcl call it too, and SECURITY.md now says every function does. The change edits the next paragraph of the same help block but leaves this list out of date. Fix: say that every function scrubs exception text (rule S-07), or list all callers.",
+      "Response": "Fixed: 98a7b73. The .DESCRIPTION now says every function scrubs the exception text it re-throws or places in Message (rule S-07)."
     }
   ]
 }
