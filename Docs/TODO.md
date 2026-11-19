@@ -508,7 +508,10 @@ changelog, or whose package contains a file not listed in `FileList`.
 - [x] Seeded defects: a version mismatch and a stray file. `Test-SeededDefect.ps1`
       cases `version mismatch`, `version released` and `stray file`; 18 of 18 behave as
       expected (about 25 minutes)
-- [ ] Closing tasks
+- [x] Closing tasks
+      - [x] Record: `Docs\audit\stack-8-release.md`
+      - [x] `CHANGELOG.md` 0.2.8 and tag `v0.2.8`
+      - [x] Write-up: Stack 8 post and project page row
 
 ### Stack 9 — Feedback loop
 

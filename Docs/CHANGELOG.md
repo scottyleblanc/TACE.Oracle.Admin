@@ -6,10 +6,15 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.2.8] - 2026-11-19
+
+Stack 8 of the AI Development Stack — release. Not published to PSGallery.
+No change to module behaviour. Record in `Docs/audit/stack-8-release.md`.
 
 ### Added
 
+- `Docs/audit/stack-8-release.md`: how `Publish-PSResource` treats `FileList`, the
+  first run of the version check, and the seeded cases.
 - `Invoke-Gate.ps1`: a `version` check (rule D-10). The manifest,
   `Source\TACE.Oracle.Admin.psm1`, every public function's `.NOTES` and the newest
   `CHANGELOG.md` release must name the same version. With `-Base` the version must not
