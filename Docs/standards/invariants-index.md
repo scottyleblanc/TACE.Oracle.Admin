@@ -8,9 +8,9 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 | Measure | Count |
 |---|--:|
 | Functions | 14 |
-| Invariants | 160 |
-| Security invariants | 55 |
-| Proven (a cited test or static check) | 141 |
+| Invariants | 164 |
+| Security invariants | 59 |
+| Proven (a cited test or static check) | 145 |
 | Unproven (test or static check not written yet) | 0 |
 | Unproven security invariants | 0 |
 | Accepted limitations | 19 |
@@ -42,11 +42,13 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S6** `[SEC]` A WalletAlias is resolved with tnsping before the function returns. *(Test)*
   - Test: 'S6 throws when tnsping exits with a non-zero exit code'
   - Test: 'S6 throws when tnsping stdout contains a TNS-NNNNN error code'
-- **S7** `[SEC]` tnsping output is scrubbed before it is placed in an error message. *(Test)*
+- **S7** `[SEC]` tnsping output placed in an error message is scrubbed: it reaches the caller only through the catch block, which scrubs every message (S10). *(Test)*
   - Test: 'S7 a credential in tnsping stdout or stderr is scrubbed from the error message (<Stream>)'
 - **S8** `[SEC]` The current session environment is not changed. *(Test)*
   - Test: 'S8 the session environment is unchanged when all checks pass'
 - **S9** `[SEC]` tnsping.exe is checked to exist, but its signature is not checked. *(Limitation)*
+- **S10** `[SEC]` The catch block scrubs the exception message before it is re-thrown (rule S-07). *(Guard; Static)*
+  - Static: 'Assert-OracleEnvironment S10 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns the full path of the validated binary. *(Test)*
   - Test: 'R1 returns the binary path when all checks pass'
 - **T1** Every throw starts with 'Oracle environment validation failed:'. *(Test)*
@@ -100,6 +102,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'S4 is not callable outside module scope'
 - **S5** `[SEC]` A throw does not contain the plaintext. *(Static)*
   - Static: 'ConvertFrom-SecureStringToPlaintext S5 the catch block refers to neither the buffer nor the input'
+- **S6** `[SEC]` The catch block scrubs the exception message before it is re-thrown (rule S-07). *(Guard; Static)*
+  - Static: 'ConvertFrom-SecureStringToPlaintext S6 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns the exact plaintext, including an empty string and special characters. *(Test)*
   - Test: 'R1 returns the correct plaintext for a standard password'
   - Test: 'R1 returns an empty string for an empty SecureString'
@@ -120,6 +124,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
 - **S3** `[SEC]` OracleHome read from the config is untrusted until checked. *(Limitation)*
 - **S4** `[SEC]` No environment variable or caller input decides where the config is read from or created. Only the module-scoped test override can change the path. *(Test)*
   - Test: 'S4 ORACLE_BACKUP_CONFIG_PATH does not change the config path'
+- **S5** `[SEC]` The catch block scrubs the exception message before it is re-thrown (rule S-07). *(Guard; Static)*
+  - Static: 'Get-OracleBackupConfigStore S5 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns an object with all eight settings. A setting missing from the file takes its default. *(Test)*
   - Test: 'R1 a setting missing from the file takes its default'
 - **R2** When the file does not exist it is written with the defaults, and the defaults are returned. *(Test)*
@@ -252,6 +258,8 @@ Identifiers are local to a function. The format is defined in [invariants.md](in
   - Test: 'S3 child file created inside a secured directory inherits the restrictive ACEs (SEC-07)'
   - Test: 'S3 file ACEs use InheritanceFlags::None (files have no child objects)'
 - **S4** `[SEC]` On a platform other than Windows nothing is changed. *(Limitation)*
+- **S5** `[SEC]` The catch block scrubs the exception message before it is re-thrown (rule S-07). *(Guard; Static)*
+  - Static: 'Set-RestrictiveAcl S5 reads exception text only through Invoke-CredentialScrub'
 - **R1** Returns nothing. *(Type; Test)*
   - Test: 'R1 returns nothing'
 - **T1** Every throw starts with 'Failed to apply restrictive ACL to' and names the path. *(Test)*

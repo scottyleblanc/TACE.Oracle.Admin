@@ -16,13 +16,12 @@ BeforeAll {
     $dataFile        = Join-Path -Path $script:repoRoot -ChildPath 'Tests' -AdditionalChildPath 'Lint', 'AgentPermissions.psd1'
     $script:documented = @((Import-PowerShellDataFile -LiteralPath $dataFile).Files)
 
-    # Returns the parsed permissions block of a settings file.
-    function Get-PermissionBlock {
+    # Returns a settings file parsed as a hashtable, or $null when it does not exist.
+    function Get-SettingsFile {
         param([Parameter(Mandatory)] [string] $RelativePath)
         $full = Join-Path -Path $script:repoRoot -ChildPath $RelativePath
         if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { return $null }
-        $json = Get-Content -LiteralPath $full -Raw | ConvertFrom-Json -AsHashtable
-        $json['permissions']
+        Get-Content -LiteralPath $full -Raw | ConvertFrom-Json -AsHashtable
     }
 }
 
@@ -35,11 +34,20 @@ Describe 'Agent permission settings' -Tag 'Static', 'SEC' {
     Context '<Path>' -ForEach $script:expected {
 
         BeforeAll {
-            $script:block = Get-PermissionBlock -RelativePath $Path
+            $script:settings = Get-SettingsFile -RelativePath $Path
+            $script:block    = if ($script:settings) { $script:settings['permissions'] } else { $null }
         }
 
         It 'S-17: the file exists and has a permissions block' {
             $script:block | Should -Not -BeNullOrEmpty -Because "$Path is the committed permission file for an agent (S-17)"
+        }
+
+        It 'S-17: no setting beyond the documented keys' {
+            # A key such as defaultMode = bypassPermissions, hooks or env changes what the
+            # agent may do without touching the allow or deny lists.
+            $extra = @(@($script:settings.Keys | Where-Object { $PSItem -cnotin $Keys }) +
+                @($script:block.Keys | Where-Object { $PSItem -cnotin $PermissionKeys } | ForEach-Object { "permissions.$PSItem" }))
+            ($extra -join "`n") | Should -BeNullOrEmpty -Because "a setting new to $Path can widen what the agent may do unasked; change Tests\Lint\AgentPermissions.psd1 and SECURITY.md section 12 with it (S-17)"
         }
 
         It 'S-17: every documented deny rule is present' {

@@ -82,6 +82,10 @@ function Set-RestrictiveAcl {
     #       'S3 file ACEs use InheritanceFlags::None (files have no child objects)'.
     #   [SEC] S4 On a platform other than Windows nothing is changed.
     #       Limitation: permissions are left to the operating system.
+    #   [SEC] S5 The catch block scrubs the exception message before it is re-thrown
+    #       (rule S-07).
+    #       Guard: Invoke-CredentialScrub in the catch block.
+    #       Static: 'Set-RestrictiveAcl S5 reads exception text only through Invoke-CredentialScrub'.
     #
     # POST-CONDITIONS
     #   R1 Returns nothing.

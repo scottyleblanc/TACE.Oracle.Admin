@@ -5,9 +5,9 @@
 
 .DESCRIPTION
     Private helper that sanitises text before it is stored, returned or logged:
-    RMAN stdout and stderr (Invoke-RmanProcess), tnsping output (Assert-OracleEnvironment),
-    and exception messages (Invoke-RmanProcess, Get-RmanBackupStatus,
-    Remove-RmanObsoleteBackup).
+    RMAN stdout and stderr (Invoke-RmanProcess), and the exception text every function
+    re-throws or places in Message (rule S-07), which includes tnsping output in an
+    Assert-OracleEnvironment error.
 
     One pattern is scrubbed: a connect string of the form user/password@service, whose
     password, up to the last @ in the token, is replaced with ***SCRUBBED***, so a

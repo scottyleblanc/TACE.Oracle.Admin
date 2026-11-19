@@ -7,7 +7,7 @@
 | Version | 0.2.9 |
 | Last audit | 2026-11-19 — Stack 9 feedback loop |
 | Findings resolved | Stack 9: three `[SEC]` escaped defects converted into checks. The agent permission files could lose a deny rule unseen (now S-17). `Invoke-CredentialScrub` left part of a password that holds an `@`. Six places read exception text without the scrub, two of them recorded as accepted limitations (now S-07, linter-enforced) |
-| Unit tests | 405 (all passing); 188 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
+| Unit tests | 405 (all passing); 194 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
 | Open SEC items | 7 — see Open Items |
 
 The RMAN functions added at Stack 0 (v0.2.0, not on PSGallery) were copied from
@@ -258,7 +258,8 @@ wrapped calls are not matched by a deny rule and were not tested. Tested headles
 against planted files; the record is `Docs\audit\stack-7-containment.md`. [SEC] The
 documented rules are listed in `Tests\Lint\AgentPermissions.psd1`, and the
 static check `Tests\Static\AgentPermissions.Tests.ps1` (rule S-17) fails the gate when
-either file drops a listed deny rule or holds an allow rule the list does not, so a
+either file drops a listed deny rule, holds an allow rule the list does not, or holds a
+setting the list does not name, such as `defaultMode`, `hooks` or `env`, so a
 change to the rules changes that list, and this section, in the same diff.
 
 ---

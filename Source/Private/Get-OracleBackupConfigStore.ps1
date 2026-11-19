@@ -61,6 +61,10 @@ function Get-OracleBackupConfigStore {
     #   [SEC] S4 No environment variable or caller input decides where the config is
     #       read from or created. Only the module-scoped test override can change the path.
     #       Test: 'S4 ORACLE_BACKUP_CONFIG_PATH does not change the config path'.
+    #   [SEC] S5 The catch block scrubs the exception message before it is re-thrown
+    #       (rule S-07).
+    #       Guard: Invoke-CredentialScrub in the catch block.
+    #       Static: 'Get-OracleBackupConfigStore S5 reads exception text only through Invoke-CredentialScrub'.
     #
     # POST-CONDITIONS
     #   R1 Returns an object with all eight settings. A setting missing from the file

@@ -352,6 +352,30 @@ Describe 'Source invariants' -Tag 'Static' {
         @(Get-TypeName -Ast $function.Body | Where-Object { $PSItem -match $script:sideEffectTypes }) | Should -BeNullOrEmpty
     }
 
+    It 'Assert-OracleEnvironment S10 reads exception text only through Invoke-CredentialScrub' -Tag 'SEC' {
+        $function = Get-SourceFunction -RelativePath (Get-SourcePath 'Private' 'Assert-OracleEnvironment') -Name 'Assert-OracleEnvironment'
+        $function | Should -Not -BeNullOrEmpty
+        (@(Find-UnscrubbedExceptionText -Ast $function.Body) -join "`n") | Should -BeNullOrEmpty
+    }
+
+    It 'ConvertFrom-SecureStringToPlaintext S6 reads exception text only through Invoke-CredentialScrub' -Tag 'SEC' {
+        $function = Get-SourceFunction -RelativePath (Get-SourcePath 'Private' 'ConvertFrom-SecureStringToPlaintext') -Name 'ConvertFrom-SecureStringToPlaintext'
+        $function | Should -Not -BeNullOrEmpty
+        (@(Find-UnscrubbedExceptionText -Ast $function.Body) -join "`n") | Should -BeNullOrEmpty
+    }
+
+    It 'Get-OracleBackupConfigStore S5 reads exception text only through Invoke-CredentialScrub' -Tag 'SEC' {
+        $function = Get-SourceFunction -RelativePath (Get-SourcePath 'Private' 'Get-OracleBackupConfigStore') -Name 'Get-OracleBackupConfigStore'
+        $function | Should -Not -BeNullOrEmpty
+        (@(Find-UnscrubbedExceptionText -Ast $function.Body) -join "`n") | Should -BeNullOrEmpty
+    }
+
+    It 'Set-RestrictiveAcl S5 reads exception text only through Invoke-CredentialScrub' -Tag 'SEC' {
+        $function = Get-SourceFunction -RelativePath (Get-SourcePath 'Private' 'Set-RestrictiveAcl') -Name 'Set-RestrictiveAcl'
+        $function | Should -Not -BeNullOrEmpty
+        (@(Find-UnscrubbedExceptionText -Ast $function.Body) -join "`n") | Should -BeNullOrEmpty
+    }
+
     It 'Set-OracleEnv S3 reads exception text only through Invoke-CredentialScrub' -Tag 'SEC' {
         $function = Get-SourceFunction -RelativePath (Get-SourcePath 'Public' 'Set-OracleEnv') -Name 'Set-OracleEnv'
         $function | Should -Not -BeNullOrEmpty
