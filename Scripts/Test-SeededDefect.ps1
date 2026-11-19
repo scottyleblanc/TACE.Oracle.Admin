@@ -236,7 +236,9 @@ try {
     if (([regex]::Matches($text, [regex]::Escape($anchor))).Count -ne 1) { throw '[Test-SeededDefect] permission anchor not found exactly once in .claude/settings.json' }
     [System.IO.File]::WriteAllText($target, $text.Replace($anchor, ''), [System.Text.UTF8Encoding]::new($false))
     Add-Case -Name 'permission' -Result (Invoke-CopyGate) -ExpectFailed @('static')
-    $null = Invoke-CopyGit -Argument @('checkout', '--quiet', '--', '.claude/settings.json')
+    # Restored from the saved text: .gitignore ignores .claude\, so the copy's commit does
+    # not hold the file and git checkout cannot restore it.
+    [System.IO.File]::WriteAllText($target, $text, [System.Text.UTF8Encoding]::new($false))
 
     # -- secret: a token committed in a file -----------------------------------
     $target = Join-Path -Path $copy -ChildPath 'Docs' -AdditionalChildPath 'seeded-note.md'
