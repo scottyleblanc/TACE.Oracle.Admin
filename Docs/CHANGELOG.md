@@ -12,6 +12,8 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 - `Docs/audit/escaped-defects.md`: the escaped-defect log. Every entry ends in a check
   that now fails on the defect; five entries (E1 to E5).
+- `Docs/audit/stack-9-feedback-loop.md`: the ownership drill. A headless agent given
+  only the committed files found and fixed a planted scrub defect.
 - `Test-SeededDefect.ps1`: case `permission`; 20 cases.
 
 ### Security

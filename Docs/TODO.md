@@ -533,7 +533,9 @@ docs and tests alone are shown to be enough to find and fix a planted defect.
 - [x] [SEC] Found by the drill, E5: six places read exception text without the scrub
       (rule S-07). All six now scrub; `Tests\Static\ExceptionScrub.Tests.ps1` fails on
       any `.Exception.Message` in `Source\` read outside `Invoke-CredentialScrub`
-- [ ] Run one ownership drill; record the result
+- [x] Run one ownership drill; record the result: `Docs\audit\stack-9-feedback-loop.md`.
+      A headless agent with only the committed files found and fixed a planted scrub
+      defect in `Remove-RmanObsoleteBackup` in 5 min 42 s
 - [ ] Closing tasks
 
 ### Stack 10 — Wrap-up
