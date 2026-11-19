@@ -4,11 +4,11 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.2.6 |
-| Last audit | 2026-11-16 — Stack 6 independent review |
-| Findings resolved | Stack 6: none in the module. A planted S-11 defect that the gate passed was reported as High by every review. The Stack 5 `[SEC]` finding in the agent tooling stays open for Stack 7 |
+| Version | 0.2.7 |
+| Last audit | 2026-11-18 — Stack 7 containment |
+| Findings resolved | Stack 7: none in the module. Two `[SEC]` findings in the agent tooling fixed: the Stack 5 PowerShell-tool deletion and a Bash `rm` that ran without asking. One open: the Cursor CLI does not enforce read rules (Open Items) |
 | Unit tests | 405 (all passing); 164 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
-| Open SEC items | 6 — see Open Items |
+| Open SEC items | 7 — see Open Items |
 
 The RMAN functions added at Stack 0 (v0.2.0, not on PSGallery) were copied from
 the Oracle backup module. Their security mechanisms are described below as built.
@@ -223,6 +223,36 @@ answered, not that the session ran as recorded. Commits after the reviewed one a
 by the human, not the model. The record holds no local user-profile path (static tier)
 and no credential-like value (the reviewer's instructions and the gate's secret scan).
 
+### 12. Agent Containment
+
+**Status:** Implemented at Stack 7.
+
+**Why:** an AI agent working in this repository runs commands and reads files with the
+rights of the person running it. Without rules it can read local credential material,
+delete files or push.
+
+**How:** two committed permission files. [SEC] `.claude/settings.json` (Claude Code)
+denies reads of `Config/`, `Tests/Integration/IntegrationConfig.local.ps1`, `~/.aws`,
+`~/.ssh` and `~/.claude/.credentials.json`, and denies the PowerShell tool, `git push`,
+`rm` and `rmdir`. It allows the Bash tool to run repository scripts as
+`pwsh -NoProfile -File ./Scripts/*` or `./Tests/Lint/*`, and read-only git (`status`,
+`diff`, `log`, `show`). Any other command asks first, and is refused in a headless run.
+[SEC] `.cursor/cli.json` (Cursor CLI) holds the same Shell rules and no read rules (see
+Open Items).
+
+**Contract:** in Claude Code, a read of the listed material through the Read, Grep or
+Bash tools is refused, and the PowerShell tool is not offered. Deny rules apply in every
+workspace; allow rules apply only once the workspace trust prompt has been accepted. A
+session started before the settings file existed does not pick up its deny rules. The
+rules govern the agent's own tools: a repository script the agent runs, the gate
+included, runs with the user's rights. In `acceptEdits` mode the agent can also edit
+or create a script under `Scripts/` or `Tests/Lint/` and run it without asking, so a
+script it writes can read the listed material, delete files or push. Edits there are
+not set to ask, because that would stop routine work on the gate and lint scripts. Only
+`rm` and `rmdir` are denied by name: `mv`, `git rm`, `git clean` and full-path or
+wrapped calls are not matched by a deny rule and were not tested. Tested headless
+against planted files; the record is `Docs\audit\stack-7-containment.md`.
+
 ---
 
 ## Open Items
@@ -246,6 +276,14 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
   before touching the config or RMAN (rule C-07); Linux support is not built.
 - The copied code has had the Stack 1 invariant review, not a STIG assessment. The
   STIG table below reflects the module before Stack 0.
+- The Cursor agent is not kept away from credential material (Stack 7). On Windows,
+  Cursor CLI 2026.11.17 did not enforce any `Read(...)` deny rule in
+  `.cursor/cli.json`: relative, glob, exact, absolute and home-folder forms were all
+  read by its file-read and search tools. Its sandbox, which the Cursor docs list only
+  for macOS and Linux, did not start. `.cursor/cli.json` therefore holds only the
+  Shell rules, which were tested and work. The Cursor IDE agent's controls are user
+  settings and are not set from this repository. The Claude Code read deny rules in
+  `.claude/settings.json` are enforced.
 
 ---
 
@@ -263,6 +301,7 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | 2026-11-16 | 0.2.4 | 2 (2 `[SEC]`) | Stack 4 enforced gate. `[SEC]`: in a CI checkout every commit is on a remote, so the gate's `commits` and `messages` checks would have passed having checked nothing (fixed with `-Base`, decision 32). `[SEC]`: `master` accepted direct pushes from anyone with write access, so the gate was advisory (fixed with a ruleset with no bypass, decision 33). The workflow runs with a read-only token, no secrets and a SHA-pinned action; secret scanning and push protection are on. A pull request carrying the seeded defects was blocked. No change to module code. Details in `CHANGELOG.md` 0.2.4 and `Docs\audit\stack-4-enforced-gate.md`. |
 | 2026-11-16 | 0.2.5 | 1 (1 `[SEC]`, open) | Stack 5 agent instructions. No change to module code. `[SEC]`: setting up the comparison showed that Claude Code in `acceptEdits` mode let the PowerShell tool delete a file without asking, while refusing a read-only lint script that no allow rule matched; recorded for Stack 7, where the agent's run and read rules are written and tested. `AGENTS.md` carries the security standards word for word and a static test fails when it drifts. Details in `CHANGELOG.md` 0.2.5 and `Docs\audit\stack-5-agent-instructions.md`. |
 | 2026-11-16 | 0.2.6 | 0 | Stack 6 independent review. No change to module code. Every pull request now carries a second-model review of its own commits, from a session that can read only the committed files of the reviewed commit and can run nothing; the gate fails a review that is missing, does not cover the branch, or is unanswered (section 11, decision 35). A planted defect that the gate passed, a caller's `[string]` in RMAN script text (S-11), was reported as High in each of three reviews. Details in `CHANGELOG.md` 0.2.6 and `Docs\audit\stack-6-independent-review.md`. |
+| 2026-11-18 | 0.2.7 | 3 (3 `[SEC]`, 1 open) | Stack 7 containment. No change to module code. Committed permission settings for Claude Code and the Cursor CLI (section 12). `[SEC]`: the Stack 5 finding, the PowerShell tool deleting a file in `acceptEdits` mode, fixed by denying that tool. `[SEC]`: the rule test showed the Bash tool running `rm` without asking in `acceptEdits` mode, fixed by denying `rm` and `rmdir`. `[SEC]`, open: the Cursor CLI on Windows enforced no `Read(...)` deny rule, so its settings hold only Shell rules (Open Items). Claude Code refused every attempt to read planted credential files. Details in `CHANGELOG.md` 0.2.7 and `Docs\audit\stack-7-containment.md`. |
 
 ---
 

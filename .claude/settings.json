@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(pwsh -NoProfile -File ./Scripts/*)",
+      "Bash(pwsh -NoProfile -File ./Tests/Lint/*)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)"
+    ],
+    "deny": [
+      "PowerShell",
+      "Bash(git push *)",
+      "Bash(rm *)",
+      "Bash(rmdir *)",
+      "Read(~/.aws/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.claude/.credentials.json)",
+      "Read(./Config/**)",
+      "Read(./Tests/Integration/IntegrationConfig.local.ps1)"
+    ]
+  }
+}

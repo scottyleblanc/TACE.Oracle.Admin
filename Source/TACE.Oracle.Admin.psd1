@@ -8,7 +8,7 @@
 @{
     # Module identity
     RootModule        = 'TACE.Oracle.Admin.psm1'
-    ModuleVersion     = '0.2.6'
+    ModuleVersion     = '0.2.7'
     GUID              = '50e4f865-a551-4f83-beb1-329987147747'
     Author            = 'TACE Data Management Inc.'
     CompanyName       = 'TACE Data Management Inc.'
@@ -34,7 +34,7 @@
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell', 'oraset', 'oraenv')
             ProjectUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin'
             LicenseUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE'
-            ReleaseNotes = 'v0.2.6 — AI Development Stack, Stack 6 (independent review): every pull request carries one second-model review of its own commits, run in a confined session, with each finding fixed or answered, and the gate fails a pull request whose review is missing, does not cover the branch, or is unanswered; a human checklist follows in the pull request template. No change to module behaviour. Not published to PSGallery.'
+            ReleaseNotes = 'v0.2.7 — AI Development Stack, Stack 7 (containment): committed agent permission settings for Claude Code and the Cursor CLI deny rm, rmdir, git push and, for Claude Code, reads of credential material; tested against planted credential files. No change to module behaviour. Not published to PSGallery.'
         }
     }
 }

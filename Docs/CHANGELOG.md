@@ -6,6 +6,34 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.7] - 2026-11-18
+
+Stack 7 of the AI Development Stack — containment. Not published to PSGallery.
+No change to module behaviour. Record in `Docs/audit/stack-7-containment.md`.
+
+### Added
+
+- `Docs/audit/stack-7-containment.md`: the committed settings tested headless against
+  planted credential files, for Claude Code and the Cursor CLI.
+- `SECURITY.md` section 12, Agent Containment.
+
+### Security
+
+- `.claude/settings.json`: committed Claude Code permission settings. The agent cannot
+  read `Config/`, `Tests/Integration/IntegrationConfig.local.ps1`, `~/.aws`, `~/.ssh` or
+  `~/.claude/.credentials.json`; cannot use the PowerShell tool, `git push`, `rm` or
+  `rmdir`; may run repository scripts through the Bash tool as
+  `pwsh -NoProfile -File ./Scripts/*` or `./Tests/Lint/*`, and read-only git. Any
+  other command asks first. Allow rules apply only after the workspace trust prompt
+  is accepted; deny rules apply always.
+- `.cursor/cli.json`: Cursor CLI permission settings with the same Shell rules: deny
+  `git push`, `rm` and `rmdir`; allow repository scripts through
+  `pwsh -NoProfile -File ./Scripts/*` or `./Tests/Lint/*`, and read-only git. It holds
+  no `Read` rules: Cursor CLI 2026.11.17 on Windows did not enforce them. Recorded as
+  an open item in `SECURITY.md`.
+
+---
+
 ## [0.2.6] - 2026-11-17
 
 Stack 6 of the AI Development Stack — independent review. Not published to PSGallery.
