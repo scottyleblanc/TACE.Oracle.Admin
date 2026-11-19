@@ -1,8 +1,9 @@
 #Requires -Version 7.6
 <#
 .SYNOPSIS
-    Proves the gate fails on planted defects: a lint violation, a secret in a file and in
-    a commit message, a behaviour defect, a version mismatch and a stray package file.
+    Proves the gate fails on planted defects: a lint violation, a removed agent permission
+    rule, a secret in a file and in a commit message, a behaviour defect, a version
+    mismatch and a stray package file.
 
 .DESCRIPTION
     Copies the files the next commit could contain (tracked, plus untracked files that
@@ -13,6 +14,8 @@
       lint       a $_ planted in a function          the gate fails on 'analyzer'
       instructions  a rule added to Docs\standards\  the gate fails on 'static' only:
                  without AGENTS.md regenerated       the agent would not be told it
+      permission the 'git push' deny rule removed    the gate fails on 'static' only
+                 from .claude\settings.json          (rule S-17)
       secret     a token committed in a file         the gate fails on 'secrets' and 'commits'
       message    a token in a commit message         the gate fails on 'messages'
       behaviour  Get-RmanBackupStatus picks the      the gate with -Unit fails on 'unit'
@@ -62,13 +65,13 @@
 .EXAMPLE
     .\Scripts\Test-SeededDefect.ps1
 
-    Runs the nineteen cases. Exits 0 when every case behaves as expected, 1 otherwise.
+    Runs the twenty cases. Exits 0 when every case behaves as expected, 1 otherwise.
 
 .NOTES
     Copyright © TACE Data Management Inc.
     **Invocation:** Standalone — self-contained; safe to run with `pwsh -File`. Needs
     everything the gate needs (PREREQUISITES.md). Takes about 25 minutes: the gate,
-    static tier included, runs nineteen times, twice with the unit tier. Run it by hand
+    static tier included, runs twenty times, twice with the unit tier. Run it by hand
     when the gate changes; it is not part of the gate or CI. The review records it
     plants are made up; no model review runs.
 #>
@@ -223,6 +226,18 @@ try {
     Add-Case -Name 'instructions' -Result (Invoke-CopyGate) -ExpectFailed @('static')
     $null = Invoke-CopyGit -Argument @('checkout', '--quiet', '--', 'Docs/standards/testing.md')
 
+    # -- permission: a deny rule removed from the agent settings ------------------
+    # S-17: the documented list in Tests\Lint\AgentPermissions.psd1 is unchanged, so the
+    # static tier fails.
+    $target = Join-Path -Path $copy -ChildPath '.claude' -AdditionalChildPath 'settings.json'
+    Assert-InCopy -Path $target
+    $text = [System.IO.File]::ReadAllText($target)
+    $anchor = "      `"Bash(git push *)`",`n"
+    if (([regex]::Matches($text, [regex]::Escape($anchor))).Count -ne 1) { throw '[Test-SeededDefect] permission anchor not found exactly once in .claude/settings.json' }
+    [System.IO.File]::WriteAllText($target, $text.Replace($anchor, ''), [System.Text.UTF8Encoding]::new($false))
+    Add-Case -Name 'permission' -Result (Invoke-CopyGate) -ExpectFailed @('static')
+    $null = Invoke-CopyGit -Argument @('checkout', '--quiet', '--', '.claude/settings.json')
+
     # -- secret: a token committed in a file -----------------------------------
     $target = Join-Path -Path $copy -ChildPath 'Docs' -AdditionalChildPath 'seeded-note.md'
     Assert-InCopy -Path $target
@@ -370,7 +385,7 @@ finally {
 }
 
 $failedCases = @($cases | Where-Object { -not $PSItem.Passed })
-if ($failedCases.Count -gt 0 -or $cases.Count -ne 19) {
+if ($failedCases.Count -gt 0 -or $cases.Count -ne 20) {
     Write-Output "[FAIL] seeded defects: $($failedCases.Count) of $($cases.Count) cases did not behave as expected"
     exit 1
 }

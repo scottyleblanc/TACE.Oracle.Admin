@@ -251,7 +251,11 @@ script it writes can read the listed material, delete files or push. Edits there
 not set to ask, because that would stop routine work on the gate and lint scripts. Only
 `rm` and `rmdir` are denied by name: `mv`, `git rm`, `git clean` and full-path or
 wrapped calls are not matched by a deny rule and were not tested. Tested headless
-against planted files; the record is `Docs\audit\stack-7-containment.md`.
+against planted files; the record is `Docs\audit\stack-7-containment.md`. [SEC] The
+documented rules are listed in `Tests\Lint\AgentPermissions.psd1`, and the
+static check `Tests\Static\AgentPermissions.Tests.ps1` (rule S-17) fails the gate when
+either file drops a listed deny rule or holds an allow rule the list does not, so a
+change to the rules changes that list, and this section, in the same diff.
 
 ---
 

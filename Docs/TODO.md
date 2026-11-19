@@ -521,8 +521,12 @@ changelog, or whose package contains a file not listed in `FileList`.
 **Goal:** every defect that escapes the stack becomes a new check, and the committed
 docs and tests alone are shown to be enough to find and fix a planted defect.
 
-- [ ] Start the escaped-defect log in `Docs\audit\`
-- [ ] Convert at least one entry into a check
+- [x] Start the escaped-defect log in `Docs\audit\`: `Docs\audit\escaped-defects.md`,
+      entries E1 to E3; every entry ends in a check
+- [x] [SEC] Convert at least one entry into a check: E3, the agent permission settings
+      (Stack 7 review F4). Rule S-17, `Tests\Static\AgentPermissions.Tests.ps1` against
+      `Tests\Lint\AgentPermissions.psd1`; seeded case `permission`. The log's rule is not
+      enforced by the gate
 - [ ] Run one ownership drill; record the result
 - [ ] Closing tasks
 
@@ -609,10 +613,6 @@ Not part of the stack or the OracleBackup migration. Recorded so the idea is not
       `Completed = false`, another schema version, a reviewed commit outside HEAD's
       history, no `Findings` list, and a `Response` with a wrong or bare prefix such as
       `Done: ...` or `Accepted:` (found by the Stack 6 review of its own pull request)
-- [ ] [SEC] Static check on the agent permission settings: parse `.claude/settings.json`
-      and `.cursor/cli.json` and fail when a documented deny rule is removed or an
-      allow rule is widened, so `SECURITY.md` section 12 and the files cannot drift
-      apart (found by the Stack 7 review)
 - [ ] Integration helper module lookup: `Tests\Integration\IntegrationTestHelpers.ps1`
       calls `Get-Module -Name 'TACE.Oracle.Admin'` three times. When the session has
       already loaded another copy of the module, such as from a profile, each call

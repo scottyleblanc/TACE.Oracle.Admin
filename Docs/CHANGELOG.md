@@ -6,6 +6,20 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- `Docs/audit/escaped-defects.md`: the escaped-defect log. Every entry ends in a check
+  that now fails on the defect; three entries (E1 to E3).
+- `Test-SeededDefect.ps1`: case `permission`; 20 cases.
+
+### Security
+
+- Rule S-17 and the static check `Tests\Static\AgentPermissions.Tests.ps1`: the gate
+  fails when `.claude/settings.json` or `.cursor/cli.json` drops a deny rule listed in
+  `Tests\Lint\AgentPermissions.psd1`, or holds an allow rule the list does not
+  (decision 37). Found by the Stack 7 review (F4); escaped-defect entry E3.
 ## [0.2.8] - 2026-11-19
 
 Stack 8 of the AI Development Stack — release. Not published to PSGallery.
