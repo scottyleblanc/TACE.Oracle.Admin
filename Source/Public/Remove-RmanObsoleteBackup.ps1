@@ -28,6 +28,9 @@
     Removes obsolete backups without interactive confirmation prompt.
 
 .NOTES
+    Copyright © TACE Data Management Inc.
+    Module  : TACE.Oracle.Admin
+    Version : 0.2.7
 
     [SEC] SupportsShouldProcess is mandatory — no silent deletion path.
     [SEC] ORACLE_SID set on child process only — never on current session.

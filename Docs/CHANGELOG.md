@@ -6,6 +6,37 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- `Invoke-Gate.ps1`: a `version` check (rule D-10). The manifest,
+  `Source\TACE.Oracle.Admin.psm1`, every public function's `.NOTES` and the newest
+  `CHANGELOG.md` release must name the same version. With `-Base` the version must not
+  be lower than the latest `v*` tag, and a version already tagged must be in HEAD's
+  history with no change under `Source\` since the base (decision 36).
+- `Test-SeededDefect.ps1`: cases `version released`, `version mismatch` and
+  `stray file`; 18 cases.
+
+### Fixed
+
+- `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup`: `.NOTES` now carry the
+  copyright, module and version lines. The build's version check skipped them because
+  they had no version line; the new `version` check found them.
+
+### Security
+
+- `Invoke-Gate.ps1 -Base`: a `package` check. `Build-Module.ps1 -Package` now fails
+  unless the `.nupkg` holds exactly the files the built manifest's `FileList` names;
+  `Publish-PSResource` packages every file in the version folder and ignores
+  `FileList`.
+- `Publish-ToGallery.ps1`: `-ApiKey` is a `[SecureString]` (S-01), and the plain text
+  is extracted only inside the `Publish-PSResource` call (S-03). The script refuses a
+  version folder holding a file `FileList` does not name.
+- `SECURITY.md`: section 13 (release integrity) and the release and publish procedure.
+
+---
+
 ## [0.2.7] - 2026-11-18
 
 Stack 7 of the AI Development Stack — containment. Not published to PSGallery.

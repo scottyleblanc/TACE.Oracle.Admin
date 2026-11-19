@@ -138,24 +138,28 @@ fails (decision 28):
 | secrets | gitleaks over the working tree (`.gitleaks.toml`) |
 | commits | gitleaks over every commit not yet on a remote |
 | messages | Those commits' messages, through gitleaks and the S-16 patterns |
+| version | Rule D-10: the manifest, `Source\TACE.Oracle.Admin.psm1`, every public function's `.NOTES` and the newest `CHANGELOG.md` release name the same version |
 
-Two switches add the test tiers, after the six checks (decision 31):
+Two switches add the test tiers, after the seven checks (decision 31):
 
 | Switch | Check | What it runs |
 |---|---|---|
 | `-Unit` | unit | The unit tier with its coverage floor. CI passes this from Stack 4 |
 | `-Integration` | integration | The integration tier, behind its own guards (see above) |
 
-The pre-push hook passes neither, so a push runs only the six checks.
+The pre-push hook passes neither, so a push runs only the seven checks.
 
 `-Base <branch>` is for pull requests. In CI every commit is already on a remote, so
-`commits` and `messages` check the commits in `<branch>..HEAD` instead, and two more
-checks run:
+`commits` and `messages` check the commits in `<branch>..HEAD` instead. `version` also
+checks the tags (decision 36): the version is not lower than the latest `v*` tag, and a
+version already tagged must be in HEAD's history with no change under `Source\` since
+`<branch>`. Three more checks run:
 
 | Check | What it runs |
 |---|---|
 | evidence | Rule T-14: when the pull request changes `Source\`, `Tests\Integration\LastRun.json` shows `Evidence = true` for a commit HEAD contains, and only that file changed since |
 | review | Decision 35: when the pull request changes any file other than the two evidence files, `Review\LastReview.json` shows a completed review from the merge base, of a commit HEAD contains, with every finding answered. Later commits are the author's fixes |
+| package | Decision 36: `Scripts\Build-Module.ps1 -Package` builds the `.nupkg` locally, and the check fails unless it holds exactly the files the built manifest's `FileList` names. Nothing is published |
 
 ### Review
 

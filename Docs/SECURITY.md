@@ -255,6 +255,34 @@ against planted files; the record is `Docs\audit\stack-7-containment.md`.
 
 ---
 
+### 13. Release Integrity
+
+**Status:** Implemented at Stack 8.
+
+**Why:** a release is permanent once published: PSGallery versions cannot be
+overwritten or deleted, so a file packaged by mistake stays public. A version number
+that labels two different sets of code makes a report against that version
+unanswerable.
+
+**How:** two gate checks (decision 36). `version` compares the manifest,
+`Source\TACE.Oracle.Admin.psm1`, every public function's `.NOTES` and the newest
+`CHANGELOG.md` release on every run; with `-Base` it also refuses a version lower than
+the latest `v*` tag, and a version already tagged when the pull request changes
+`Source\`. `package` runs with `-Base`: `Scripts\Build-Module.ps1 -Package` builds the
+`.nupkg` locally and fails unless it holds exactly the files the built manifest's
+`FileList` names. `Publish-PSResource` packages every file in the version folder and
+ignores `FileList`, so the comparison is made against the package itself.
+`Scripts\Publish-ToGallery.ps1` takes the API key as a `[SecureString]`, extracts the
+plain text only inside the `Publish-PSResource` call, and refuses a version folder
+holding a file `FileList` does not name.
+
+**Contract:** a pull request into `master` cannot merge while its version disagrees
+between these files, reuses a released version for changed code, or builds a package
+with a file `FileList` does not list. The tag itself is made after the merge, by hand;
+the gate checks it on the next pull request. Proven by the seeded cases
+`version mismatch`, `version released` and `stray file` in
+`Scripts\Test-SeededDefect.ps1`. The record is `Docs\audit\stack-8-release.md`.
+
 ## Open Items
 
 Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
@@ -313,6 +341,29 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | Shared/production | AllSigned | The built `TACE.Oracle.Admin.psm1` and `TACE.Oracle.Admin.psd1` in `Output\TACE.Oracle.Admin\<version>\`; the source files under `Source\` do not ship |
 
 Sign with: `Set-AuthenticodeSignature -FilePath <file> -Certificate <cert>`
+
+No script signs or verifies signatures; signing is a manual step. It goes after the
+build and before the package is made, because the package is made from the version
+folder. Signing changes file contents, not the file list, so the `FileList` comparison
+still applies.
+
+### Release and publish procedure
+
+During the AI Development Stack a release is a git tag only; nothing is published
+(`VERSIONING.md`). When publishing resumes:
+
+1. Merge the release pull request. The gate's `version` and `package` checks have
+   passed on it (section 13).
+2. Pull `master`, tag the merge commit `vX.Y.Z`, and push the tag.
+3. `.\Scripts\Build-Module.ps1 -Package` on a clean checkout of the tag. It fails
+   unless the package holds exactly the files in `FileList`; read the listed
+   contents.
+4. Sign the two built files (above), if the target context needs signed code.
+5. `$key = Read-Host -AsSecureString 'PSGallery API Key'`, pasting the key from
+   Windows Credential Manager, then `.\Scripts\Publish-ToGallery.ps1 -ApiKey $key`.
+   The script takes only a `[SecureString]`; never place the key in plain text in a
+   variable, a command line or a chat. It refuses a dirty tree, a missing tag, or a
+   version folder holding a file `FileList` does not name.
 
 ---
 

@@ -492,10 +492,22 @@ material is outside its reach, and a planted attempt to read it is blocked.
 **Goal:** the gate refuses a release whose version differs between manifest, tag and
 changelog, or whose package contains a file not listed in `FileList`.
 
-- [ ] Gate check: version agreement across manifest, tag and changelog
-- [ ] [SEC] Gate check: `FileList` completeness and package contents
-- [ ] Refresh the signing and publish guidance in `SECURITY.md`
-- [ ] Seeded defects: a version mismatch and a stray file
+- [x] Gate check: version agreement across manifest, tag and changelog. `version` in
+      `Scripts\Invoke-Gate.ps1`: manifest, root module, public `.NOTES` and the newest
+      CHANGELOG release on every run; the tag rule with `-Base` only (decision 36). Its
+      first run found `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup` with no
+      `Version :` line, which the build's own check skips; both now carry one
+- [x] [SEC] Gate check: `FileList` completeness and package contents. `package` with
+      `-Base`; `Build-Module.ps1 -Package` fails unless the `.nupkg` holds exactly the
+      `FileList` files. Shown first: `Publish-PSResource` packaged a file placed in the
+      version folder that `FileList` did not name
+- [x] Refresh the signing and publish guidance in `SECURITY.md`: section 13 and the
+      release and publish procedure. [SEC] `Publish-ToGallery.ps1` takes the API key as
+      a `[SecureString]` (S-01), extracts it inline (S-03), and refuses a version folder
+      holding a file `FileList` does not name
+- [x] Seeded defects: a version mismatch and a stray file. `Test-SeededDefect.ps1`
+      cases `version mismatch`, `version released` and `stray file`; 18 of 18 behave as
+      expected (about 25 minutes)
 - [ ] Closing tasks
 
 ### Stack 9 — Feedback loop
