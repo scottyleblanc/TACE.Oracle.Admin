@@ -43,8 +43,10 @@
                     that commit and HEAD. A change outside Source\ needs no evidence
       9. review     Decision 35. When the commits since the merge base with Base change
                     any file other than the two evidence files, Review\LastReview.json at
-                    HEAD must show a completed review of a commit that HEAD contains,
-                    from that merge base or an older one, and every finding must have a Response
+                    HEAD must show a completed review of a commit that HEAD contains and
+                    Base does not (one this branch adds, so a record left by an earlier
+                    pull request fails), from that merge base or an older one, and every
+                    finding must have a Response
                     that starts with Fixed:, Rejected:, Accepted: or Deferred:
                     (Docs\REVIEW.md). Commits after the reviewed one are the author's
                     fixes. If git cannot list the changes, the check fails
@@ -482,6 +484,13 @@ if ($Base) {
                     $null = & $git.Source -C $repoRoot merge-base --is-ancestor $reviewCommit HEAD 2>$null
                     if ($LASTEXITCODE -ne 0) {
                         $reviewProblems.Add("the reviewed commit $($reviewCommit.Substring(0, 7)) is not in HEAD's history")
+                    }
+                    # The reviewed commit must be one this branch adds. A record left by an
+                    # earlier pull request names a commit already in Base, and passes every
+                    # other test here. Exit 1 means "not an ancestor"; 0 or an error fails.
+                    $null = & $git.Source -C $repoRoot merge-base --is-ancestor $reviewCommit $mergeBase 2>$null
+                    if ($LASTEXITCODE -ne 1) {
+                        $reviewProblems.Add("the reviewed commit $($reviewCommit.Substring(0, 7)) is already in ${Base}: the record is from an earlier pull request, run Scripts\Invoke-ModelReview.ps1")
                     }
                 }
                 if ($names -notcontains 'Findings') {

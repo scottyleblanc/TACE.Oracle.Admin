@@ -41,6 +41,9 @@
       unanswered finding's Response empty        'review' only
       review     a fix committed after the       the gate with -Base passes: a fix
       fixed      review, answered Fixed:         needs no new review
+      review     that branch merged; the next    the gate with -Base fails on
+      stale      one makes a docs change and     'review' only: the record names a
+                 leaves the old record           commit already in the base
       version    the newest CHANGELOG release    the gate fails on 'version' only
       mismatch   renamed 9.9.9
       stray file the build writes a notes file   the gate with -Base fails on
@@ -59,13 +62,13 @@
 .EXAMPLE
     .\Scripts\Test-SeededDefect.ps1
 
-    Runs the eighteen cases. Exits 0 when every case behaves as expected, 1 otherwise.
+    Runs the nineteen cases. Exits 0 when every case behaves as expected, 1 otherwise.
 
 .NOTES
     Copyright © TACE Data Management Inc.
     **Invocation:** Standalone — self-contained; safe to run with `pwsh -File`. Needs
     everything the gate needs (PREREQUISITES.md). Takes about 25 minutes: the gate,
-    static tier included, runs eighteen times, twice with the unit tier. Run it by hand
+    static tier included, runs nineteen times, twice with the unit tier. Run it by hand
     when the gate changes; it is not part of the gate or CI. The review records it
     plants are made up; no model review runs.
 #>
@@ -317,6 +320,13 @@ try {
     Write-ReviewRecord -Commit $docCommit -BaseCommit $baseline -Response 'Fixed: seeded fix commit.'
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: fix F1 after the review')
     Add-Case -Name 'review fixed' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @()
+    # That branch counts as merged: its HEAD is the next pull request's base. The next
+    # pull request makes a docs change and no review, so the only record is the
+    # earlier one, which names a commit already in the base.
+    $merged = (Invoke-CopyGit -Argument @('rev-parse', 'HEAD')) | Select-Object -First 1
+    [System.IO.File]::AppendAllText($docFile, "Seeded docs change 2.`n", [System.Text.UTF8Encoding]::new($false))
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: a change in the next pull request')
+    Add-Case -Name 'review stale' -Result (Invoke-CopyGate -Base $merged) -ExpectFailed @('review')
     $null = Invoke-CopyGit -Argument @('reset', '--quiet', '--hard', $baseline)
 
     # -- version mismatch: the CHANGELOG names a different release --------------
@@ -360,7 +370,7 @@ finally {
 }
 
 $failedCases = @($cases | Where-Object { -not $PSItem.Passed })
-if ($failedCases.Count -gt 0 -or $cases.Count -ne 18) {
+if ($failedCases.Count -gt 0 -or $cases.Count -ne 19) {
     Write-Output "[FAIL] seeded defects: $($failedCases.Count) of $($cases.Count) cases did not behave as expected"
     exit 1
 }

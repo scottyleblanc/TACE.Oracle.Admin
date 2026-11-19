@@ -9,7 +9,7 @@ package holds a file `FileList` does not name. Nothing was published.
 | Recorded | 2026-11-19 |
 | Checks | `version` (every run; tag rule with `-Base`) and `package` (with `-Base`) in `Scripts\Invoke-Gate.ps1`; decision 36 |
 | Package tool | `Publish-PSResource` (Microsoft.PowerShell.PSResourceGet) into a temporary local folder repository; no remote repository |
-| Proof | `Scripts\Test-SeededDefect.ps1`, 18 cases, each planted in a temporary copy of the repository |
+| Proof | `Scripts\Test-SeededDefect.ps1`, 19 cases, each planted in a temporary copy of the repository |
 
 ## How Publish-PSResource treats FileList
 
@@ -39,7 +39,7 @@ version lines the other public functions carry.
 The other 15 cases, from Stacks 2 to 6, behaved as before; the three `-Base` cases
 that expect a pass (`evidence current`, `review current`, `review fixed`) also passed
 `package`, so the check does not fail a correct package.
-18 of 18 cases behaved as expected.
+With `review stale` (below), 19 of 19 cases behaved as expected.
 
 The first version of the `stray file` seed copied `Docs\TODO.md` into the version
 folder. It also failed `static`: `Tests\Static\BuildModule.Tests.ps1` runs the build
@@ -47,12 +47,24 @@ script against a minimal fixture repository that has no `Docs\TODO.md`, so the p
 line threw there. The seed now writes its own file, which depends on nothing outside
 the version folder.
 
+## A gap in the review check
+
+Running the full gate on this branch before its review, `review` passed. The record it
+accepted was the Stack 7 pull request's, which covers a commit already on `master`.
+The check required the reviewed commit to be in HEAD's history and the review's base to
+be the merge base or older (so that updating a branch keeps its review valid); a record
+left by the previous pull request meets both. Every pull request after the first could
+therefore merge with no review of its own. The check now also requires the reviewed
+commit not to be in the base. Seeded case `review stale`: after a branch with a review
+merges, the next pull request makes a docs change and keeps the old record; the gate
+fails on `review` only.
+
 ## Cost
 
 | Item | Time |
 |---|---|
 | `Build-Module.ps1 -Package`, the `package` check's work | About 1 second |
-| `Test-SeededDefect.ps1`, 18 cases | 24 minutes 42 seconds |
+| `Test-SeededDefect.ps1`, 19 cases | 24 minutes 51 seconds |
 
 The seeded run is by hand, when the gate changes; it is not in the gate or CI. In CI
 the `package` check adds one package build per pull request.

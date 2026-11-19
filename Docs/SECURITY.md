@@ -6,7 +6,7 @@
 |---|---|
 | Version | 0.2.8 |
 | Last audit | 2026-11-19 — Stack 8 release |
-| Findings resolved | Stack 8: none in module behaviour. Two `[SEC]` findings in the release tooling fixed: `Publish-PSResource` packages files outside `FileList`, and `Publish-ToGallery.ps1` took its API key as plain text. Two public functions had no version line in `.NOTES` (fixed) |
+| Findings resolved | Stack 8: none in module behaviour. Two `[SEC]` findings in the release tooling fixed: `Publish-PSResource` packages files outside `FileList`, and `Publish-ToGallery.ps1` took its API key as plain text. One `[SEC]` finding in the gate fixed: the `review` check accepted the previous pull request's record. Two public functions had no version line in `.NOTES` (fixed) |
 | Unit tests | 405 (all passing); 164 static checks; 12 integration tests; coverage 97.7%; 0 analyzer findings; gitleaks clean |
 | Open SEC items | 7 — see Open Items |
 
@@ -213,8 +213,8 @@ needs no secret and CI calls no model. The review runs once per pull request; th
 author fixes or answers every finding, and the human checklist in
 `.github\pull_request_template.md` covers intent and the findings. The gate's `review` check
 fails a pull request whose record is missing, does not cover the branch from its merge
-base, or has an unanswered finding, and fails when git cannot list the changes
-(decision 35).
+base, names a commit already in the base (a record left by an earlier pull request), or
+has an unanswered finding, and fails when git cannot list the changes (decision 35).
 
 **Contract:** a pull request into `master` that changes any file other than the evidence
 files carries a completed review of its own commits, with every finding answered. The
@@ -330,7 +330,7 @@ Carried in with the code copied at Stack 0. See `audit\stack-0-baseline.md`.
 | 2026-11-16 | 0.2.5 | 1 (1 `[SEC]`, open) | Stack 5 agent instructions. No change to module code. `[SEC]`: setting up the comparison showed that Claude Code in `acceptEdits` mode let the PowerShell tool delete a file without asking, while refusing a read-only lint script that no allow rule matched; recorded for Stack 7, where the agent's run and read rules are written and tested. `AGENTS.md` carries the security standards word for word and a static test fails when it drifts. Details in `CHANGELOG.md` 0.2.5 and `Docs\audit\stack-5-agent-instructions.md`. |
 | 2026-11-16 | 0.2.6 | 0 | Stack 6 independent review. No change to module code. Every pull request now carries a second-model review of its own commits, from a session that can read only the committed files of the reviewed commit and can run nothing; the gate fails a review that is missing, does not cover the branch, or is unanswered (section 11, decision 35). A planted defect that the gate passed, a caller's `[string]` in RMAN script text (S-11), was reported as High in each of three reviews. Details in `CHANGELOG.md` 0.2.6 and `Docs\audit\stack-6-independent-review.md`. |
 | 2026-11-18 | 0.2.7 | 3 (3 `[SEC]`, 1 open) | Stack 7 containment. No change to module code. Committed permission settings for Claude Code and the Cursor CLI (section 12). `[SEC]`: the Stack 5 finding, the PowerShell tool deleting a file in `acceptEdits` mode, fixed by denying that tool. `[SEC]`: the rule test showed the Bash tool running `rm` without asking in `acceptEdits` mode, fixed by denying `rm` and `rmdir`. `[SEC]`, open: the Cursor CLI on Windows enforced no `Read(...)` deny rule, so its settings hold only Shell rules (Open Items). Claude Code refused every attempt to read planted credential files. Details in `CHANGELOG.md` 0.2.7 and `Docs\audit\stack-7-containment.md`. |
-| 2026-11-19 | 0.2.8 | 3 (2 `[SEC]`) | Stack 8 release. No change to module behaviour. `[SEC]`: `Publish-PSResource` packages every file in the version folder and ignores `FileList`, shown with a planted file; the gate's `package` check now fails a package that differs from `FileList` (section 13, decision 36). `[SEC]`: `Publish-ToGallery.ps1` took its API key as a `[string]` and its example converted it to plain text in a variable (S-01, S-03); now a `[SecureString]` extracted inline. The new `version` check found `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup` with no version line in `.NOTES`, which the build's check skipped; fixed. Details in `CHANGELOG.md` 0.2.8 and `Docs\audit\stack-8-release.md`. |
+| 2026-11-19 | 0.2.8 | 4 (3 `[SEC]`) | Stack 8 release. No change to module behaviour. `[SEC]`: `Publish-PSResource` packages every file in the version folder and ignores `FileList`, shown with a planted file; the gate's `package` check now fails a package that differs from `FileList` (section 13, decision 36). `[SEC]`: `Publish-ToGallery.ps1` took its API key as a `[string]` and its example converted it to plain text in a variable (S-01, S-03); now a `[SecureString]` extracted inline. The new `version` check found `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup` with no version line in `.NOTES`, which the build's check skipped; fixed. `[SEC]`: the gate's `review` check passed this release's own pull request before any review ran, on the record left by the Stack 7 pull request; it now requires the reviewed commit to be one the pull request adds (section 11). Details in `CHANGELOG.md` 0.2.8 and `Docs\audit\stack-8-release.md`. |
 
 ---
 

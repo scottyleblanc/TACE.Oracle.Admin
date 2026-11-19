@@ -21,7 +21,7 @@ No change to module behaviour. Record in `Docs/audit/stack-8-release.md`.
   be lower than the latest `v*` tag, and a version already tagged must be in HEAD's
   history with no change under `Source\` since the base (decision 36).
 - `Test-SeededDefect.ps1`: cases `version released`, `version mismatch` and
-  `stray file`; 18 cases.
+  `stray file`.
 
 ### Fixed
 
@@ -30,6 +30,13 @@ No change to module behaviour. Record in `Docs/audit/stack-8-release.md`.
   they had no version line; the new `version` check found them.
 
 ### Security
+
+- `Invoke-Gate.ps1 -Base`: the `review` check accepted a record left by an earlier pull
+  request. It required the reviewed commit to be in HEAD's history and the review's base
+  to be the merge base or older, and the last pull request's record meets both, so a
+  pull request with no review passed. The reviewed commit must now be one the pull
+  request adds. Found when this release's own pull request passed `review` before any
+  review ran. `Test-SeededDefect.ps1`: case `review stale`; 19 cases.
 
 - `Invoke-Gate.ps1 -Base`: a `package` check. `Build-Module.ps1 -Package` now fails
   unless the `.nupkg` holds exactly the files the built manifest's `FileList` names;

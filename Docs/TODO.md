@@ -506,8 +506,11 @@ changelog, or whose package contains a file not listed in `FileList`.
       a `[SecureString]` (S-01), extracts it inline (S-03), and refuses a version folder
       holding a file `FileList` does not name
 - [x] Seeded defects: a version mismatch and a stray file. `Test-SeededDefect.ps1`
-      cases `version mismatch`, `version released` and `stray file`; 18 of 18 behave as
+      cases `version mismatch`, `version released` and `stray file`; 19 of 19 behave as
       expected (about 25 minutes)
+- [x] [SEC] Found along the way: the gate's `review` check accepted the record left by
+      the previous pull request, so this branch passed it before any review ran. The
+      reviewed commit must now be one the pull request adds; seeded case `review stale`
 - [x] Closing tasks
       - [x] Record: `Docs\audit\stack-8-release.md`
       - [x] `CHANGELOG.md` 0.2.8 and tag `v0.2.8`

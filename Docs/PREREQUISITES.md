@@ -158,7 +158,7 @@ version already tagged must be in HEAD's history with no change under `Source\` 
 | Check | What it runs |
 |---|---|
 | evidence | Rule T-14: when the pull request changes `Source\`, `Tests\Integration\LastRun.json` shows `Evidence = true` for a commit HEAD contains, and only that file changed since |
-| review | Decision 35: when the pull request changes any file other than the two evidence files, `Review\LastReview.json` shows a completed review from the merge base, of a commit HEAD contains, with every finding answered. Later commits are the author's fixes |
+| review | Decision 35: when the pull request changes any file other than the two evidence files, `Review\LastReview.json` shows a completed review from the merge base, of a commit the pull request adds (HEAD contains it and the base does not), with every finding answered. Later commits are the author's fixes |
 | package | Decision 36: `Scripts\Build-Module.ps1 -Package` builds the `.nupkg` locally, and the check fails unless it holds exactly the files the built manifest's `FileList` names. Nothing is published |
 
 ### Review
