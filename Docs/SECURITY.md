@@ -267,14 +267,16 @@ unanswerable.
 **How:** two gate checks (decision 36). `version` compares the manifest,
 `Source\TACE.Oracle.Admin.psm1`, every public function's `.NOTES` and the newest
 `CHANGELOG.md` release on every run; with `-Base` it also refuses a version lower than
-the latest `v*` tag, and a version already tagged when the pull request changes
-`Source\`. `package` runs with `-Base`: `Scripts\Build-Module.ps1 -Package` builds the
+the latest `v*` tag, and a version already tagged when the pull request changes the
+files the package is made from (`Source\`, `README.md`, `LICENSE`,
+`Scripts\Build-Module.ps1`). `package` runs with `-Base`: `Scripts\Build-Module.ps1 -Package` builds the
 `.nupkg` locally and fails unless it holds exactly the files the built manifest's
-`FileList` names. `Publish-PSResource` packages every file in the version folder and
+`FileList` names; only the entries NuGet adds itself are left out of the comparison.
+`Publish-PSResource` packages every file in the version folder and
 ignores `FileList`, so the comparison is made against the package itself.
 `Scripts\Publish-ToGallery.ps1` takes the API key as a `[SecureString]`, extracts the
 plain text only inside the `Publish-PSResource` call, and refuses a version folder
-holding a file `FileList` does not name.
+holding a file `FileList` does not name, hidden files included.
 
 **Contract:** a pull request into `master` cannot merge while its version disagrees
 between these files, reuses a released version for changed code, or builds a package

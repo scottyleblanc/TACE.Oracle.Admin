@@ -75,7 +75,7 @@ Write-Host "[Publish-ToGallery] Build   : $stagingDir [OK]"
 
 # [SEC] The folder is what gets packaged, so it must hold only the files FileList names.
 $listed  = @((Import-PowerShellDataFile -LiteralPath $stagedManifest).FileList | ForEach-Object { $PSItem -replace '\\', '/' })
-$onDisk  = @(Get-ChildItem -LiteralPath $stagingDir -File -Recurse | ForEach-Object { [System.IO.Path]::GetRelativePath($stagingDir, $PSItem.FullName) -replace '\\', '/' })
+$onDisk  = @(Get-ChildItem -LiteralPath $stagingDir -File -Recurse -Force | ForEach-Object { [System.IO.Path]::GetRelativePath($stagingDir, $PSItem.FullName) -replace '\\', '/' })
 $extra   = @($onDisk | Where-Object { $listed -notcontains $PSItem })
 $missing = @($listed | Where-Object { $onDisk -notcontains $PSItem })
 if ($extra.Count -gt 0 -or $missing.Count -gt 0) {

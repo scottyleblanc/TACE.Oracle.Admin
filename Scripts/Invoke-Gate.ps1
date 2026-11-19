@@ -31,8 +31,9 @@
     and three more checks run.
 
     The tag rule: the version is not lower than the latest v* tag; if it is already
-    tagged, that tag is in HEAD's history and nothing under Source\ changed since Base.
-    A change to the code under a released number fails until the version is bumped. A
+    tagged, that tag is in HEAD's history and none of the files the package is made from
+    (Source\, README.md, LICENSE, Scripts\Build-Module.ps1) changed since Base. A change
+    to what ships under a released number fails until the version is bumped. A
     tag is made on the merge commit after the pull request merges, so a release's own
     pull request passes with its version not yet tagged.
 
@@ -296,8 +297,8 @@ else {
 # Rule D-10. Every run: the manifest, the root module, every public function's .NOTES
 # and the newest CHANGELOG release name the same version. With -Base, also the tags:
 # the version is not lower than the latest v* tag, and a version already tagged is in
-# HEAD's history with no Source\ change since Base, so a released number never labels
-# different code.
+# HEAD's history with no change since Base to the files the package is made from, so a
+# released number never labels a different package.
 
 $versionProblems = [System.Collections.Generic.List[string]]::new()
 $sourceRoot      = Join-Path -Path $repoRoot -ChildPath 'Source'
@@ -321,6 +322,8 @@ $newest        = [regex]::Match([System.IO.File]::ReadAllText($changelogPath), '
 if (-not $newest.Success) { $versionProblems.Add('Docs\CHANGELOG.md: no release heading') }
 elseif ($newest.Groups[1].Value -ne $moduleVersion) { $versionProblems.Add("Docs\CHANGELOG.md: newest release $($newest.Groups[1].Value)") }
 
+# Besides Source\, the build copies these into the package or makes it from them.
+$packageInputs = @('README.md', 'LICENSE', 'Scripts/Build-Module.ps1')
 $tagNote = ''
 if ($Base) {
     if ($null -ne $notReady) {
@@ -346,8 +349,8 @@ if ($Base) {
             if ($LASTEXITCODE -ne 0) {
                 $versionProblems.Add("git could not list the files changed since $Base")
             }
-            elseif (@($changedOut | Where-Object { $PSItem -like 'Source/*' }).Count -gt 0) {
-                $versionProblems.Add("Source\ changed since $Base but v$moduleVersion is already released: bump the version in the manifest, the .NOTES blocks and the CHANGELOG")
+            elseif (@($changedOut | Where-Object { $PSItem -like 'Source/*' -or $packageInputs -contains $PSItem }).Count -gt 0) {
+                $versionProblems.Add("what the package is made from changed since $Base (Source\, README.md, LICENSE or Scripts\Build-Module.ps1) but v$moduleVersion is already released: bump the version in the manifest, the .NOTES blocks and the CHANGELOG")
             }
             $tagNote = "; v$moduleVersion already tagged"
         }

@@ -74,7 +74,8 @@ the `package` check adds one package build per pull request.
 The gate with `-Base` refuses a pull request whose version disagrees between the
 manifest, `Source\TACE.Oracle.Admin.psm1`, a public function's `.NOTES` or the newest
 `CHANGELOG.md` release; whose version is lower than the latest tag; that changes
-`Source\` under a version already tagged; or whose package holds a file `FileList` does
+the files the package is made from (`Source\`, `README.md`, `LICENSE`,
+`Scripts\Build-Module.ps1`) under a version already tagged; or whose package holds a file `FileList` does
 not name, or lacks one it names. `Scripts\Publish-ToGallery.ps1` takes its API key as a
 `[SecureString]` and refuses a version folder holding a file `FileList` does not name.
 The tag itself is made by hand after the merge; the next pull request's `version` check

@@ -351,8 +351,11 @@ Write-Host '[Build-Module] Contents:'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [System.IO.Compression.ZipFile]::OpenRead($nupkg.FullName)
 try {
+    # [SEC] Leave out only the exact entries NuGet adds itself; anything else in the
+    # package is a module file and is compared with FileList below.
+    $metadata = "^(\[Content_Types\]\.xml|_rels/\.rels|$([regex]::Escape($moduleName))\.nuspec|package/services/metadata/core-properties/[0-9a-f]+\.psmdcp)$"
     $entries = @($zip.Entries |
-        Where-Object { $PSItem.FullName -notmatch '^_rels/' -and $PSItem.FullName -notmatch '^\[' -and $PSItem.FullName -notmatch '\.nuspec$' -and $PSItem.FullName -notmatch '^package/' } |
+        Where-Object { $PSItem.FullName -notmatch $metadata } |
         Sort-Object FullName)
     foreach ($entry in $entries) {
         Write-Host "  $($entry.FullName)"

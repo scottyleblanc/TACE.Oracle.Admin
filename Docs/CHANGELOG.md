@@ -19,7 +19,8 @@ No change to module behaviour. Record in `Docs/audit/stack-8-release.md`.
   `Source\TACE.Oracle.Admin.psm1`, every public function's `.NOTES` and the newest
   `CHANGELOG.md` release must name the same version. With `-Base` the version must not
   be lower than the latest `v*` tag, and a version already tagged must be in HEAD's
-  history with no change under `Source\` since the base (decision 36).
+  history with no change since the base to the files the package is made from:
+  `Source\`, `README.md`, `LICENSE` and `Scripts/Build-Module.ps1` (decision 36).
 - `Test-SeededDefect.ps1`: cases `version released`, `version mismatch` and
   `stray file`.
 
@@ -40,11 +41,12 @@ No change to module behaviour. Record in `Docs/audit/stack-8-release.md`.
 
 - `Invoke-Gate.ps1 -Base`: a `package` check. `Build-Module.ps1 -Package` now fails
   unless the `.nupkg` holds exactly the files the built manifest's `FileList` names;
+  only the entries NuGet adds itself are left out of the comparison.
   `Publish-PSResource` packages every file in the version folder and ignores
   `FileList`.
 - `Publish-ToGallery.ps1`: `-ApiKey` is a `[SecureString]` (S-01), and the plain text
   is extracted only inside the `Publish-PSResource` call (S-03). The script refuses a
-  version folder holding a file `FileList` does not name.
+  version folder holding a file `FileList` does not name, hidden files included.
 - `SECURITY.md`: section 13 (release integrity) and the release and publish procedure.
 
 ---

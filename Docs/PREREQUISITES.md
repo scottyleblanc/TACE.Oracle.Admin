@@ -152,8 +152,9 @@ The pre-push hook passes neither, so a push runs only the seven checks.
 `-Base <branch>` is for pull requests. In CI every commit is already on a remote, so
 `commits` and `messages` check the commits in `<branch>..HEAD` instead. `version` also
 checks the tags (decision 36): the version is not lower than the latest `v*` tag, and a
-version already tagged must be in HEAD's history with no change under `Source\` since
-`<branch>`. Three more checks run:
+version already tagged must be in HEAD's history with no change since `<branch>` to the
+files the package is made from: `Source\`, `README.md`, `LICENSE` and
+`Scripts\Build-Module.ps1`. Three more checks run:
 
 | Check | What it runs |
 |---|---|
