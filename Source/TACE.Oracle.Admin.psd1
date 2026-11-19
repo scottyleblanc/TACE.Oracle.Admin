@@ -8,7 +8,7 @@
 @{
     # Module identity
     RootModule        = 'TACE.Oracle.Admin.psm1'
-    ModuleVersion     = '0.2.7'
+    ModuleVersion     = '0.2.8'
     GUID              = '50e4f865-a551-4f83-beb1-329987147747'
     Author            = 'TACE Data Management Inc.'
     CompanyName       = 'TACE Data Management Inc.'
@@ -34,7 +34,7 @@
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell', 'oraset', 'oraenv')
             ProjectUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin'
             LicenseUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE'
-            ReleaseNotes = 'v0.2.7 — AI Development Stack, Stack 7 (containment): committed agent permission settings for Claude Code and the Cursor CLI deny rm, rmdir, git push and, for Claude Code, reads of credential material; tested against planted credential files. No change to module behaviour. Not published to PSGallery.'
+            ReleaseNotes = 'v0.2.8 — AI Development Stack, Stack 8 (release): the gate refuses a pull request whose version disagrees between the manifest, root module, public function notes and CHANGELOG, that changes Source under a version already tagged, or whose package holds a file FileList does not name; Publish-ToGallery.ps1 takes its API key as a SecureString. No change to module behaviour. Not published to PSGallery.'
         }
     }
 }

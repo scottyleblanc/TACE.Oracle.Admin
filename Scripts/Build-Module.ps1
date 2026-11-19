@@ -35,9 +35,13 @@
       - All build file .NOTES versions must match the manifest version
       - With -Package, warns if the matching git tag does not exist
 
+    With -Package, the build fails unless the package holds exactly the files FileList
+    names: Publish-PSResource packages the whole version folder, whatever FileList says.
+    The gate's 'package' check runs this.
+
 .PARAMETER Package
     Also builds a local NuGet package from the built module into
-    Output\Package\<version>\ and lists its contents.
+    Output\Package\<version>\, lists its contents and compares them with FileList.
 
 .PARAMETER S3Bucket
     Name of the S3 staging bucket (the name only, without s3://). Requires -Package.
@@ -347,16 +351,38 @@ Write-Host '[Build-Module] Contents:'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [System.IO.Compression.ZipFile]::OpenRead($nupkg.FullName)
 try {
+    # [SEC] Leave out only the exact entries NuGet adds itself; anything else in the
+    # package is a module file and is compared with FileList below.
+    $metadata = "^(\[Content_Types\]\.xml|_rels/\.rels|$([regex]::Escape($moduleName))\.nuspec|package/services/metadata/core-properties/[0-9a-f]+\.psmdcp)$"
     $entries = @($zip.Entries |
-        Where-Object { $PSItem.FullName -notmatch '^_rels/' -and $PSItem.FullName -notmatch '^\[' -and $PSItem.FullName -notmatch '\.nuspec$' -and $PSItem.FullName -notmatch '^package/' } |
+        Where-Object { $PSItem.FullName -notmatch $metadata } |
         Sort-Object FullName)
     foreach ($entry in $entries) {
         Write-Host "  $($entry.FullName)"
     }
+    $packaged = @($entries | ForEach-Object { [uri]::UnescapeDataString($PSItem.FullName) })
 }
 finally {
     $zip.Dispose()
 }
+
+# -- Compare the package with FileList ---------------------------------------
+# [SEC] Publish-PSResource packages every file in the version folder and ignores
+# FileList, so a file the build did not list can still ship. The package must hold
+# exactly the files FileList names.
+
+$listed  = @((Import-PowerShellDataFile -LiteralPath $builtManifest).FileList | ForEach-Object { $PSItem -replace '\\', '/' })
+$extra   = @($packaged | Where-Object { $listed -notcontains $PSItem })
+$missing = @($listed | Where-Object { $packaged -notcontains $PSItem })
+if ($extra.Count -gt 0 -or $missing.Count -gt 0) {
+    $lines = @(
+        foreach ($file in $extra) { "  not in FileList: $file" }
+        foreach ($file in $missing) { "  in FileList, not in the package: $file" }
+    )
+    throw "[Build-Module] Package contents do not match FileList:`n$($lines -join "`n")"
+}
+
+Write-Host "[Build-Module] Package check : $($packaged.Count) files, all in FileList [OK]"
 
 Write-Host ''
 Write-Host "[Build-Module] Package retained at: $localRepo"

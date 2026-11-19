@@ -6,6 +6,51 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.8] - 2026-11-19
+
+Stack 8 of the AI Development Stack — release. Not published to PSGallery.
+No change to module behaviour. Record in `Docs/audit/stack-8-release.md`.
+
+### Added
+
+- `Docs/audit/stack-8-release.md`: how `Publish-PSResource` treats `FileList`, the
+  first run of the version check, and the seeded cases.
+- `Invoke-Gate.ps1`: a `version` check (rule D-10). The manifest,
+  `Source\TACE.Oracle.Admin.psm1`, every public function's `.NOTES` and the newest
+  `CHANGELOG.md` release must name the same version. With `-Base` the version must not
+  be lower than the latest `v*` tag, and a version already tagged must be in HEAD's
+  history with no change since the base to the files the package is made from:
+  `Source\`, `README.md`, `LICENSE` and `Scripts/Build-Module.ps1` (decision 36).
+- `Test-SeededDefect.ps1`: cases `version released`, `version mismatch` and
+  `stray file`.
+
+### Fixed
+
+- `Get-RmanBackupStatus` and `Remove-RmanObsoleteBackup`: `.NOTES` now carry the
+  copyright, module and version lines. The build's version check skipped them because
+  they had no version line; the new `version` check found them.
+
+### Security
+
+- `Invoke-Gate.ps1 -Base`: the `review` check accepted a record left by an earlier pull
+  request. It required the reviewed commit to be in HEAD's history and the review's base
+  to be the merge base or older, and the last pull request's record meets both, so a
+  pull request with no review passed. The reviewed commit must now be one the pull
+  request adds. Found when this release's own pull request passed `review` before any
+  review ran. `Test-SeededDefect.ps1`: case `review stale`; 19 cases.
+
+- `Invoke-Gate.ps1 -Base`: a `package` check. `Build-Module.ps1 -Package` now fails
+  unless the `.nupkg` holds exactly the files the built manifest's `FileList` names;
+  only the entries NuGet adds itself are left out of the comparison.
+  `Publish-PSResource` packages every file in the version folder and ignores
+  `FileList`.
+- `Publish-ToGallery.ps1`: `-ApiKey` is a `[SecureString]` (S-01), and the plain text
+  is extracted only inside the `Publish-PSResource` call (S-03). The script refuses a
+  version folder holding a file `FileList` does not name, hidden files included.
+- `SECURITY.md`: section 13 (release integrity) and the release and publish procedure.
+
+---
+
 ## [0.2.7] - 2026-11-18
 
 Stack 7 of the AI Development Stack — containment. Not published to PSGallery.

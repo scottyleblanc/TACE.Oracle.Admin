@@ -14,15 +14,19 @@
       - Output\TACE.Oracle.Admin\<version>\ must exist (Build-Module.ps1 must have run)
       - Working tree must be clean (no uncommitted changes)
       - A git tag matching the module version must exist (e.g. v0.1.5)
+      - The version folder must hold exactly the files its FileList names:
+        Publish-PSResource packages the whole folder, whatever FileList says
 
 .PARAMETER ApiKey
-    PSGallery API key (Push scope). Retrieve from Windows Credential Manager —
-    never pass as a plaintext argument in a scheduled task or CI pipeline.
+    PSGallery API key (Push scope), as a SecureString. Copy it from Windows Credential
+    Manager into Read-Host -AsSecureString; never paste it as plain text. The plain
+    text is extracted only inline, in the Publish-PSResource call.
 
 .EXAMPLE
     $key = Read-Host -AsSecureString 'PSGallery API Key'
-    $plain = [System.Net.NetworkCredential]::new('', $key).Password
-    .\Scripts\Publish-ToGallery.ps1 -ApiKey $plain
+    .\Scripts\Publish-ToGallery.ps1 -ApiKey $key
+
+    Omitting -ApiKey makes PowerShell prompt for it with masked input.
 
 .NOTES
     Copyright © TACE Data Management Inc.
@@ -36,9 +40,10 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
     Justification = 'Console publish tool: reports each step at the terminal. Scripts\ are not module code (decision 25).')]
 param(
+    # [SEC] S-01: a SecureString, so a plain-text key is refused at the call.
     [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string] $ApiKey
+    [ValidateNotNull()]
+    [SecureString] $ApiKey
 )
 
 Set-StrictMode -Version Latest
@@ -68,6 +73,16 @@ if (-not (Test-Path -Path $stagedManifest)) {
 
 Write-Host "[Publish-ToGallery] Build   : $stagingDir [OK]"
 
+# [SEC] The folder is what gets packaged, so it must hold only the files FileList names.
+$listed  = @((Import-PowerShellDataFile -LiteralPath $stagedManifest).FileList | ForEach-Object { $PSItem -replace '\\', '/' })
+$onDisk  = @(Get-ChildItem -LiteralPath $stagingDir -File -Recurse -Force | ForEach-Object { [System.IO.Path]::GetRelativePath($stagingDir, $PSItem.FullName) -replace '\\', '/' })
+$extra   = @($onDisk | Where-Object { $listed -notcontains $PSItem })
+$missing = @($listed | Where-Object { $onDisk -notcontains $PSItem })
+if ($extra.Count -gt 0 -or $missing.Count -gt 0) {
+    Write-Error "[Publish-ToGallery] The build folder does not match FileList. Not in FileList: $($extra -join ', '). Missing: $($missing -join ', '). Run Build-Module.ps1 -Package again."
+}
+Write-Host "[Publish-ToGallery] FileList : $($listed.Count) files, nothing else in the folder [OK]"
+
 # -- Git checks --------------------------------------------------------------
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -89,6 +104,7 @@ Write-Host "[Publish-ToGallery] Git tag      : $tagName [OK]"
 # -- Publish -----------------------------------------------------------------
 
 if ($PSCmdlet.ShouldProcess('PSGallery', "Publish TACE.Oracle.Admin v$version")) {
-    Publish-PSResource -Path $stagedManifest -ApiKey $ApiKey
+    # [SEC] S-03: the plain text exists only inside this call, never in a variable.
+    Publish-PSResource -Path $stagedManifest -ApiKey ([System.Net.NetworkCredential]::new('', $ApiKey).Password)
     Write-Host "[Publish-ToGallery] Published TACE.Oracle.Admin v$version to PSGallery successfully."
 }

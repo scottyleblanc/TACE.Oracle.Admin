@@ -64,7 +64,7 @@ both the branch and the tag and will fail. Push the tag explicitly if needed:
 
 ## Version–Commit–Changelog Mapping
 
-1. Update version in `Source\TACE.Oracle.Admin.psd1` (`ModuleVersion`) and `Source\TACE.Oracle.Admin.psm1` (`.NOTES`); the built manifest takes its version from the source manifest
+1. Update version in `Source\TACE.Oracle.Admin.psd1` (`ModuleVersion`), `Source\TACE.Oracle.Admin.psm1` (`.NOTES`) and the `.NOTES` `Version :` line of every function in `Source\Public\`; the built manifest takes its version from the source manifest. The gate's `version` check fails until all of them, and the newest `CHANGELOG.md` release, agree; with `-Base` it also fails when `Source\`, `README.md`, `LICENSE` or `Scripts\Build-Module.ps1` changed and the version is already tagged (decision 36)
 2. Add entry to `CHANGELOG.md`
 3. Commit all three in the same commit: `chore(manifest): bump version to 0.x.0`
 4. `TODO.md` and `CHANGELOG.md` travel in the same commit as the code they describe —

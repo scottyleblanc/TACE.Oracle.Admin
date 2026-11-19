@@ -36,7 +36,7 @@ function Get-OracleDatabaseList {
     .NOTES
         Copyright © TACE Data Management Inc.
         Module  : TACE.Oracle.Admin
-        Version : 0.2.7
+        Version : 0.2.8
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]

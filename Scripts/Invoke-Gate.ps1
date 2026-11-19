@@ -18,26 +18,44 @@
       6. messages   The messages of those commits, through gitleaks and the S-16
                     patterns in Tests\Lint\PublicRepoPatterns.psd1. gitleaks does not
                     read commit messages, so they are checked separately
+      7. version    Rule D-10. The manifest, Source\TACE.Oracle.Admin.psm1, every public
+                    function's .NOTES and the newest CHANGELOG release name the same
+                    version. With -Base, the tags too (below)
 
     "Not yet on a remote" means not reachable from any remote-tracking branch, as git
     last saw it. A branch never pushed has all its commits checked.
 
     In CI every commit is already on a remote, so "not yet on a remote" would check
     nothing. -Base names the branch a pull request merges into; with it, 'commits' and
-    'messages' check the commits in Base..HEAD instead, and two more checks run:
+    'messages' check the commits in Base..HEAD instead, 'version' also checks the tags,
+    and three more checks run.
 
-      7. evidence   Rule T-14 (decision 30). When the commits since the merge base with
+    The tag rule: the version is not lower than the latest v* tag; if it is already
+    tagged, that tag is in HEAD's history and none of the files the package is made from
+    (Source\, README.md, LICENSE, Scripts\Build-Module.ps1) changed since Base. A change
+    to what ships under a released number fails until the version is bumped. A
+    tag is made on the merge commit after the pull request merges, so a release's own
+    pull request passes with its version not yet tagged.
+
+      8. evidence   Rule T-14 (decision 30). When the commits since the merge base with
                     Base change Source\, Tests\Integration\LastRun.json at HEAD must
                     show a passing run on a clean tree (Evidence = true) of a commit
                     that HEAD contains, and nothing but that file may change between
                     that commit and HEAD. A change outside Source\ needs no evidence
-      8. review     Decision 35. When the commits since the merge base with Base change
+      9. review     Decision 35. When the commits since the merge base with Base change
                     any file other than the two evidence files, Review\LastReview.json at
-                    HEAD must show a completed review of a commit that HEAD contains,
-                    from that merge base or an older one, and every finding must have a Response
+                    HEAD must show a completed review of a commit that HEAD contains and
+                    Base does not (one this branch adds, so a record left by an earlier
+                    pull request fails), from that merge base or an older one, and every
+                    finding must have a Response
                     that starts with Fixed:, Rejected:, Accepted: or Deferred:
                     (Docs\REVIEW.md). Commits after the reviewed one are the author's
                     fixes. If git cannot list the changes, the check fails
+     10. package    Builds the package (Scripts\Build-Module.ps1 -Package) and fails
+                    unless it holds exactly the files the built manifest's FileList
+                    names. Publish-PSResource packages the whole version folder and
+                    ignores FileList, so this is what stops a stray file from shipping.
+                    Nothing is published
 
     Found values are never printed in full: gitleaks runs with --redact, and a pattern
     match shows only its first characters.
@@ -56,8 +74,9 @@
 
 .PARAMETER Base
     The branch a pull request merges into, as a git revision (for example
-    origin/master). Checks commits in Base..HEAD instead of the unpushed ones, and adds
-    the 'evidence' and 'review' checks. CI passes it; the pre-push hook does not.
+    origin/master). Checks commits in Base..HEAD instead of the unpushed ones, adds the
+    tag rule to 'version', and adds the 'evidence', 'review' and 'package' checks. CI
+    passes it; the pre-push hook does not.
 
 .PARAMETER Unit
     Also run the unit tier, with its coverage floor.
@@ -79,8 +98,8 @@
 .EXAMPLE
     .\Scripts\Invoke-Gate.ps1 -Unit -Base origin/master
 
-    Runs the gate over the commits a pull request adds to master, with the evidence
-    and review checks, then the unit tier. This is what CI runs (.github\workflows\gate.yml).
+    Runs the gate over the commits a pull request adds to master, with the tag rule and
+    the evidence, review and package checks, then the unit tier. This is what CI runs (.github\workflows\gate.yml).
 
 .EXAMPLE
     $env:ORACLE_ADMIN_RUN_INTEGRATION = '1'
@@ -274,7 +293,81 @@ else {
     Add-Result -Name 'messages' -Passed ($problems.Count -eq 0) -Summary "messages of $($unpushed.Count) $rangeLabel, $($problems.Count) problem(s)" -Detail @($problems)
 }
 
-# -- 7. evidence, only with -Base --------------------------------------------
+# -- 7. version --------------------------------------------------------------
+# Rule D-10. Every run: the manifest, the root module, every public function's .NOTES
+# and the newest CHANGELOG release name the same version. With -Base, also the tags:
+# the version is not lower than the latest v* tag, and a version already tagged is in
+# HEAD's history with no change since Base to the files the package is made from, so a
+# released number never labels a different package.
+
+$versionProblems = [System.Collections.Generic.List[string]]::new()
+$sourceRoot      = Join-Path -Path $repoRoot -ChildPath 'Source'
+$moduleVersion   = [string](Import-PowerShellDataFile -LiteralPath (Join-Path -Path $sourceRoot -ChildPath 'TACE.Oracle.Admin.psd1')).ModuleVersion
+$versionValid    = $moduleVersion -match '^\d+\.\d+\.\d+$'
+if (-not $versionValid) { $versionProblems.Add("Source\TACE.Oracle.Admin.psd1: ModuleVersion '$moduleVersion' is not MAJOR.MINOR.PATCH") }
+
+$notesFiles = @(
+    Join-Path -Path $sourceRoot -ChildPath 'TACE.Oracle.Admin.psm1'
+    Get-ChildItem -LiteralPath (Join-Path -Path $sourceRoot -ChildPath 'Public') -Filter '*.ps1' -File | Sort-Object -Property Name | ForEach-Object { $PSItem.FullName }
+)
+foreach ($file in $notesFiles) {
+    $relative = [System.IO.Path]::GetRelativePath($repoRoot, $file)
+    $found    = [regex]::Match([System.IO.File]::ReadAllText($file), '(?m)^\s*Version\s*:\s*(\S+)\s*$')
+    if (-not $found.Success) { $versionProblems.Add("${relative}: no 'Version :' line in .NOTES") }
+    elseif ($found.Groups[1].Value -ne $moduleVersion) { $versionProblems.Add("${relative}: .NOTES Version $($found.Groups[1].Value)") }
+}
+
+$changelogPath = Join-Path -Path $repoRoot -ChildPath 'Docs' -AdditionalChildPath 'CHANGELOG.md'
+$newest        = [regex]::Match([System.IO.File]::ReadAllText($changelogPath), '(?m)^## \[(\d+\.\d+\.\d+)\]')
+if (-not $newest.Success) { $versionProblems.Add('Docs\CHANGELOG.md: no release heading') }
+elseif ($newest.Groups[1].Value -ne $moduleVersion) { $versionProblems.Add("Docs\CHANGELOG.md: newest release $($newest.Groups[1].Value)") }
+
+# Besides Source\, the build copies these into the package or makes it from them.
+$packageInputs = @('README.md', 'LICENSE', 'Scripts/Build-Module.ps1')
+$tagNote = ''
+if ($Base) {
+    if ($null -ne $notReady) {
+        $versionProblems.Add("tags $notReady")
+    }
+    elseif ($versionValid) {
+        $tagOut  = @(& $git.Source -C $repoRoot tag --list 'v*' 2>$null)
+        $tagExit = $LASTEXITCODE
+        $tagged  = @($tagOut | ForEach-Object { if ($PSItem -match '^v(\d+\.\d+\.\d+)$') { [version]$Matches[1] } })
+        $current = [version]$moduleVersion
+        $latest  = $tagged | Sort-Object -Descending | Select-Object -First 1
+        if ($tagExit -ne 0) {
+            # Fail closed: a check that cannot see the tags does not pass them.
+            $versionProblems.Add('git could not list the tags')
+        }
+        elseif ($null -ne $latest -and $current -lt $latest) {
+            $versionProblems.Add("version $moduleVersion is lower than the latest tag v$latest")
+        }
+        elseif ($tagged -contains $current) {
+            $null = & $git.Source -C $repoRoot merge-base --is-ancestor "refs/tags/v$moduleVersion" HEAD 2>$null
+            if ($LASTEXITCODE -ne 0) { $versionProblems.Add("v$moduleVersion is tagged on a commit this branch does not contain") }
+            $changedOut = @(& $git.Source -C $repoRoot diff --name-only "$baseCommit...HEAD" 2>$null)
+            if ($LASTEXITCODE -ne 0) {
+                $versionProblems.Add("git could not list the files changed since $Base")
+            }
+            elseif (@($changedOut | Where-Object { $PSItem -like 'Source/*' -or $packageInputs -contains $PSItem }).Count -gt 0) {
+                $versionProblems.Add("what the package is made from changed since $Base (Source\, README.md, LICENSE or Scripts\Build-Module.ps1) but v$moduleVersion is already released: bump the version in the manifest, the .NOTES blocks and the CHANGELOG")
+            }
+            $tagNote = "; v$moduleVersion already tagged"
+        }
+        else {
+            $tagNote = if ($null -ne $latest) { "; not yet tagged, latest tag v$latest" } else { '; no tags yet' }
+        }
+    }
+}
+$versionSummary = if ($versionProblems.Count -eq 0) {
+    "$moduleVersion in the manifest, $($notesFiles.Count) .NOTES blocks and the CHANGELOG$tagNote"
+}
+else {
+    "version $moduleVersion does not agree everywhere (rule D-10)"
+}
+Add-Result -Name 'version' -Passed ($versionProblems.Count -eq 0) -Summary $versionSummary -Detail @($versionProblems)
+
+# -- 8. evidence, only with -Base --------------------------------------------
 
 if ($Base) {
     $evidencePath = 'Tests/Integration/LastRun.json'
@@ -336,7 +429,7 @@ if ($Base) {
     }
 }
 
-# -- 8. review, only with -Base ----------------------------------------------
+# -- 9. review, only with -Base ----------------------------------------------
 
 if ($Base) {
     $reviewPath    = 'Review/LastReview.json'
@@ -395,6 +488,13 @@ if ($Base) {
                     if ($LASTEXITCODE -ne 0) {
                         $reviewProblems.Add("the reviewed commit $($reviewCommit.Substring(0, 7)) is not in HEAD's history")
                     }
+                    # The reviewed commit must be one this branch adds. A record left by an
+                    # earlier pull request names a commit already in Base, and passes every
+                    # other test here. Exit 1 means "not an ancestor"; 0 or an error fails.
+                    $null = & $git.Source -C $repoRoot merge-base --is-ancestor $reviewCommit $mergeBase 2>$null
+                    if ($LASTEXITCODE -ne 1) {
+                        $reviewProblems.Add("the reviewed commit $($reviewCommit.Substring(0, 7)) is already in ${Base}: the record is from an earlier pull request, run Scripts\Invoke-ModelReview.ps1")
+                    }
                 }
                 if ($names -notcontains 'Findings') {
                     $reviewProblems.Add("$reviewPath has no Findings list")
@@ -420,7 +520,23 @@ if ($Base) {
     }
 }
 
-# -- 9. unit, only with -Unit ------------------------------------------------
+# -- 10. package, only with -Base --------------------------------------------
+# [SEC] Builds the package and fails unless it holds exactly the files FileList names
+# (Scripts\Build-Module.ps1 -Package makes the comparison). Nothing is published.
+
+if ($Base) {
+    $buildScript  = Join-Path -Path $PSScriptRoot -ChildPath 'Build-Module.ps1'
+    $buildOutput  = @(& pwsh -NoProfile -File $buildScript -Package 2>&1 | ForEach-Object { "$PSItem" })
+    $buildExit    = $LASTEXITCODE
+    $packageLine  = @($buildOutput | Where-Object { $PSItem -match '^\[Build-Module\] Package check : ' }) | Select-Object -Last 1
+    # A mismatch lists its files; any other failure shows the last lines of the build.
+    $packageFault = @($buildOutput | Where-Object { $PSItem -match '^\s*(not in FileList|in FileList, not in the package): ' } | ForEach-Object { $PSItem.Trim() })
+    if ($packageFault.Count -eq 0) { $packageFault = @($buildOutput | Select-Object -Last 3) }
+    $summary      = if ($buildExit -eq 0 -and $packageLine) { $packageLine -replace '^\[Build-Module\] Package check : ', '' -replace ' \[OK\]$', '' } else { "the package build failed (exit $buildExit)" }
+    Add-Result -Name 'package' -Passed ($buildExit -eq 0 -and [bool]$packageLine) -Summary $summary -Detail $packageFault
+}
+
+# -- 11. unit, only with -Unit -----------------------------------------------
 
 if ($Unit) {
     $unitScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-UnitTest.ps1'
@@ -438,7 +554,7 @@ if ($Unit) {
     Add-Result -Name 'unit' -Passed ($unitExit -eq 0) -Summary $summary -Detail $unitFailed
 }
 
-# -- 10. integration, only with -Integration ---------------------------------
+# -- 12. integration, only with -Integration ---------------------------------
 
 if ($Integration) {
     $integrationScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-IntegrationTest.ps1'

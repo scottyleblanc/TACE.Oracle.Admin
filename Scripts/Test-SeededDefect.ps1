@@ -2,7 +2,7 @@
 <#
 .SYNOPSIS
     Proves the gate fails on planted defects: a lint violation, a secret in a file and in
-    a commit message, and a behaviour defect.
+    a commit message, a behaviour defect, a version mismatch and a stray package file.
 
 .DESCRIPTION
     Copies the files the next commit could contain (tracked, plus untracked files that
@@ -27,6 +27,9 @@
       evidence   one more Source\ change after   the gate with -Base fails on
       stale      the evidence commit             'evidence' only (rule T-14); a fix
                                                  after the review needs no new review
+      version    the 'evidence current' branch,  the gate with -Base fails on
+      released   its version tagged at the base  'version' only: code changed under a
+                                                 released number (rule D-10)
       review     a docs change with no review    the gate with -Base fails on
       missing    record                          'review' only (decision 35)
       review     a review record naming it,      the gate with -Base passes
@@ -38,6 +41,14 @@
       unanswered finding's Response empty        'review' only
       review     a fix committed after the       the gate with -Base passes: a fix
       fixed      review, answered Fixed:         needs no new review
+      review     that branch merged; the next    the gate with -Base fails on
+      stale      one makes a docs change and     'review' only: the record names a
+                 leaves the old record           commit already in the base
+      version    the newest CHANGELOG release    the gate fails on 'version' only
+      mismatch   renamed 9.9.9
+      stray file the build writes a notes file   the gate with -Base fails on
+                 into the version folder after   'package' only: FileList is right,
+                 FileList is made                the package is not
 
     Each case starts from the clean copy. The planted token is generated at random in
     the GitHub token format, so it is no real credential; it is never printed. This
@@ -51,13 +62,14 @@
 .EXAMPLE
     .\Scripts\Test-SeededDefect.ps1
 
-    Runs the fifteen cases. Exits 0 when every case behaves as expected, 1 otherwise.
+    Runs the nineteen cases. Exits 0 when every case behaves as expected, 1 otherwise.
 
 .NOTES
     Copyright © TACE Data Management Inc.
     **Invocation:** Standalone — self-contained; safe to run with `pwsh -File`. Needs
-    everything the gate needs (PREREQUISITES.md). Takes a few minutes: the gate, static
-    tier included, runs fifteen times, twice with the unit tier. The review records it
+    everything the gate needs (PREREQUISITES.md). Takes about 25 minutes: the gate,
+    static tier included, runs nineteen times, twice with the unit tier. Run it by hand
+    when the gate changes; it is not part of the gate or CI. The review records it
     plants are made up; no model review runs.
 #>
 [CmdletBinding()]
@@ -267,6 +279,15 @@ try {
     [System.IO.File]::WriteAllText($evidence, (ConvertTo-Json -InputObject $run -Depth 5) + "`n", [System.Text.UTF8Encoding]::new($false))
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'test: integration evidence')
     Add-Case -Name 'evidence current' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @()
+
+    # -- version released: the same branch, its version already tagged ------------
+    # Everything else is in order; only the tag rule can see that the code changed
+    # under a released number.
+    $manifestFile = Join-Path -Path $copy -ChildPath 'Source' -AdditionalChildPath 'TACE.Oracle.Admin.psd1'
+    $copyVersion  = [string](Import-PowerShellDataFile -LiteralPath $manifestFile).ModuleVersion
+    $null = Invoke-CopyGit -Argument @('tag', "v$copyVersion", $baseline)
+    Add-Case -Name 'version released' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('version')
+    $null = Invoke-CopyGit -Argument @('tag', '--delete', "v$copyVersion")
     [System.IO.File]::AppendAllText($sourceFile, "# seeded change 2`n", [System.Text.UTF8Encoding]::new($false))
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'fix: a later source change')
     Add-Case -Name 'evidence stale' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('evidence')
@@ -299,7 +320,40 @@ try {
     Write-ReviewRecord -Commit $docCommit -BaseCommit $baseline -Response 'Fixed: seeded fix commit.'
     $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: fix F1 after the review')
     Add-Case -Name 'review fixed' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @()
+    # That branch counts as merged: its HEAD is the next pull request's base. The next
+    # pull request makes a docs change and no review, so the only record is the
+    # earlier one, which names a commit already in the base.
+    $merged = (Invoke-CopyGit -Argument @('rev-parse', 'HEAD')) | Select-Object -First 1
+    [System.IO.File]::AppendAllText($docFile, "Seeded docs change 2.`n", [System.Text.UTF8Encoding]::new($false))
+    $null = Invoke-CopyGit -Argument @('commit', '--quiet', '--all', '--message', 'docs: a change in the next pull request')
+    Add-Case -Name 'review stale' -Result (Invoke-CopyGate -Base $merged) -ExpectFailed @('review')
     $null = Invoke-CopyGit -Argument @('reset', '--quiet', '--hard', $baseline)
+
+    # -- version mismatch: the CHANGELOG names a different release --------------
+    # The manifest and every .NOTES block still agree; only the CHANGELOG is off.
+    $changelog = Join-Path -Path $copy -ChildPath 'Docs' -AdditionalChildPath 'CHANGELOG.md'
+    Assert-InCopy -Path $changelog
+    $text   = [System.IO.File]::ReadAllText($changelog)
+    $anchor = [regex]::Match($text, '(?m)^## \[\d+\.\d+\.\d+\]')
+    if (-not $anchor.Success) { throw '[Test-SeededDefect] version anchor not found in CHANGELOG.md' }
+    $text = $text.Remove($anchor.Index, $anchor.Length).Insert($anchor.Index, '## [9.9.9]')
+    [System.IO.File]::WriteAllText($changelog, $text, [System.Text.UTF8Encoding]::new($false))
+    Add-Case -Name 'version mismatch' -Result (Invoke-CopyGate) -ExpectFailed @('version')
+    $null = Invoke-CopyGit -Argument @('checkout', '--quiet', '--', 'Docs/CHANGELOG.md')
+
+    # -- stray file: the build writes a file FileList does not name ---------------
+    # A build-script edit after the file list is made: FileList stays correct, and
+    # Publish-PSResource would still package the extra file. Left uncommitted, so no
+    # review or evidence is due and only 'package' can fail.
+    $buildFile = Join-Path -Path $copy -ChildPath 'Scripts' -AdditionalChildPath 'Build-Module.ps1'
+    Assert-InCopy -Path $buildFile
+    $text   = [System.IO.File]::ReadAllText($buildFile)
+    $anchor = "New-ModuleManifest @manifestParams`n"
+    if (([regex]::Matches($text, [regex]::Escape($anchor))).Count -ne 1) { throw '[Test-SeededDefect] stray-file anchor not found exactly once in Build-Module.ps1' }
+    $stray = "Set-Content -LiteralPath (Join-Path -Path `$moduleDir -ChildPath 'build-notes.txt') -Value 'seeded' -Encoding UTF8`n"
+    [System.IO.File]::WriteAllText($buildFile, $text.Replace($anchor, $anchor + $stray), [System.Text.UTF8Encoding]::new($false))
+    Add-Case -Name 'stray file' -Result (Invoke-CopyGate -Base $baseline) -ExpectFailed @('package')
+    $null = Invoke-CopyGit -Argument @('checkout', '--quiet', '--', 'Scripts/Build-Module.ps1')
 }
 finally {
     if ($KeepCopy) {
@@ -316,7 +370,7 @@ finally {
 }
 
 $failedCases = @($cases | Where-Object { -not $PSItem.Passed })
-if ($failedCases.Count -gt 0 -or $cases.Count -ne 15) {
+if ($failedCases.Count -gt 0 -or $cases.Count -ne 19) {
     Write-Output "[FAIL] seeded defects: $($failedCases.Count) of $($cases.Count) cases did not behave as expected"
     exit 1
 }
