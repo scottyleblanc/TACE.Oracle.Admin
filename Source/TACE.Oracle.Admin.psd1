@@ -34,7 +34,7 @@
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell', 'oraset', 'oraenv')
             ProjectUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin'
             LicenseUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE'
-            ReleaseNotes = 'v0.2.7 — AI Development Stack, Stack 7 (containment): committed agent permission settings for Claude Code and the Cursor CLI deny file deletion, git push and, for Claude Code, reads of credential material; tested against planted credential files. No change to module behaviour. Not published to PSGallery.'
+            ReleaseNotes = 'v0.2.7 — AI Development Stack, Stack 7 (containment): committed agent permission settings for Claude Code and the Cursor CLI deny rm, rmdir, git push and, for Claude Code, reads of credential material; tested against planted credential files. No change to module behaviour. Not published to PSGallery.'
         }
     }
 }

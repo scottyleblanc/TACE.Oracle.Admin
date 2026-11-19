@@ -87,7 +87,11 @@ rules and no read rule.
 ## Limits
 
 - The rules govern the agent's own tools. A repository script the agent runs, the gate
-  included, runs with the user's rights and can read anything the user can.
+  included, runs with the user's rights and can read anything the user can. In
+  `acceptEdits` mode the agent can edit or create a script under `Scripts/` or
+  `Tests/Lint/` and run it without asking, so that script can be its own.
+- Only `rm` and `rmdir` are denied by name. `mv`, `git rm`, `git clean` and full-path
+  or wrapped calls were not tested.
 - Allow rules take effect only once the workspace is trusted; deny rules take effect
   in sessions started after the settings file exists.
 - The Cursor IDE agent's controls are user settings and are not set from this

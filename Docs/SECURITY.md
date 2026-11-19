@@ -245,8 +245,13 @@ Bash tools is refused, and the PowerShell tool is not offered. Deny rules apply 
 workspace; allow rules apply only once the workspace trust prompt has been accepted. A
 session started before the settings file existed does not pick up its deny rules. The
 rules govern the agent's own tools: a repository script the agent runs, the gate
-included, runs with the user's rights. Tested headless against planted files; the
-record is `Docs\audit\stack-7-containment.md`.
+included, runs with the user's rights. In `acceptEdits` mode the agent can also edit
+or create a script under `Scripts/` or `Tests/Lint/` and run it without asking, so a
+script it writes can read the listed material, delete files or push. Edits there are
+not set to ask, because that would stop routine work on the gate and lint scripts. Only
+`rm` and `rmdir` are denied by name: `mv`, `git rm`, `git clean` and full-path or
+wrapped calls are not matched by a deny rule and were not tested. Tested headless
+against planted files; the record is `Docs\audit\stack-7-containment.md`.
 
 ---
 
