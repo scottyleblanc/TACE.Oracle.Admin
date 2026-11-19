@@ -536,7 +536,10 @@ docs and tests alone are shown to be enough to find and fix a planted defect.
 - [x] Run one ownership drill; record the result: `Docs\audit\stack-9-feedback-loop.md`.
       A headless agent with only the committed files found and fixed a planted scrub
       defect in `Remove-RmanObsoleteBackup` in 5 min 42 s
-- [ ] Closing tasks
+- [x] Closing tasks
+      - [x] Records: `Docs\audit\escaped-defects.md` and `Docs\audit\stack-9-feedback-loop.md`
+      - [x] `CHANGELOG.md` 0.2.9 and tag `v0.2.9`
+      - [x] Write-up: Stack 9 post and project page row
 
 ### Stack 10 — Wrap-up
 

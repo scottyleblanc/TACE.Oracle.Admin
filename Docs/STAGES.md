@@ -93,7 +93,7 @@ soak tests run locally against an Oracle database; they do not run in public CI.
 | 6 | Independent review | 5 | Complete (v0.2.6) |
 | 7 | Containment | 7 | Complete (v0.2.7) |
 | 8 | Release | 8 | Complete (v0.2.8) |
-| 9 | Feedback loop | 9 | Not started |
+| 9 | Feedback loop | 9 | Complete (v0.2.9) |
 | 10 | Wrap-up | — | Not started |
 
 Version numbers are assigned at stage close per `VERSIONING.md`; the scheme for

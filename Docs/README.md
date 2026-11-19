@@ -99,9 +99,9 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.2.8 |
-| Last audit | 2026-11-19 — Stack 8 release: the gate refuses a version that disagrees across the manifest, function notes, CHANGELOG and tags, and a package holding a file outside `FileList`; the first run found two functions with no version line |
-| Tests | 405 unit tests, 164 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
+| Version | 0.2.9 |
+| Last audit | 2026-11-19 — Stack 9 feedback loop: every escaped defect ends in a check; new static checks on the agent permission settings and on unscrubbed exception text; an ownership drill found and fixed a planted defect from the committed files alone |
+| Tests | 405 unit tests, 188 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
 | Open SEC items | 7 — see the Open Items in SECURITY.md |
 
 See [SECURITY.md](SECURITY.md) for the full security reference.

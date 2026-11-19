@@ -6,7 +6,10 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.2.9] - 2026-11-19
+
+Stack 9 of the AI Development Stack — feedback loop. Not published to PSGallery.
+Records in `Docs/audit/escaped-defects.md` and `Docs/audit/stack-9-feedback-loop.md`.
 
 ### Added
 
