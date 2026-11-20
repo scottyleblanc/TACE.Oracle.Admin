@@ -549,7 +549,7 @@ written up.
 
 - [x] Lift the gate script, settings, templates and CI wrapper into a template: its own
       repository, taken in as a git subtree, configured by one data file, with no TACE
-      names, rule IDs or decision numbers (decision 38)
+      names, rule IDs or decision numbers outside its MIT licence file (decision 38)
 - [x] Prove the template on a fresh, empty repo: every enabled check passed on nothing
       and said so; a clean pull request passed in CI; a seeded secret and a seeded
       analyzer finding each failed in the pre-push hook and in CI
@@ -567,7 +567,7 @@ written up.
       repo's source-layout move, baseline its existing analyzer findings, and run the
       Bitbucket Pipelines wrapper. Run on another machine; tracked in the template's
       own task list
-- [ ] Write-up, once the template repository is public and the proof above is done:
+- [ ] Write-up, once the proof above is done:
       the summary post answering the project question layer by layer, and the final
       project page
 

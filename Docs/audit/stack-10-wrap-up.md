@@ -24,6 +24,9 @@ CI on real pull requests.
 | gitleaks config and commit message patterns, review script and checklist, agent permission check | The same, without this repository's names |
 | Pre-push hook, GitHub Actions and Bitbucket Pipelines wrappers, pull request template | New wrappers; the Bitbucket one installs PowerShell from a hash-checked release archive |
 
+The template is public and released under the MIT licence, with the copyright held by
+TACE Data Management Inc. Its licence file is the only file in it that names TACE.
+
 Not in the template: the package, evidence and integration checks, the invariant
 linter, the mutation script, the seeded-defect script and the instruction generator.
 Each assumes this repository's module layout or its database.
