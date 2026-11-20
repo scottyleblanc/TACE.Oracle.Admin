@@ -35,7 +35,7 @@
 .NOTES
     Copyright © TACE Data Management Inc.
     Module  : TACE.Oracle.Admin
-    Version : 0.2.9
+    Version : 0.2.10
 
     Data.IsRecentDay is $false if CompletionTime is $null (cannot confirm recency).
     Data.AgeHours is -1.0 if CompletionTime is $null (cannot compute age).

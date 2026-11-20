@@ -94,7 +94,7 @@ soak tests run locally against an Oracle database; they do not run in public CI.
 | 7 | Containment | 7 | Complete (v0.2.7) |
 | 8 | Release | 8 | Complete (v0.2.8) |
 | 9 | Feedback loop | 9 | Complete (v0.2.9) |
-| 10 | Wrap-up | — | Not started |
+| 10 | Wrap-up | — | Complete (v0.2.10) |
 
 Version numbers are assigned at stage close per `VERSIONING.md`; the scheme for
 stack stages is confirmed during Stack 0.
@@ -234,12 +234,16 @@ recorded.
 **Goal:** the stack can be reused on another repo.
 
 **Deliverables:** the reusable parts (gate script, settings, templates, CI
-wrapper) lifted into a template; a summary write-up answering the question
-layer by layer.
+wrapper) lifted into a template; the stage's own post.
 
-**Done when:** the template produces a working gate on a fresh, empty repo, and
-on a file copy of an existing private module repo: one with a class, its own
-packaging step and a host other than GitHub.
+**Done when:** the template produces a working gate on a fresh, empty repo.
+
+The proof on a file copy of an existing private module repo (one with a class, its
+own packaging step and a host other than GitHub) moved out of Stack 10 into a later
+task: applying the gate's rules to that much existing code is a project of its own
+(decision 38). The summary write-up answering the question layer by layer, and the
+final project page, follow that proof; Stack 10 has its own post like every other
+stage.
 
 ---
 

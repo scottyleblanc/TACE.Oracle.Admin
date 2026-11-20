@@ -30,7 +30,7 @@
 .NOTES
     Copyright © TACE Data Management Inc.
     Module  : TACE.Oracle.Admin
-    Version : 0.2.9
+    Version : 0.2.10
 
     [SEC] SupportsShouldProcess is mandatory — no silent deletion path.
     [SEC] ORACLE_SID set on child process only — never on current session.

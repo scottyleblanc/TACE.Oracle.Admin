@@ -8,7 +8,7 @@
 @{
     # Module identity
     RootModule        = 'TACE.Oracle.Admin.psm1'
-    ModuleVersion     = '0.2.9'
+    ModuleVersion     = '0.2.10'
     GUID              = '50e4f865-a551-4f83-beb1-329987147747'
     Author            = 'TACE Data Management Inc.'
     CompanyName       = 'TACE Data Management Inc.'
@@ -34,7 +34,7 @@
             Tags         = @('Oracle', 'DBA', 'Automation', 'Environment', 'Administration', 'Windows', 'Linux', 'OracleDB', 'PowerShell', 'oraset', 'oraenv')
             ProjectUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin'
             LicenseUri   = 'https://github.com/scottyleblanc/TACE.Oracle.Admin/blob/master/LICENSE'
-            ReleaseNotes = 'v0.2.9 — AI Development Stack, Stack 9 (feedback loop): an escaped-defect log in which every entry ends in a check; a static check on the agent permission settings (S-17); the credential scrub replaces a password holding an @ whole; every function scrubs exception text before Message or a re-throw, enforced by a static check (S-07). Not published to PSGallery.'
+            ReleaseNotes = 'v0.2.10 — AI Development Stack, Stack 10 (wrap-up): the gate, analyzer rules, templates and CI wrappers lifted into a reusable template kept in a separate repository, proven on a fresh, empty repository through the hook and CI. No change to module behaviour. Not published to PSGallery.'
         }
     }
 }
