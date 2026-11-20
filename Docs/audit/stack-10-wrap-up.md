@@ -65,4 +65,6 @@ install path have not run yet.
 
 The template gives a fresh repository a working gate: every enabled check passes on
 nothing and says so, a clean change passes in CI, and a planted secret or analyzer
-finding fails both the hook and CI. This is the end-of-project test in the plan.
+finding fails both the hook and CI. This is the template half of the plan's
+end-of-project test; the other half, the summary post answering the question layer by
+layer, follows the existing-repository proof.

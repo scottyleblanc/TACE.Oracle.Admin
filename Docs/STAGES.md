@@ -234,8 +234,7 @@ recorded.
 **Goal:** the stack can be reused on another repo.
 
 **Deliverables:** the reusable parts (gate script, settings, templates, CI
-wrapper) lifted into a template; a summary write-up answering the question
-layer by layer.
+wrapper) lifted into a template; the stage's own post.
 
 **Done when:** the template produces a working gate on a fresh, empty repo.
 
