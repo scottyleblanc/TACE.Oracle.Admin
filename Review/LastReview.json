@@ -1,10 +1,10 @@
 {
   "SchemaVersion": 1,
-  "Commit": "18debb7192eba38db7f78d59121f1bc2da14a2ca",
-  "BaseCommit": "e04da007679c058223dc6746d9557ec3631dffaa",
+  "Commit": "4463795602317d83bd2ef76a19b5f72f515a2cae",
+  "BaseCommit": "43d5fed133ca0ec383124e093bbd722449fe433e",
   "Base": "origin/master",
   "Completed": true,
-  "RunAtUtc": "2026-11-20T02:06:23Z",
+  "RunAtUtc": "2026-11-20T12:22:03Z",
   "Reviewer": {
     "Tool": "Claude Code",
     "Version": "2.1.308",
@@ -12,33 +12,22 @@
     "Effort": "medium"
   },
   "PromptSha256": "ebf2a741564fe0498d640695edc9f69d059fe78be2dd73c56e4cb65aa81b44a2",
-  "FilesReviewed": 14,
-  "Turns": 13,
-  "CostUsd": 0.5,
+  "FilesReviewed": 5,
+  "Turns": 9,
+  "CostUsd": 0.31,
   "PermissionDenials": 0,
-  "Summary": "The change closes Stack 10. It bumps the version to 0.2.10 in the manifest, the root module and the public function notes. It adds the 0.2.10 changelog section, decision 38 (the reusable gate template, taken in as a git subtree) and the audit record of the fresh-repository proof. It updates the README and SECURITY status blocks and the audit table, marks Stack 10 complete in STAGES, and in TODO.md ticks the Stack 10 tasks and moves the existing-repository proof and the summary write-up into a later section. Module behaviour does not change. I read REVIEW.md and AGENTS.md, then the commits and the full diff, and checked the touched documents against each other: STAGES, TODO, decision 38, the audit record, CHANGELOG, VERSIONING and the earlier stacks' TODO pattern. The version bump, the commit types and the ticked closing tasks match earlier stacks, and I found no infrastructure names. The only problems are two places where the documents disagree about what Stack 10 delivered.",
+  "Summary": "The change is documentation only, in one commit. Decision 38, the Stack 10 audit record, TODO.md, the 0.2.10 audit row in SECURITY.md and an Unreleased CHANGELOG entry now say the gate template is public under the MIT licence, with TACE Data Management Inc. as the copyright holder, and that its licence file is the only file in it that names TACE. I followed the order in Docs/REVIEW.md. For intent, I checked the commit message against the diff and checked the edited documents against each other and against the rest of decision 38. There are no tests or code to review. For S-16, the company name already appears in the module manifest and in every file header, so naming it here discloses nothing new, and the change names no template repository, host or account. One stale statement remains in decision 38.",
   "Findings": [
     {
       "Id": "F1",
       "Severity": "Low",
       "Step": "Intent",
       "Rule": "D-11",
-      "File": "Docs/STAGES.md",
-      "Line": 237,
-      "Title": "The Stack 10 Deliverables line still lists the summary write-up, which the change moves out of Stack 10 while marking the stage Complete.",
-      "Detail": "The change rewrites the Stack 10 'Done when' and adds a paragraph saying the summary write-up answering the question layer by layer, and the final project page, follow the existing-repository proof after Stack 10. The same change marks Stack 10 'Complete (v0.2.10)' in the stage overview. But the Deliverables line directly above (lines 236-238) still says 'a summary write-up answering the question layer by layer'. TODO.md, CHANGELOG 0.2.10 and decision 38 all say this deliverable was moved out. As written, the section lists a deliverable the stage did not deliver and calls the stage complete. Fix: remove the summary write-up from the Stack 10 Deliverables, or replace it with 'a Stack 10 post', so the deliverables match the moved scope.",
-      "Response": "Fixed: f9f09bf"
-    },
-    {
-      "Id": "F2",
-      "Severity": "Low",
-      "Step": "Intent",
-      "Rule": "D-11",
-      "File": "Docs/audit/stack-10-wrap-up.md",
-      "Line": 68,
-      "Title": "The audit record calls the fresh-repository proof 'the end-of-project test in the plan', but the plan's test also required the existing-repository proof, which has been deferred.",
-      "Detail": "Before this change, the Stack 10 'Done when' in STAGES.md required a working gate on a fresh, empty repo and on a file copy of an existing private module repo. This change moves the second half to a later task (decision 38, and the new TODO section 'Template Proof on an Existing Repo (after Stack 10)'). The record's Result section still ends with 'This is the end-of-project test in the plan', which reads as if the project's closing test has been met. The same record's 'Moved out of Stack 10' section and the TODO.md write-up task (which waits for that proof) both say otherwise. Fix: reword the sentence, for example 'This is the Stack 10 test; the existing-repository half of the end-of-project test is still open (decision 38).'",
-      "Response": "Fixed: f9f09bf (the plan's end-of-project test is the template on a fresh repository plus the summary post; the existing-repository proof is not part of it, but the summary post is deferred, so the sentence now names the proof as the template half)"
+      "File": "Docs/standards/decisions.md",
+      "Line": 47,
+      "Title": "Decision 38 now says the template is public, but its Rejected clause still turns down a git submodule because the target's CI 'could not reach a private template'.",
+      "Detail": "The amended decision 38 says the template 'is public and released under the MIT licence'. The same row still gives this reason for rejecting a git submodule: 'the target's CI could not reach a private template'. Now that the template is public, that reason no longer holds as written, so the decision contradicts itself. The reader cannot tell whether the subtree choice still stands or why. The change edits this row and should have updated the clause too. Fix: reword the reason so it still holds, for example that the template was private when the decision was made, or that a subtree keeps the target's CI free of any dependency on the template repository. Or record that the reason has changed.",
+      "Response": "Fixed: 49ba400"
     }
   ]
 }
