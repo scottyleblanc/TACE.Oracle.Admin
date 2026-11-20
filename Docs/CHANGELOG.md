@@ -13,6 +13,9 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Decision 38, `Docs/audit/stack-10-wrap-up.md`, `TODO.md` and the 0.2.10 audit row in
   `SECURITY.md`: the template is now public under the MIT licence, held by TACE Data
   Management Inc., and its licence file is the one file in it that names TACE.
+- Decision 38: a git submodule is rejected because a target would depend on reaching
+  the template's repository; a subtree keeps the target self-contained. The reason no
+  longer depends on the template's visibility.
 
 ## [0.2.10] - 2026-11-19
 

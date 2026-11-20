@@ -567,7 +567,7 @@ written up.
       repo's source-layout move, baseline its existing analyzer findings, and run the
       Bitbucket Pipelines wrapper. Run on another machine; tracked in the template's
       own task list
-- [ ] Write-up, once the template repository is public and the proof above is done:
+- [ ] Write-up, once the proof above is done:
       the summary post answering the project question layer by layer, and the final
       project page
 
