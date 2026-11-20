@@ -555,10 +555,10 @@ written up.
       analyzer finding each failed in the pre-push hook and in CI
 - [x] Moved out of Stack 10: the proof on an existing repo (decision 38), now the task
       below
-- [ ] Closing tasks
+- [x] Closing tasks
       - [x] Record: `Docs\audit\stack-10-wrap-up.md`
-      - [ ] `CHANGELOG.md` 0.2.10 and tag `v0.2.10`
-      - [ ] Write-up: Stack 10 post and project page row
+      - [x] `CHANGELOG.md` 0.2.10 and tag `v0.2.10`
+      - [x] Write-up: Stack 10 post and project page row
 
 ## Template Proof on an Existing Repo (after Stack 10)
 
