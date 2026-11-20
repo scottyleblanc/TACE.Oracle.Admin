@@ -6,6 +6,30 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.10] - 2026-11-19
+
+Stack 10 of the AI Development Stack — wrap-up. No change to module behaviour. Not
+published to PSGallery. Record in `Docs/audit/stack-10-wrap-up.md`.
+
+### Added
+
+- A reusable template, kept in its own repository and taken into a target repository
+  as a git subtree: the gate script, the analyzer settings and the generic custom
+  rules, gitleaks and commit message checks, the agent permission check, the
+  second-model review script, a pre-push hook, GitHub Actions and Bitbucket Pipelines
+  wrappers and a pull request template, configured by one data file (decision 38).
+- `Docs/audit/stack-10-wrap-up.md`: the fresh-repository proof. On an empty repository
+  every enabled check passed and said when it had nothing to scan; a clean pull request
+  passed in CI with its review answered; a seeded secret and a seeded analyzer finding
+  each failed the gate in the pre-push hook and in CI.
+
+### Changed
+
+- The existing-repository proof (a module with a class, its own packaging step and a
+  host other than GitHub) moved out of Stack 10 into a later task (decision 38). The
+  summary post and the final project page follow it; Stack 10 has its own post.
+- `TODO.md` Backlog: switch this repository's gate to the template.
+
 ## [0.2.9] - 2026-11-19
 
 Stack 9 of the AI Development Stack — feedback loop. Not published to PSGallery.

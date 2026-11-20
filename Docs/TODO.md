@@ -544,15 +544,32 @@ docs and tests alone are shown to be enough to find and fix a planted defect.
 ### Stack 10 — Wrap-up
 
 **Goal:** the gate script, settings, templates and CI wrapper work as a reusable
-template, proven by producing a working gate on a fresh, empty repo and on an existing
-repo, and the project is written up.
+template, proven by producing a working gate on a fresh, empty repo, and the stage is
+written up.
 
-- [ ] Lift the gate script, settings, templates and CI wrapper into a template
-- [ ] Prove the template on a fresh, empty repo
-- [ ] Prove the template on a file copy of an existing private module repo (a class, its
-      own packaging step, a host other than GitHub); refresh the copy after that repo's
-      source-layout move lands
-- [ ] Write-up: final project page and summary post
+- [x] Lift the gate script, settings, templates and CI wrapper into a template: its own
+      repository, taken in as a git subtree, configured by one data file, with no TACE
+      names, rule IDs or decision numbers (decision 38)
+- [x] Prove the template on a fresh, empty repo: every enabled check passed on nothing
+      and said so; a clean pull request passed in CI; a seeded secret and a seeded
+      analyzer finding each failed in the pre-push hook and in CI
+- [x] Moved out of Stack 10: the proof on an existing repo (decision 38), now the task
+      below
+- [ ] Closing tasks
+      - [x] Record: `Docs\audit\stack-10-wrap-up.md`
+      - [ ] `CHANGELOG.md` 0.2.10 and tag `v0.2.10`
+      - [ ] Write-up: Stack 10 post and project page row
+
+## Template Proof on an Existing Repo (after Stack 10)
+
+- [ ] Prove the template on a file copy of an existing private module repo (a class,
+      its own packaging step, a host other than GitHub): refresh the copy after that
+      repo's source-layout move, baseline its existing analyzer findings, and run the
+      Bitbucket Pipelines wrapper. Run on another machine; tracked in the template's
+      own task list
+- [ ] Write-up, once the template repository is public and the proof above is done:
+      the summary post answering the project question layer by layer, and the final
+      project page
 
 ---
 
@@ -590,6 +607,10 @@ Each function comes in through the stack's checks, with its own invariant block.
 ## Backlog — Outside the AI Development Stack Project
 
 Not part of the stack or the OracleBackup migration. Recorded so the idea is not lost.
+
+- [ ] Switch this repository's gate to the template: take it in as a subtree and keep
+      only this repository's own checks (invariant linter, version, package, evidence,
+      integration) beside it. Until then the two gates are maintained separately
 
 - [ ] [SEC] Binary write-permission check: fail when `ORACLE_HOME\bin` or a resolved
       binary is writable by `Users`, `Authenticated Users` or `Everyone`. Survives

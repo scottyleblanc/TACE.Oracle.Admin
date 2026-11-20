@@ -99,8 +99,8 @@ passwords, credential values, or sensitive path fragments.
 
 | Field | Value |
 |---|---|
-| Version | 0.2.9 |
-| Last audit | 2026-11-19 — Stack 9 feedback loop: every escaped defect ends in a check; new static checks on the agent permission settings and on unscrubbed exception text; an ownership drill found and fixed a planted defect from the committed files alone |
+| Version | 0.2.10 |
+| Last audit | 2026-11-19 — Stack 10 wrap-up: the gate lifted into a reusable template and proven on a fresh, empty repository; no change to module code |
 | Tests | 405 unit tests, 194 static checks and 12 integration tests (all passing); coverage 97.7% (floor 95%); 0 analyzer findings |
 | Open SEC items | 7 — see the Open Items in SECURITY.md |
 
