@@ -1,10 +1,10 @@
 {
   "SchemaVersion": 1,
-  "Commit": "72c399e9ca336858a57510158616877a8ea31b7b",
-  "BaseCommit": "bb6645ba5069ccc3c56a3ecd09aa652f157129c4",
+  "Commit": "18debb7192eba38db7f78d59121f1bc2da14a2ca",
+  "BaseCommit": "e04da007679c058223dc6746d9557ec3631dffaa",
   "Base": "origin/master",
   "Completed": true,
-  "RunAtUtc": "2026-11-19T20:40:33Z",
+  "RunAtUtc": "2026-11-20T02:06:23Z",
   "Reviewer": {
     "Tool": "Claude Code",
     "Version": "2.1.308",
@@ -12,55 +12,33 @@
     "Effort": "medium"
   },
   "PromptSha256": "ebf2a741564fe0498d640695edc9f69d059fe78be2dd73c56e4cb65aa81b44a2",
-  "FilesReviewed": 30,
-  "Turns": 22,
-  "CostUsd": 1.13,
+  "FilesReviewed": 14,
+  "Turns": 13,
+  "CostUsd": 0.5,
   "PermissionDenials": 0,
-  "Summary": "The change closes Stack 9 and bumps the version to 0.2.9. It adds an escaped-defect log and an ownership-drill record. It adds rule S-17 with a static check that compares the agent permission files against Tests\\Lint\\AgentPermissions.psd1. It fixes Invoke-CredentialScrub so that a password holding an @ is scrubbed whole. It makes six functions scrub exception text before it goes into Message or is re-thrown, with a new static check on .Exception.Message (S-07). I read REVIEW.md, AGENTS.md, the commit messages and the full diff. I then opened the changed source, the invariant mutation list, the permission files and SECURITY.md section 12, and reviewed in order: intent, tests, implementation. The new scrub regex, the S1 exact-text test and the static S-07 check hold up. The problems are: the mutation list was not updated for the rewritten catch blocks; the private helpers' invariant blocks were not updated; the permission check ignores the permission mode; and the scrub helper's help text is stale.",
+  "Summary": "The change closes Stack 10. It bumps the version to 0.2.10 in the manifest, the root module and the public function notes. It adds the 0.2.10 changelog section, decision 38 (the reusable gate template, taken in as a git subtree) and the audit record of the fresh-repository proof. It updates the README and SECURITY status blocks and the audit table, marks Stack 10 complete in STAGES, and in TODO.md ticks the Stack 10 tasks and moves the existing-repository proof and the summary write-up into a later section. Module behaviour does not change. I read REVIEW.md and AGENTS.md, then the commits and the full diff, and checked the touched documents against each other: STAGES, TODO, decision 38, the audit record, CHANGELOG, VERSIONING and the earlier stacks' TODO pattern. The version bump, the commit types and the ticked closing tasks match earlier stacks, and I found no infrastructure names. The only problems are two places where the documents disagree about what Stack 10 delivered.",
   "Findings": [
     {
       "Id": "F1",
-      "Severity": "Medium",
-      "Step": "Tests",
-      "Rule": "I-10",
-      "File": "Tests/Mutation/InvariantMutations.psd1",
-      "Line": 51,
-      "Title": "Three mutation entries look for catch-block text that this change removed, so Test-InvariantMutation.ps1 now throws instead of checking those invariants.",
-      "Detail": "The change rewrites the catch blocks in Assert-OracleEnvironment (line 223-224) and ConvertFrom-SecureStringToPlaintext (line 95-96) to throw with $safeMessage. Three mutation entries still use the old text as their Find string: 'throw \"Oracle environment validation failed: $($PSItem.Exception.Message)\"' for Assert-OracleEnvironment T1 (line 51), and 'throw \"Failed to convert SecureString: $($PSItem.Exception.Message)\"' for ConvertFrom-SecureStringToPlaintext S5 (line 68) and T1 (line 72). Scripts/Test-InvariantMutation.ps1 throws when a Find text does not occur exactly once (line 203), so the mutation run now stops at these entries. The three cited tests, one of them for a [SEC] invariant (S5), are no longer shown to fail when their invariant breaks. The change touches invariant blocks, so REVIEW.md step 1 requires this script to pass, and Tests/Mutation/InvariantMutations.psd1 is not in the changed files. Fix: rewrite the three Find and Replace strings against the new catch blocks. Also consider adding entries for the newly proven Set-OracleEnv S3 and Get-OracleDatabaseList S2, and for the E4 regex fix: no current mutation restores the old first-@ pattern.",
-      "Response": "Fixed: 98a7b73. The three entries now find the $safeMessage catch lines; new mutations cover the E4 first-@ pattern and each new scrub invariant. The run then showed Assert-OracleEnvironment S7 surviving, because the catch-block scrub made the separate tnsping scrub unobservable; that scrub is removed and S7 holds through the catch block. 82 of 82 mutations caught."
-    },
-    {
-      "Id": "F2",
-      "Severity": "Medium",
-      "Step": "Intent",
-      "Rule": "I-08",
-      "File": "Source/Private/Assert-OracleEnvironment.ps1",
-      "Line": 222,
-      "Title": "Four private helpers now scrub exception text before they re-throw it, but none of their invariant blocks records this.",
-      "Detail": "Assert-OracleEnvironment, ConvertFrom-SecureStringToPlaintext, Get-OracleBackupConfigStore and Set-RestrictiveAcl each gain an Invoke-CredentialScrub call in their catch block, a security behaviour change. None of their INVARIANTS blocks is changed. They have no [SEC] entry saying the re-thrown text is scrubbed (compare Invoke-RmanProcess S5), and their T1 entries still describe only the prefix. The public functions Set-OracleEnv S3 and Get-OracleDatabaseList S2 were updated in the same commit, so the omission is inconsistent with the change itself. The guarantee also does not appear in Docs/standards/invariants-index.md for these functions. Fix: add a [SEC] S entry to each block (next unused ID per I-04) stating that exception text is scrubbed before the re-throw. Cite the ExceptionScrub static check or a per-function check as its proof.",
-      "Response": "Fixed: 98a7b73. Assert-OracleEnvironment S10, ConvertFrom-SecureStringToPlaintext S6, Get-OracleBackupConfigStore S5 and Set-RestrictiveAcl S5 state the catch-block scrub, each proven by a cited static check in SourceInvariants.Tests.ps1."
-    },
-    {
-      "Id": "F3",
-      "Severity": "Medium",
-      "Step": "Tests",
-      "Rule": "S-17",
-      "File": "Tests/Static/AgentPermissions.Tests.ps1",
-      "Line": 858,
-      "Title": "The S-17 check reads only the allow and deny lists, so a committed defaultMode that bypasses permission prompts passes the gate.",
-      "Detail": "The check compares permissions.allow against the documented allow list and checks that every documented deny rule is present. It never reads permissions.defaultMode or any other key in the permissions block. A committed .claude/settings.json with defaultMode set to bypassPermissions or dontAsk would let the agent run any command without asking, yet both tests would still pass. SECURITY.md section 12 (line 243) says any command outside the allow list asks first, and S-17 says the files 'allow nothing beyond the documented allow rules'. A change of mode breaks both, and the check meant to enforce S-17 misses it. That is the 'allow rule widened' escape the check (decision 37, entry E3) was added to close. Fix: record the expected defaultMode (or its absence), and any other permission keys, in Tests/Lint/AgentPermissions.psd1, and fail when the file differs.",
-      "Response": "Fixed: 98a7b73. Tests/Lint/AgentPermissions.psd1 lists the top-level and permissions keys each file may hold, and the S-17 check fails on any other key; shown to fail on permissions.defaultMode = bypassPermissions in a scratch copy. S-17, decision 37 and SECURITY section 12 say so."
-    },
-    {
-      "Id": "F4",
       "Severity": "Low",
       "Step": "Intent",
       "Rule": "D-11",
-      "File": "Source/Private/Invoke-CredentialScrub.ps1",
-      "Line": 9,
-      "Title": "The .DESCRIPTION still names only the three RMAN functions as scrubbing exception messages, although six more now call the scrub.",
-      "Detail": "Lines 7-10 list the callers that scrub exception messages as Invoke-RmanProcess, Get-RmanBackupStatus and Remove-RmanObsoleteBackup. This change makes Set-OracleEnv, Get-OracleDatabaseList, Assert-OracleEnvironment, ConvertFrom-SecureStringToPlaintext, Get-OracleBackupConfigStore and Set-RestrictiveAcl call it too, and SECURITY.md now says every function does. The change edits the next paragraph of the same help block but leaves this list out of date. Fix: say that every function scrubs exception text (rule S-07), or list all callers.",
-      "Response": "Fixed: 98a7b73. The .DESCRIPTION now says every function scrubs the exception text it re-throws or places in Message (rule S-07)."
+      "File": "Docs/STAGES.md",
+      "Line": 237,
+      "Title": "The Stack 10 Deliverables line still lists the summary write-up, which the change moves out of Stack 10 while marking the stage Complete.",
+      "Detail": "The change rewrites the Stack 10 'Done when' and adds a paragraph saying the summary write-up answering the question layer by layer, and the final project page, follow the existing-repository proof after Stack 10. The same change marks Stack 10 'Complete (v0.2.10)' in the stage overview. But the Deliverables line directly above (lines 236-238) still says 'a summary write-up answering the question layer by layer'. TODO.md, CHANGELOG 0.2.10 and decision 38 all say this deliverable was moved out. As written, the section lists a deliverable the stage did not deliver and calls the stage complete. Fix: remove the summary write-up from the Stack 10 Deliverables, or replace it with 'a Stack 10 post', so the deliverables match the moved scope.",
+      "Response": "Fixed: f9f09bf"
+    },
+    {
+      "Id": "F2",
+      "Severity": "Low",
+      "Step": "Intent",
+      "Rule": "D-11",
+      "File": "Docs/audit/stack-10-wrap-up.md",
+      "Line": 68,
+      "Title": "The audit record calls the fresh-repository proof 'the end-of-project test in the plan', but the plan's test also required the existing-repository proof, which has been deferred.",
+      "Detail": "Before this change, the Stack 10 'Done when' in STAGES.md required a working gate on a fresh, empty repo and on a file copy of an existing private module repo. This change moves the second half to a later task (decision 38, and the new TODO section 'Template Proof on an Existing Repo (after Stack 10)'). The record's Result section still ends with 'This is the end-of-project test in the plan', which reads as if the project's closing test has been met. The same record's 'Moved out of Stack 10' section and the TODO.md write-up task (which waits for that proof) both say otherwise. Fix: reword the sentence, for example 'This is the Stack 10 test; the existing-repository half of the end-of-project test is still open (decision 38).'",
+      "Response": "Fixed: f9f09bf (the plan's end-of-project test is the template on a fresh repository plus the summary post; the existing-repository proof is not part of it, but the summary post is deferred, so the sentence now names the proof as the template half)"
     }
   ]
 }
