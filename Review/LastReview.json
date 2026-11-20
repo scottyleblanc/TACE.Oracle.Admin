@@ -1,10 +1,10 @@
 {
   "SchemaVersion": 1,
-  "Commit": "4463795602317d83bd2ef76a19b5f72f515a2cae",
+  "Commit": "2e81cda36b0ac53efe0eade2a984c916fabed364",
   "BaseCommit": "43d5fed133ca0ec383124e093bbd722449fe433e",
   "Base": "origin/master",
   "Completed": true,
-  "RunAtUtc": "2026-11-20T12:22:03Z",
+  "RunAtUtc": "2026-11-20T12:53:04Z",
   "Reviewer": {
     "Tool": "Claude Code",
     "Version": "2.1.308",
@@ -13,21 +13,43 @@
   },
   "PromptSha256": "ebf2a741564fe0498d640695edc9f69d059fe78be2dd73c56e4cb65aa81b44a2",
   "FilesReviewed": 5,
-  "Turns": 9,
-  "CostUsd": 0.31,
+  "Turns": 14,
+  "CostUsd": 0.33,
   "PermissionDenials": 0,
-  "Summary": "The change is documentation only, in one commit. Decision 38, the Stack 10 audit record, TODO.md, the 0.2.10 audit row in SECURITY.md and an Unreleased CHANGELOG entry now say the gate template is public under the MIT licence, with TACE Data Management Inc. as the copyright holder, and that its licence file is the only file in it that names TACE. I followed the order in Docs/REVIEW.md. For intent, I checked the commit message against the diff and checked the edited documents against each other and against the rest of decision 38. There are no tests or code to review. For S-16, the company name already appears in the module manifest and in every file header, so naming it here discloses nothing new, and the change names no template repository, host or account. One stale statement remains in decision 38.",
+  "Summary": "This change only touches documentation. Decision 38, the Stack 10 audit record, the TODO.md item, the 0.2.10 audit row in SECURITY.md and a new Unreleased CHANGELOG entry now say the gate template is public under the MIT licence, with TACE Data Management Inc. as copyright holder, and that its licence file is the only file in it naming TACE. A later commit rewords decision 38's reason for rejecting a git submodule: a target must be self-contained. I followed Docs/REVIEW.md in order (intent, tests, implementation). I checked the diff against the commit messages, the review record and every other place in Docs that mentions the template's visibility or branding. There is no code or test to review, and the company name already appears in the manifest and every file header, so S-16 is not affected. What remains is one stale TODO condition, a CHANGELOG entry that leaves out the reworded decision, and a review response that cites a commit whose message gives a different reason than the final decision text.",
   "Findings": [
     {
       "Id": "F1",
       "Severity": "Low",
       "Step": "Intent",
+      "Rule": "D-06",
+      "File": "Docs/TODO.md",
+      "Line": 570,
+      "Title": "The open write-up task still waits for the template repository to become public, which the change now records as done.",
+      "Detail": "The change edits TODO.md, decision 38, the Stack 10 record and the SECURITY.md audit row to say the template is public under the MIT licence. The open task at TODO.md line 570 still reads 'Write-up, once the template repository is public and the proof above is done'. Half of that condition is now met, so the task misstates what it is waiting for, and that contradicts the documents this change updates (D-11). Fix: drop the 'once the template repository is public' condition so the task waits only on the existing-repository proof.",
+      "Response": "Fixed: 79ab3bb"
+    },
+    {
+      "Id": "F2",
+      "Severity": "Low",
+      "Step": "Intent",
       "Rule": "D-11",
-      "File": "Docs/standards/decisions.md",
-      "Line": 47,
-      "Title": "Decision 38 now says the template is public, but its Rejected clause still turns down a git submodule because the target's CI 'could not reach a private template'.",
-      "Detail": "The amended decision 38 says the template 'is public and released under the MIT licence'. The same row still gives this reason for rejecting a git submodule: 'the target's CI could not reach a private template'. Now that the template is public, that reason no longer holds as written, so the decision contradicts itself. The reader cannot tell whether the subtree choice still stands or why. The change edits this row and should have updated the clause too. Fix: reword the reason so it still holds, for example that the template was private when the decision was made, or that a subtree keeps the target's CI free of any dependency on the template repository. Or record that the reason has changed.",
-      "Response": "Fixed: 49ba400"
+      "File": "Docs/CHANGELOG.md",
+      "Line": 13,
+      "Title": "The Unreleased entry lists the licence change but not the new reason decision 38 gives for rejecting a git submodule.",
+      "Detail": "Commit 2e81cda changes decision 38's Rejected clause. The old reason was that the target's CI could not reach a private template. The new reason is that a target with a submodule depends on reaching the template's repository whenever it is cloned or its CI runs, while a subtree keeps it self-contained. The only Unreleased CHANGELOG entry says decision 38 changed because the template is now public under MIT. It does not mention the changed rationale, so the changelog describes only part of what this change does to decision 38. Fix: add a line saying decision 38 now rejects a submodule because a target must be self-contained, not because the template is private.",
+      "Response": "Fixed: 79ab3bb"
+    },
+    {
+      "Id": "F3",
+      "Severity": "Low",
+      "Step": "Intent",
+      "Rule": "none",
+      "File": "Review/LastReview.json",
+      "Line": 30,
+      "Title": "Finding F1 is answered 'Fixed: 49ba400', but that commit's message gives a reason the final decision does not, and the decision text was changed later in 2e81cda.",
+      "Detail": "Commit 49ba400 ('docs(review): close review finding F1') says decision 38 rejects a submodule because the template's repository 'was private when decided, not because it is private now'. The decision text in the commit under review gives a different reason: a target must be self-contained, so it should not depend on reaching the template's repository. That reworded text arrived in 2e81cda, after the review record was written. The commit messages therefore disagree about why the submodule was rejected, and the F1 Response points the human reviewer to a commit that does not hold the final fix. Fix: set the F1 Response to cite 2e81cda, and stop relying on 49ba400's message for the rationale.",
+      "Response": "Accepted: this record replaces the earlier one it refers to and covers 2e81cda, where decision 38 gives the final reason; nothing in the files is wrong."
     }
   ]
 }
