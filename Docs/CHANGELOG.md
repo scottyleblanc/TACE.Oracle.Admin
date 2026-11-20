@@ -6,6 +6,14 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- Decision 38, `Docs/audit/stack-10-wrap-up.md`, `TODO.md` and the 0.2.10 audit row in
+  `SECURITY.md`: the template is now public under the MIT licence, held by TACE Data
+  Management Inc., and its licence file is the one file in it that names TACE.
+
 ## [0.2.10] - 2026-11-19
 
 Stack 10 of the AI Development Stack — wrap-up. No change to module behaviour. Not
